@@ -27,6 +27,7 @@ Log to Syslog.
 Time.
 AM/PM.
 Seconds.
+Weekday.
 Date.
 Temperature (with RTC only).
 Timer.
@@ -48,18 +49,20 @@ Testmode.
 ### Needed libraries:
 ```
 via Arduino:
-WiFiManager by tzapu
-DNSServer by Kristijan Novoselic
-ArduinoOTA by Ivan Grokhotkov
-ESP8266WebServer by Ivan Grokhotkov
 ESP8266WiFi by Ivan Grokhotkov
+ESP8266WebServer by Ivan Grokhotkov
+ESP8266mDNS by Tony DiCola and Ivan Grokhotkov
+WiFiManager by tzapu
+WiFiClient
+WiFiUdp
+ArduinoOTA by Ivan Grokhotkov
 FastLED by Daniel Garcia
-RTC by Makuna
-IRremoteESP8266 by Sebastien Warin
 
 via Web:
+https://github.com/markszabo/IRremoteESP8266
 https://github.com/PaulStoffregen/Time
 https://github.com/JChristensen/Timezone
+https://github.com/JChristensen/DS3232RTC
 https://github.com/arcao/Syslog
 
 There is a warning from FastLED about SPI when compiling. Just ignore it.
@@ -80,6 +83,7 @@ Die Firmware gibt es hier: https://github.com/ch570512/Qlockwork
 Zeitanzeige: Der Standardmodus der Uhr. Er zeigt die Zeit an. :)
 Anzeige AM/PM: Zeigt an, ob es vormittags (AM) oder nachmittags (PM) ist.
 Sekunden: Anzeige der Sekunden.
+Wochentag: Zeigt den Wochentag in der eingestellten Sprache an.
 Datum: Anzeige des aktuellen Tages und Monats.
 Temperatur: Anzeige der gemessenen Temperatur.
 Timer Set: Setzt den Minuten-Timer. Null schaltet den Timer ab.
@@ -92,7 +96,7 @@ Alarm2: Setzt den zweiten 24-Stunden-Alarm wenn Alarm2 "ein" ist.
 ```
 ### Erweiterte Modi
 ```
-Titel MAIN: H+ und M+ druecken um direkt in die naechste oder vorhergehende Kategorie zu wechseln.
+Titel MAIN: + und - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
 Automatische Helligkeitsregelung ein/aus
 Helligkeitsregelung
 Farbe
@@ -100,16 +104,16 @@ Ruecksprungverzoegerung (FB nn): Wie lange soll es dauern, bis z.B. aus der Seku
                                  Zeitanzeige gewechselt wird. (0 = deaktiviert.)
 Sprache (DE/CH/EN/...): Die passende Sprache zur benutzten Front waehlen.
 
-Titel TIME: H+ und M+ druecken um direkt in die naechste oder vorhergehende Kategorie zu wechseln.
-Zeit einstellen: H+ und M+ druecken um die Zeit zu stellen. Die Sekunden springen mit jedem Druck auf Null.
+Titel TIME: + und - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
+Zeit einstellen: + für Stunden und - für Minuten druecken um die Zeit zu stellen. Die Sekunden springen mit jedem Druck auf Null.
 "Es ist" anzeigen oder nicht (IT EN/DA)
-Tag einstellen   (DD nn): H+ und M+ druecken um den aktuellen Tag einzustellen.
-Monat einstellen (MM nn): H+ und M+ druecken um den aktuellen Monat einzustellen.
-Jahr einstellen  (YY nn): H+ und M+ druecken um das aktuelle Jahr einzustellen.
-Nachtauschaltung        (NI OF): H+ und M+ druecken um die Ausschaltzeit des Displays einzustellen.
-Nachtwiedereinschaltung (NI ON): H+ und M+ druecken um die Einschaltzeit des Displays einzustellen.
+Tag einstellen   (DD nn): + und - druecken um den aktuellen Tag einzustellen.
+Monat einstellen (MM nn): + und - druecken um den aktuellen Monat einzustellen.
+Jahr einstellen  (YY nn): + und - druecken um das aktuelle Jahr einzustellen.
+Nachtauschaltung        (NI OF): + und - druecken um die Ausschaltzeit des Displays einzustellen.
+Nachtwiedereinschaltung (NI ON): + und - druecken um die Einschaltzeit des Displays einzustellen.
 
-Titel TEST: H+ und M+ druecken um direkt in die naechste oder vorhergehende Kategorie zu wechseln.
+Titel TEST: + und - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
 LED-Test: Laesst einen waagerechten Streifen ueber das Display wandern.
 ```
 ### Configuration.h
@@ -117,12 +121,18 @@ LED-Test: Laesst einen waagerechten Streifen ueber das Display wandern.
 #define HOSTNAME            Der Name der Uhr.
 #define OTA_PASS            Kennwort fuer "Over the Air" Updates.
 #define NTP_SERVER          Abzufragender NTP-Server.
+
+#define SYSLOG_SERVER       Daten an einen Syslogserver senden.
+#define SYSLOG_FACILITY
+#define SYSLOG_PORT
+
 #define RTC_BACKUP          Eine RTC als Backup verwenden.
 #define RTC_TEMP_OFFSET     Gibt an, um wieviel Grad die gemessene Temperatur (+ oder -) korrigiert werden soll.
                             Nur ganze Zahlen verwenden.
 #define BOARD_LED           Zeigt mit Hilfe der LED auf dem ESP die Funktion an. Sie blinkt einmal pro Sekunde.
-#define NONE_TECHNICAL_ZERO Zeigt die Null ohne den diagonalen Strich.
-
+#define LDR                 Einen LDR fuer die Helligkeitsregelung verwenden.
+#define MIN_BRIGHTNESS 10   Minimale Helligkeit der LEDs im Bereich von 0 bis 255.
+#define MAX_BRIGHTNESS 255  Maxmale Helligkeit der LEDs im Bereich von 0 bis 255.
 
 Die Zeitzone in der sich die Uhr befindet. Wichtig fuer den GMT-Versatz und die Sommer-/Winterzeitumstellung.
 
@@ -134,12 +144,22 @@ Die Zeitzone in der sich die Uhr befindet. Wichtig fuer den GMT-Versatz und die 
 #define TIMEZONE_CET
 #define TIMEZONE_AEST
 
+#define NONE_TECHNICAL_ZERO Zeigt die Null ohne den diagonalen Strich.
+#define IR_LETTER_OFF       Schaltet die LED hinter dem IR-Sensor dauerhaft ab. Das verbessert den IR-Empfang.
+                            Hier das K vor Uhr.
+							
+#define IR_REMOTE  IR-Fernbedienung verwenden.
 
-#define LDR                 Einen LDR fuer die Helligkeitsregelung verwenden.
+Jede Fernbedienung kann verwendet werden. Es werden 6 Tasten unterstützt.
+Um die Fernbedienung anzulernen "#define DEBUG" einschalten und einen Knopf auf der Fernbedienung druecken.
+Den in der seriellen Konsole angezeigten Code dann in die Datei "Configuration.h" schreiben.
 
-
-#define MIN_BRIGHTNESS 10   Minimale Helligkeit der LEDs im Bereich von 0 bis 255.
-#define MAX_BRIGHTNESS 255  Maxmale Helligkeit der LEDs im Bereich von 0 bis 255.
+#define IR_CODE_ONOFF   16769565
+#define IR_CODE_TIME    16753245
+#define IR_CODE_MODE    16736925
+#define IR_CODE_EXTMODE 16748655
+#define IR_CODE_PLUS    16754775
+#define IR_CODE_MINUS   16769055
 
 
 #define LED_LAYOUT_HORIZONTAL  Waagerecht und Eck-LEDs am Ende des Stripes. (Von vorne gesehen.)
@@ -172,7 +192,6 @@ Die Zeitzone in der sich die Uhr befindet. Wichtig fuer den GMT-Versatz und die 
 010 012 031 032 051 052 071 072 091 092 112
 011                                     113
 
-
 #define LED_RGB
 #define LED_RGBW  Da RGBW von FAST-LED (noch) nicht unterstuetzt wird, ist dies ein Hack welcher nur mit dem
                   LPD8806 Treiber und dem Streifen der CLT2 getestet ist. Es ist zu vermuten, dass andere
@@ -184,23 +203,16 @@ APA102, APA104, APA106, DOTSTAR, GW6205, GW6205_400, LPD1886, LPD1886_8BIT, LPD8
 P9813, PL9823, SK6812, SK6822, SK9822, SM16716, TM1803, TM1804, TM1809, TM1812, TM1829, UCS1903,
 UCS1903B, UCS1904, UCS2903, WS2801, WS2803, WS2811, WS2811_400, WS2812, WS2812B, WS2813, WS2852.
 
+Die Hardwarebelegung des ESP:
 
-#define IR_LETTER_OFF  Schaltet die LED hinter dem IR-Sensor dauerhaft ab. Das verbessert den IR-Empfang.
-                       Hier das K vor Uhr.
+#define PIN_IR_RECEIVER D3
+#define PIN_LED         D4
+#define PIN_BUZZER      D5
+#define PIN_LEDS_CLOCK  D7
+#define PIN_LEDS_DATA   D8
+#define PIN_LDR         A0
 
-#define IR_REMOTE  IR-Fernbedienung verwenden.
-
-Jede Fernbedienung kann verwendet werden. Es werden 6 Tasten unterstützt.
-Um die Fernbedienung anzulernen "#define DEBUG" einschalten und einen Knopf auf der Fernbedienung druecken.
-Den in der seriellen Konsole angezeigten Code dann in die Datei "Configuration.h" schreiben.
-
-#define IR_CODE_ONOFF   16769565
-#define IR_CODE_TIME    16753245
-#define IR_CODE_MODE    16736925
-#define IR_CODE_EXTMODE 16748655
-#define IR_CODE_PLUS    16754775
-#define IR_CODE_MINUS   16769055
-
+Debugeinstelltungen:
 
 #define SERIAL_SPEED  Geschwindigkeit der seriellen Schnittstelle fuer die serielle Konsole.
 #define DEBUG         Gibt technische Informationen in der seriellen Konsole aus.

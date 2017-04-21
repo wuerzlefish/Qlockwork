@@ -24,9 +24,7 @@
 #ifdef CONFIG_DEFAULT
 
 #define HOSTNAME "QLOCKWORK"
-
 #define OTA_PASS "1234"
-
 #define NTP_SERVER "pool.ntp.org"
 
 //#define SYSLOG_SERVER "192.168.0.1"
@@ -35,13 +33,8 @@
 
 #define RTC_BACKUP
 #define RTC_TEMP_OFFSET 0
-
 #define BOARD_LED
-
-//#define NONE_TECHNICAL_ZERO
-
 #define LDR
-
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
 
@@ -53,6 +46,7 @@
 #define TIMEZONE_CET
 //#define TIMEZONE_AEST
 
+//#define NONE_TECHNICAL_ZERO
 //#define IR_LETTER_OFF
 
 #define IR_REMOTE
@@ -128,6 +122,7 @@
 #define SYSLOG_PORT 514
 #define RTC_BACKUP
 #define RTC_TEMP_OFFSET 0
+#define BOARD_LED
 #define LDR
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
@@ -152,17 +147,12 @@
 #define DEBUG
 //#define DEBUG_MATRIX
 //#define DEBUG_FPS
-
 #endif // CONFIG_QLOCKDEV
 
 #ifdef CONFIG_CLT2
-
 #define HOSTNAME "CLT2"
 #define OTA_PASS "1234"
 #define NTP_SERVER "nostromo"
-#define SYSLOG_SERVER "nostromo-test"
-#define SYSLOG_FACILITY LOG_LOCAL1
-#define SYSLOG_PORT 514
 #define RTC_BACKUP
 #define RTC_TEMP_OFFSET -5
 #define LDR
@@ -187,7 +177,6 @@
 #define PIN_LEDS_DATA   D8
 #define PIN_LDR         A0
 #define SERIAL_SPEED 115200
-
 #endif // CONFIG_CLT2
 
 #endif

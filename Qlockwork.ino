@@ -7,18 +7,17 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 ******************************************************************************/
 
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
 #include <WiFiManager.h>
 #include <WiFiClient.h>
-#include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
-#include <ESP8266mDNS.h>
-#include <IRremoteESP8266.h>
 #include <ArduinoOTA.h>
-#include <Wire.h>
-#include <RtcDS3231.h>
-#include <TimeLib.h>
-#include <Timezone.h>
-#include <Syslog.h>
+#include <IRremoteESP8266.h>   // https://github.com/markszabo/IRremoteESP8266
+#include <DS3232RTC.h>         // https://github.com/JChristensen/DS3232RTC
+#include <TimeLib.h>           // https://github.com/PaulStoffregen/Time
+#include <Timezone.h>          // https://github.com/JChristensen/Timezone
+#include <Syslog.h>            // https://github.com/arcao/Syslog
 #include "Configuration.h"
 #include "Debug.h"
 #include "Modes.h"
@@ -28,7 +27,7 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include "LedDriver.h"
 #include "Settings.h"
 
-#define FIRMWARE_VERSION "qw20170401"
+#define FIRMWARE_VERSION "qw20170421"
 
 /******************************************************************************
 Init
@@ -40,9 +39,6 @@ Settings settings;
 WiFiUDP Udp;
 ESP8266WebServer server(80);
 Debug debug;
-#ifdef RTC_BACKUP
-RtcDS3231<TwoWire> Rtc(Wire);
-#endif
 #ifdef IR_REMOTE
 IRrecv irrecv(PIN_IR_RECEIVER);
 #endif
@@ -62,7 +58,7 @@ uint8_t lastHour = 0;
 uint8_t lastMinute = 0;
 uint8_t lastFiveMinute = 0;
 boolean timerSet = false;
-uint16_t timerMinutes = 0;
+uint8_t timerMinutes = 0;
 time_t timer = 0;
 time_t lastTime = 0;
 uint8_t alarmOn = 0;
@@ -144,10 +140,10 @@ void setup() {
 
 	// WiFi und Dienste initialisieren
 	renderer.clearScreenBuffer(matrix);
-	matrix[0] = 0b0000000000000000;
-	matrix[1] = 0b0000111000000000;
-	matrix[2] = 0b0011111110000000;
-	matrix[3] = 0b1111111111100000;
+	matrix[0] = 0b0000000000010000;
+	matrix[1] = 0b0000111000010000;
+	matrix[2] = 0b0011111110010000;
+	matrix[3] = 0b1111111111110000;
 	matrix[4] = 0b0111111111000000;
 	matrix[5] = 0b0011111110000000;
 	matrix[6] = 0b0001111100000000;
@@ -174,7 +170,9 @@ void setup() {
 		digitalWrite(PIN_BUZZER, LOW);
 	}
 	else {
-		DEBUG_PRINTLN("WiFi connected.");
+		//DEBUG_PRINTLN("WiFi connected.");
+		//DEBUG_PRINT("IP address: ");
+		//DEBUG_PRINTLN(WiFi.localIP());
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("OK", Renderer::TEXT_POS_MIDDLE, matrix);
 		ledDriver.writeScreenBufferToLEDs(matrix, 2); // Color 2: gruen
@@ -203,8 +201,6 @@ void setup() {
 
 	// Zeitprovider setzen
 #ifdef RTC_BACKUP
-	Rtc.Begin();
-	Rtc.SetIsRunning(true);
 	if (WiFi.status() == WL_CONNECTED) {
 		DEBUG_PRINTLN("Setting ESP from NTP with RTC backup.");
 		setSyncProvider(getNtpTime);
@@ -258,16 +254,16 @@ void loop() {
 		lastHour = hour();
 		DEBUG_PRINTLN("Volle Stunde erreicht.");
 #if defined(RTC_BACKUP) && defined(SYSLOG_SERVER)
-		syslog.log(LOG_INFO, "Temperature: " + String(Rtc.GetTemperature().AsFloat() + RTC_TEMP_OFFSET) + "C / " + String((Rtc.GetTemperature().AsFloat() + RTC_TEMP_OFFSET) * 1.8 + 32) + "F");
+		syslog.log(LOG_INFO, "Temperature: " + String(RTC.temperature() / 4 + RTC_TEMP_OFFSET) + "C / " + String((RTC.temperature() / 4 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "F");
 #endif
 	}
 
 	// Alle fuenf Minuten ausfuehren
 	// lastFiveMinute ist vom Typ uint8_t. Dadurch werden die Nachkommastellen verworfen.
-	if ((minute() / 5) != lastFiveMinute) {
-		lastFiveMinute = minute() / 5;
-		DEBUG_PRINTLN("Volle fuenf Minuten erreicht.");
-	}
+	//if ((minute() / 5) != lastFiveMinute) {
+	//	lastFiveMinute = minute() / 5;
+	//	DEBUG_PRINTLN("Volle fuenf Minuten erreicht.");
+	//}
 
 	// Jede Minute ausfuehren
 	if (minute() != lastMinute) {
@@ -415,6 +411,10 @@ void loop() {
 				matrix[1 + i] |= (zahlenGross[second() % 10][i]) << 5;
 			}
 			break;
+		case STD_MODE_WEEKDAY:
+			renderer.clearScreenBuffer(matrix);
+			renderer.setSmallText(sWeekday[settings.getLanguage()][weekday()], Renderer::TEXT_POS_MIDDLE, matrix);
+			break;
 		case STD_MODE_DATE:
 			renderer.clearScreenBuffer(matrix);
 			if (day() < 10) renderer.setSmallText(("0" + String(day())), Renderer::TEXT_POS_TOP, matrix);
@@ -428,11 +428,11 @@ void loop() {
 		case STD_MODE_TEMP:
 			renderer.clearScreenBuffer(matrix);
 			for (uint8_t i = 0; i < 7; i++) {
-				matrix[1 + i] |= (zahlenGross[(Rtc.GetTemperature().AsWholeDegrees() + RTC_TEMP_OFFSET) / 10][i]) << 11;
-				matrix[1 + i] |= (zahlenGross[(Rtc.GetTemperature().AsWholeDegrees() + RTC_TEMP_OFFSET) % 10][i]) << 5;
+				matrix[1 + i] |= (zahlenGross[(int(RTC.temperature() / 4) + RTC_TEMP_OFFSET) / 10][i]) << 11;
+				matrix[1 + i] |= (zahlenGross[(int(RTC.temperature() / 4) + RTC_TEMP_OFFSET) % 10][i]) << 5;
 			}
 			renderer.setPixelInScreenBuffer(4, 0, matrix); // LED rechts oben setzen als "Grad"
-			DEBUG_PRINTLN(String(Rtc.GetTemperature().AsFloat() + RTC_TEMP_OFFSET));
+			DEBUG_PRINTLN(String(RTC.temperature() / 4 + RTC_TEMP_OFFSET));
 			break;
 #endif
 		case STD_MODE_SET_TIMER:
@@ -514,6 +514,10 @@ void loop() {
 		case EXT_MODE_COLOR:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("CO", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setPixelInScreenBuffer(4, 0, matrix);
+			renderer.setPixelInScreenBuffer(4, 1, matrix);
+			renderer.setPixelInScreenBuffer(4, 2, matrix);
+			renderer.setPixelInScreenBuffer(4, 3, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i < 10; i++) matrix[i] = 0;
 			else renderer.setSmallText(String(settings.getColor()), Renderer::TEXT_POS_BOTTOM, matrix);
 			break;
@@ -691,7 +695,7 @@ void modePressed() {
 
 #ifdef RTC_BACKUP
 	// RTC stellen
-	Rtc.SetDateTime(now());
+	RTC.set(now());
 #endif
 }
 
@@ -903,7 +907,7 @@ void remoteAction(uint32_t irDecodeResults) {
 	case IR_CODE_TIME:
 		settings.saveToEEPROM();
 #ifdef RTC_BACKUP
-		Rtc.SetDateTime(now());
+		RTC.set(now());
 #endif
 		if (alarmOn) {
 			alarmOn = false;
@@ -968,7 +972,7 @@ time_t getRtcTime() {
 #ifdef SYSLOG_SERVER
 	syslog.log(LOG_DEBUG, "ESP set from RTC.");
 #endif
-	return Rtc.GetDateTime();
+	return RTC.get();
 }
 #endif
 
@@ -993,7 +997,7 @@ time_t getNtpTime() {
 #ifdef SYSLOG_SERVER
 				syslog.log(LOG_DEBUG, "RTC set from NTP.");
 #endif
-				Rtc.SetDateTime(timeZone.toLocal(secsSince1900 - 2208988800UL));
+				RTC.set(timeZone.toLocal(secsSince1900 - 2208988800UL));
 #endif
 				DEBUG_PRINTLN("*** ESP set from NTP. ***");
 #ifdef SYSLOG_SERVER
@@ -1014,7 +1018,7 @@ time_t getNtpTime() {
 	}
 	DEBUG_PRINTLN("Wifi not connected. :(");
 	return now();
-	}
+}
 
 // NTP Paket senden
 void sendNTPpacket(IPAddress & address) {
@@ -1082,12 +1086,16 @@ void handleRoot() {
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_MINUS'\">-</button>";
 	message += "<br><br>";
 #ifdef RTC_BACKUP
-	message += "Temperature: " + String(Rtc.GetTemperature().AsFloat() + RTC_TEMP_OFFSET) + "&#176;C / " + String((Rtc.GetTemperature().AsFloat() + RTC_TEMP_OFFSET) * 1.8 + 32) + "&#176;F";
+	message += "Temperature: " + String(RTC.temperature() / 4 + RTC_TEMP_OFFSET) + "&#176;C / " + String((RTC.temperature() / 4 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "&#176;F";
 	message += "<br>";
 #endif
 	message += "<font size=2>";
 	message += "Firmware: ";
 	message += FIRMWARE_VERSION;
+	message += "<br>";
+	message += "Free RAM: ";
+	message += system_get_free_heap_size();
+	message += " bytes";
 	message += "</font>";
 	message += "</body>";
 	message += "</html>";
@@ -1110,7 +1118,7 @@ void handle_BUTTON_TIME() {
 	}
 	settings.saveToEEPROM();
 #ifdef RTC_BACKUP
-	Rtc.SetDateTime(now());
+	RTC.set(now());
 #endif
 	setMode(STD_MODE_NORMAL);
 }
