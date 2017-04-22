@@ -26,8 +26,9 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include "Languages.h"
 #include "LedDriver.h"
 #include "Settings.h"
+#include "Timezones.h"
 
-#define FIRMWARE_VERSION "qw20170421"
+#define FIRMWARE_VERSION "qw20170422"
 
 /******************************************************************************
 Init
@@ -74,49 +75,13 @@ int8_t maxColor = sizeof(defaultColors) / 3 - 1;
 decode_results irDecodeResults;
 #endif
 
-#ifdef TIMEZONE_PST
-TimeChangeRule usPDT = { "PDT", Second, dowSunday, Mar, 2, -420 };
-TimeChangeRule usPST = { "PST", First, dowSunday, Nov, 2, -480 };
-Timezone timeZone(usPDT, usPST);
-#endif
-#ifdef TIMEZONE_MST
-TimeChangeRule usMDT = { "MDT", Second, dowSunday, Mar, 2, -360 };
-TimeChangeRule usMST = { "MST", First, dowSunday, Nov, 2, -420 };
-Timezone timeZone(usMDT, usMST);
-#endif
-#ifdef TIMEZONE_CST
-TimeChangeRule usCDT = { "CDT", Second, dowSunday, Mar, 2, -300 };
-TimeChangeRule usCST = { "CST", First, dowSunday, Nov, 2, -360 };
-Timezone timeZone(usCDT, usCST);
-#endif
-#ifdef TIMEZONE_EST
-TimeChangeRule usEDT = { "EDT", Second, Sun, Mar, 2, -240 };
-TimeChangeRule usEST = { "EST", First, Sun, Nov, 2, -300 };
-Timezone timeZone(usEDT, usEST);
-#endif
-#ifdef TIMEZONE_GMT
-TimeChangeRule BST = { "BST", Last, Sun, Mar, 1, 60 };
-TimeChangeRule GMT = { "GMT", Last, Sun, Oct, 2, 0 };
-Timezone timeZone(BST, GMT);
-#endif
-#ifdef TIMEZONE_CET
-TimeChangeRule CEST = { "CEST", Last, Sun, Mar, 2, 120 };
-TimeChangeRule CET = { "CET", Last, Sun, Oct, 3, 60 };
-Timezone timeZone(CEST, CET);
-#endif
-#ifdef TIMEZONE_AEST
-TimeChangeRule aEDT = { "AEDT", First, Sun, Oct, 2, 660 };
-TimeChangeRule aEST = { "AEST", First, Sun, Apr, 3, 600 };
-Timezone timeZone(aEDT, aEST);
-#endif
-
 /******************************************************************************
 setup()
 ******************************************************************************/
 
 void setup() {
 
-	// Seriellen Port initialisieren
+	// Init serial port
 	Serial.begin(SERIAL_SPEED);
 	delay(1000);
 
@@ -125,20 +90,14 @@ void setup() {
 	DEBUG_PRINT("Firmware: ");
 	DEBUG_PRINTLN(FIRMWARE_VERSION);
 
-	// LDR, Buzzer und LED initialisieren
+	// Init LDR, Buzzer and LED
 	DEBUG_PRINTLN("Stetting up LDR, Buzzer and LED.");
 	pinMode(PIN_LDR, INPUT);
 	pinMode(PIN_BUZZER, OUTPUT);
 	pinMode(PIN_LED, OUTPUT);
 	digitalWrite(PIN_LED, HIGH);
 
-#ifdef IR_REMOTE
-	// IR-Empfaenger initialisieren
-	DEBUG_PRINTLN("Starting IR receiver.");
-	irrecv.enableIRIn();
-#endif
-
-	// WiFi und Dienste initialisieren
+	// Init WiFi and services
 	renderer.clearScreenBuffer(matrix);
 	matrix[0] = 0b0000000000010000;
 	matrix[1] = 0b0000111000010000;
@@ -151,8 +110,8 @@ void setup() {
 	matrix[8] = 0b0000010000000000;
 	matrix[9] = 0b0000000000000000;
 	ledBrightness = settings.getBrightness();
-	ledDriver.setBrightness(100);
-	ledDriver.writeScreenBufferToLEDs(matrix, 0); // Color 0: weiss
+	ledDriver.setBrightness(ledBrightness);
+	ledDriver.writeScreenBufferToLEDs(matrix, 0); // Color 0: white
 	delay(1000);
 	WiFiManager wifiManager;
 	//wifiManager.resetSettings();
@@ -163,19 +122,16 @@ void setup() {
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("ER", Renderer::TEXT_POS_TOP, matrix);
 		renderer.setSmallText("OR", Renderer::TEXT_POS_BOTTOM, matrix);
-		ledDriver.writeScreenBufferToLEDs(matrix, 1); // Color 1: rot
+		ledDriver.writeScreenBufferToLEDs(matrix, 1); // Color 1: red
 		WiFi.mode(WIFI_OFF);
 		digitalWrite(PIN_BUZZER, HIGH);
 		delay(1500);
 		digitalWrite(PIN_BUZZER, LOW);
 	}
 	else {
-		//DEBUG_PRINTLN("WiFi connected.");
-		//DEBUG_PRINT("IP address: ");
-		//DEBUG_PRINTLN(WiFi.localIP());
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("OK", Renderer::TEXT_POS_MIDDLE, matrix);
-		ledDriver.writeScreenBufferToLEDs(matrix, 2); // Color 2: gruen
+		ledDriver.writeScreenBufferToLEDs(matrix, 2); // Color 2: green
 		for (uint8_t i = 0; i < 3; i++) {
 			digitalWrite(PIN_BUZZER, HIGH);
 			delay(100);
@@ -192,6 +148,10 @@ void setup() {
 	DEBUG_PRINTLN("Starting Arduino-OTA service.");
 	ArduinoOTA.setPassword((const char*)OTA_PASS);
 	ArduinoOTA.begin();
+#ifdef IR_REMOTE
+	DEBUG_PRINTLN("Starting IR-receiver.");
+	irrecv.enableIRIn();
+#endif
 	DEBUG_PRINT("Free RAM: ");
 	DEBUG_PRINTLN(system_get_free_heap_size());
 #ifdef SYSLOG_SERVER
@@ -199,7 +159,7 @@ void setup() {
 	syslog.log(LOG_DEBUG, "Free RAM: " + String(system_get_free_heap_size()));
 #endif
 
-	// Zeitprovider setzen
+	// Set timeprovider
 #ifdef RTC_BACKUP
 	if (WiFi.status() == WL_CONNECTED) {
 		DEBUG_PRINTLN("Setting ESP from NTP with RTC backup.");
@@ -220,7 +180,7 @@ void setup() {
 	else DEBUG_PRINTLN("No provider for setting the time found.");
 #endif
 
-	// sonstiges
+	// Misc
 	lastDay = day();
 	lastHour = hour();
 	lastFiveMinute = minute() / 5;
@@ -238,10 +198,10 @@ void loop() {
 	debug.debugFps();
 #endif
 
-	// Jeden Tag ausfuehren
+	// Execute every day
 	if (day() != lastDay) {
 		lastDay = day();
-		DEBUG_PRINTLN("Neuen Tag erreicht.");
+		DEBUG_PRINTLN("Reached a new day.");
 #ifdef SYSLOG_SERVER
 		syslog.log(LOG_DEBUG, "Free RAM: " + String(system_get_free_heap_size()));
 #endif
@@ -249,23 +209,23 @@ void loop() {
 		//else settings.setColor(0);
 	}
 
-	// Jede Stunde ausfuehren
+	// Execute every hour
 	if (hour() != lastHour) {
 		lastHour = hour();
-		DEBUG_PRINTLN("Volle Stunde erreicht.");
+		DEBUG_PRINTLN("Reached a new hour.");
 #if defined(RTC_BACKUP) && defined(SYSLOG_SERVER)
 		syslog.log(LOG_INFO, "Temperature: " + String(RTC.temperature() / 4 + RTC_TEMP_OFFSET) + "C / " + String((RTC.temperature() / 4 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "F");
 #endif
 	}
 
-	// Alle fuenf Minuten ausfuehren
-	// lastFiveMinute ist vom Typ uint8_t. Dadurch werden die Nachkommastellen verworfen.
-	//if ((minute() / 5) != lastFiveMinute) {
-	//	lastFiveMinute = minute() / 5;
-	//	DEBUG_PRINTLN("Volle fuenf Minuten erreicht.");
-	//}
+	 // Execute every five minutes
+	 // lastFiveMinute ist vom Typ uint8_t. Dadurch werden die Nachkommastellen verworfen.
+	if ((minute() / 5) != lastFiveMinute) {
+		lastFiveMinute = minute() / 5;
+		DEBUG_PRINTLN("Reached new five minutes.");
+	}
 
-	// Jede Minute ausfuehren
+	// Execute every minute
 	if (minute() != lastMinute) {
 		lastMinute = minute();
 #ifdef DEBUG
@@ -274,18 +234,18 @@ void loop() {
 		if (mode == STD_MODE_NORMAL) ScreenBufferNeedsUpdate = true;
 	}
 
-	// Jede Sekunde ausfuehren
+	// Execute every second
 	if (now() != lastTime) {
 		lastTime = now();
 
-		// Fallback zur Zeitanzeige runterzaehlen
+		// Countdown fallback
 		if (fallBackCounter > 1) fallBackCounter--;
 		else if (fallBackCounter == 1) {
 			fallBackCounter = 0;
 			setMode(STD_MODE_NORMAL);
 		}
 
-		// Display braucht Sekundenupdate
+		// Display needs secondupdate
 		switch (mode) {
 		case STD_MODE_SECONDS:
 #ifdef RTC_BACKUP
@@ -318,24 +278,24 @@ void loop() {
 		}
 
 #ifdef BOARD_LED
-		// LED auf dem Board blinken lassen
+		// Toggle LED on board
 		if (digitalRead(PIN_LED) == LOW) digitalWrite(PIN_LED, HIGH);
 		else digitalWrite(PIN_LED, LOW);
 #endif
 
 		// Alarm
-		if (settings.getAlarm1() && (hour() == hour(settings.getAlarmTime1())) && (minute() == minute(settings.getAlarmTime1())) && (second() == 0)) alarmOn = 60;
-		if (settings.getAlarm2() && (hour() == hour(settings.getAlarmTime2())) && (minute() == minute(settings.getAlarmTime2())) && (second() == 0)) alarmOn = 60;
+		if (settings.getAlarm1() && (hour() == hour(settings.getAlarmTime1())) && (minute() == minute(settings.getAlarmTime1())) && (second() == 0)) alarmOn = BUZZTIME_ALARM_1;
+		if (settings.getAlarm2() && (hour() == hour(settings.getAlarmTime2())) && (minute() == minute(settings.getAlarmTime2())) && (second() == 0)) alarmOn = BUZZTIME_ALARM_2;
 
 		// Timer
 		if (timerSet && (now() == timer)) {
 			setMode(STD_MODE_SET_TIMER);
 			timerMinutes = 0;
 			timerSet = false;
-			alarmOn = 60;
+			alarmOn = BUZZTIME_TIMER;
 		}
 
-		// ggf. Laerm machen
+		// Make some noise
 		if (alarmOn) {
 			if (second() % 2 == 0) digitalWrite(PIN_BUZZER, HIGH);
 			else digitalWrite(PIN_BUZZER, LOW);
@@ -343,14 +303,14 @@ void loop() {
 		}
 		else digitalWrite(PIN_BUZZER, LOW);
 
-		// Nachtmodus ein/aus
+		// Nightmode on/off
 		if ((hour() == hour(settings.getNightOffTime())) && (minute() == minute(settings.getNightOffTime())) && (second() == 0)) setMode(STD_MODE_BLANK);
 		if ((hour() == hour(settings.getNightOnTime())) && (minute() == minute(settings.getNightOnTime())) && (second() == 0)) setMode(lastMode);
 	}
 
-	// Immer ausfuehren
+	// Always execute
 
-	// HTTP- und OTA-Anfragen entgegennehmen
+	// Check for HTTP- and OTA-requests
 	server.handleClient();
 	ArduinoOTA.handle();
 
@@ -625,29 +585,29 @@ void loop() {
 		// Die LED hinter dem IR-Sensor abschalten.
 		renderer.unsetPixelInScreenBuffer(8, 9, matrix);
 #endif
-		// Screenbuffer in die LEDs schreiben
+		// Write screenbuffer to LEDs
 		ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor());
 #ifdef DEBUG_MATRIX
-		// Screenbuffer auf der Konsole ausgeben
+		// Write screenbuffer to console
 		debug.debugScreenBuffer(matrix);
 #endif
 	}
 }
 
 /******************************************************************************
-"Mode" gedrueckt
+"Mode" pressed
 ******************************************************************************/
 
 void modePressed() {
 
-	// Alarm abschalten
+	// Turn off alarm
 	if (alarmOn) {
 		alarmOn = false;
 		digitalWrite(PIN_BUZZER, LOW);
 		return;
 	}
 
-	// Nachtmode abschalten
+	// Turn off nightmode
 	if (mode == STD_MODE_BLANK) {
 		setMode(STD_MODE_NORMAL);
 		return;
@@ -679,6 +639,7 @@ void modePressed() {
 		return;
 	case STD_MODE_AMPM:
 	case STD_MODE_SECONDS:
+	case STD_MODE_WEEKDAY:
 	case STD_MODE_DATE:
 #ifdef RTC_BACKUP
 	case STD_MODE_TEMP:
@@ -690,17 +651,17 @@ void modePressed() {
 		break;
 	}
 
-	// Einstellungen sichern
+	// Save settings
 	settings.saveToEEPROM();
 
 #ifdef RTC_BACKUP
-	// RTC stellen
+	// Set RTC
 	RTC.set(now());
 #endif
 }
 
 /******************************************************************************
-"+" gedrueckt
+"+" pressed
 ******************************************************************************/
 
 void buttonPlusPressed() {
@@ -795,7 +756,7 @@ void buttonPlusPressed() {
 }
 
 /******************************************************************************
-"-" gedrueckt
+"-" pressed
 ******************************************************************************/
 
 void buttonMinusPressed() {
@@ -895,7 +856,7 @@ void buttonMinusPressed() {
 }
 
 /******************************************************************************
-IR empfangen
+IR-signal received
 ******************************************************************************/
 
 #ifdef IR_REMOTE
@@ -935,10 +896,10 @@ void remoteAction(uint32_t irDecodeResults) {
 #endif
 
 /******************************************************************************
-Sonstiges
+Misc
 ******************************************************************************/
 
-// Mode setzen
+// Set mode
 void setMode(Mode newmode) {
 	DEBUG_PRINT("Mode: ");
 	DEBUG_PRINTLN(newmode);
@@ -947,26 +908,26 @@ void setMode(Mode newmode) {
 	mode = newmode;
 }
 
-// LEDs ausschalten
+// Turn off LEDs
 void setLedsOff() {
 	DEBUG_PRINTLN("LEDs off.");
 	setMode(STD_MODE_BLANK);
 }
 
-// LEDs einschalten
+// Turn on LEDs
 void setLedsOn() {
 	DEBUG_PRINTLN("LEDs on.");
 	setMode(lastMode);
 }
 
-// LEDs toggeln
+// Toggle LEDs
 void setDisplayToToggle() {
 	if (mode != STD_MODE_BLANK) setLedsOff();
 	else setLedsOn();
 }
 
 #ifdef RTC_BACKUP
-// Zeit von RTC holen
+// Get time from RTC
 time_t getRtcTime() {
 	DEBUG_PRINTLN("*** ESP set from RTC. ***");
 #ifdef SYSLOG_SERVER
@@ -976,7 +937,7 @@ time_t getRtcTime() {
 }
 #endif
 
-// Zeit mit NTP holen
+// Get time with NTP
 time_t getNtpTime() {
 	if (WiFi.status() == WL_CONNECTED) {
 		while (Udp.parsePacket() > 0);
@@ -1020,7 +981,7 @@ time_t getNtpTime() {
 	return now();
 }
 
-// NTP Paket senden
+// Send NTP packet
 void sendNTPpacket(IPAddress & address) {
 	memset(packetBuffer, 0, 48);
 	packetBuffer[0] = 0b11100011;
@@ -1053,12 +1014,12 @@ void setupWebServer() {
 	server.begin();
 }
 
-// Seite 404
+// Page 404
 void handleNotFound() {
 	server.send(404, "text/plain", "404 - File Not Found.");
 }
 
-// Seite /
+// Page /
 void handleRoot() {
 	String message = "<!doctype html>";
 	message += "<html>";
@@ -1076,7 +1037,8 @@ void handleRoot() {
 	message += "<h1>";
 	message += HOSTNAME;
 	message += "</h1>";
-	message += "<button onclick=\"window.location.href='/handle_TOGGLEBLANK'\">On/Off</button>";
+	if (mode == STD_MODE_BLANK)	message += "<button onclick=\"window.location.href='/handle_TOGGLEBLANK'\">On</button>";
+	else message += "<button onclick=\"window.location.href='/handle_TOGGLEBLANK'\">Off</button>";
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_TIME'\">Time</button>";
 	message += "<br><br>";
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_MODE'\">Mode</button>";
@@ -1092,15 +1054,19 @@ void handleRoot() {
 	message += "<font size=2>";
 	message += "Firmware: ";
 	message += FIRMWARE_VERSION;
+#ifdef DEBUG
 	message += "<br>";
 	message += "Free RAM: ";
 	message += system_get_free_heap_size();
 	message += " bytes";
+#endif
 	message += "</font>";
 	message += "</body>";
 	message += "</html>";
 	server.send(200, "text/html", message);
 }
+
+// Site buttons
 
 void handle_TOGGLEBLANK() {
 	String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";

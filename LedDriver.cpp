@@ -137,7 +137,7 @@ void LedDriver::setPixel(uint8_t num, uint8_t color) {
 	uint8_t red = defaultColors[color].red;
 	uint8_t green = defaultColors[color].green;
 	uint8_t blue = defaultColors[color].blue;
-	uint32_t ledColor_rgb = red * 0x010000 + green * 0x000100 + blue;
+	uint32_t ledColor_rgb = (red << 16) + (green << 8) + blue;
 #endif
 
 #ifdef LED_RGBW
@@ -148,8 +148,8 @@ void LedDriver::setPixel(uint8_t num, uint8_t color) {
 	red -= white;
 	green -= white;
 	blue -= white;
-	uint32_t ledColor_wbg = white * 0x010000 + blue * 0x000100 + green;
-	uint32_t ledColor_r = red * 0x010000;
+	uint32_t ledColor_wbg = (white << 16) + (blue << 8) + green;
+	uint32_t ledColor_r = red << 16;
 #endif
 
 #ifdef LED_LAYOUT_HORIZONTAL

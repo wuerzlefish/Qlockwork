@@ -105,7 +105,8 @@ Ruecksprungverzoegerung (FB nn): Wie lange soll es dauern, bis z.B. aus der Seku
 Sprache (DE/CH/EN/...): Die passende Sprache zur benutzten Front waehlen.
 
 Titel TIME: + und - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
-Zeit einstellen: + für Stunden und - für Minuten druecken um die Zeit zu stellen. Die Sekunden springen mit jedem Druck auf Null.
+Zeit einstellen: + für Stunden und - für Minuten druecken um die Zeit zu stellen. Die Sekunden springen mit jedem
+                 Druck auf Null.
 "Es ist" anzeigen oder nicht (IT EN/DA)
 Tag einstellen   (DD nn): + und - druecken um den aktuellen Tag einzustellen.
 Monat einstellen (MM nn): + und - druecken um den aktuellen Monat einzustellen.
@@ -118,6 +119,11 @@ LED-Test: Laesst einen waagerechten Streifen ueber das Display wandern.
 ```
 ### Configuration.h
 ```
+
+#define CONFIG_DEFAULT      Einfache Unterstützung verschiedener Konfugurationen in einem File.
+//#define CONFIG_QLOCKDEV
+//#define CONFIG_CLT2
+
 #define HOSTNAME            Der Name der Uhr.
 #define OTA_PASS            Kennwort fuer "Over the Air" Updates.
 #define NTP_SERVER          Abzufragender NTP-Server.
@@ -132,24 +138,27 @@ LED-Test: Laesst einen waagerechten Streifen ueber das Display wandern.
 #define BOARD_LED           Zeigt mit Hilfe der LED auf dem ESP die Funktion an. Sie blinkt einmal pro Sekunde.
 #define LDR                 Einen LDR fuer die Helligkeitsregelung verwenden.
 #define MIN_BRIGHTNESS 10   Minimale Helligkeit der LEDs im Bereich von 0 bis 255.
-#define MAX_BRIGHTNESS 255  Maxmale Helligkeit der LEDs im Bereich von 0 bis 255.
-
-Die Zeitzone in der sich die Uhr befindet. Wichtig fuer den GMT-Versatz und die Sommer-/Winterzeitumstellung.
-
-#define TIMEZONE_PST
-#define TIMEZONE_MST
-#define TIMEZONE_CST
-#define TIMEZONE_EST
-#define TIMEZONE_GMT
-#define TIMEZONE_CET
-#define TIMEZONE_AEST
-
+#define MAX_BRIGHTNESS 255  Maximale Helligkeit der LEDs im Bereich von 0 bis 255.
 #define NONE_TECHNICAL_ZERO Zeigt die Null ohne den diagonalen Strich.
+#define BUZZTIME_ALARM_1    Maximale Zeit in Sekunden, die Alarm 1 Laerm macht wenn er nicht manuell abgestellt wird.
+#define BUZZTIME_ALARM_2    Maximale Zeit in Sekunden, die Alarm 2 Laerm macht wenn er nicht manuell abgestellt wird.
+#define BUZZTIME_TIMER      Maximale Zeit in Sekunden, die der Timer Laerm macht wenn er nicht manuell abgestellt wird.
+
+Die Zeitzone in der sich die Uhr befindet. Wichtig fuer den UTC-Versatz und die Sommer-/Winterzeitumstellung.
+
+//#define TIMEZONE_USMST // USMST Mountain Standard Time (USA) UTC-7
+//#define TIMEZONE_USAZ  // USAZ  Mountain Standard Time (USA) UTC-7 (no DST)
+//#define TIMEZONE_USCST // USCST Central Standard Time (USA) UTC-6
+//#define TIMEZONE_USEST // USEST Eastern Standard Time (USA) UTC-5
+//#define TIMEZONE_GMT   // GMT   Greenwich Mean Time UTC
+#define TIMEZONE_CET     // CET   Central Europe Time UTC+1
+//#define TIMEZONE_EST   // EST   Eastern Europe Time UTC+2
+//#define TIMEZONE_MSK   // MSK   Moscow Time UTC+3 (no DST)
+
+#define IR_REMOTE           Eine IR-Fernbedienung verwenden.
 #define IR_LETTER_OFF       Schaltet die LED hinter dem IR-Sensor dauerhaft ab. Das verbessert den IR-Empfang.
                             Hier das K vor Uhr.
 							
-#define IR_REMOTE  IR-Fernbedienung verwenden.
-
 Jede Fernbedienung kann verwendet werden. Es werden 6 Tasten unterstützt.
 Um die Fernbedienung anzulernen "#define DEBUG" einschalten und einen Knopf auf der Fernbedienung druecken.
 Den in der seriellen Konsole angezeigten Code dann in die Datei "Configuration.h" schreiben.
@@ -160,7 +169,6 @@ Den in der seriellen Konsole angezeigten Code dann in die Datei "Configuration.h
 #define IR_CODE_EXTMODE 16748655
 #define IR_CODE_PLUS    16754775
 #define IR_CODE_MINUS   16769055
-
 
 #define LED_LAYOUT_HORIZONTAL  Waagerecht und Eck-LEDs am Ende des Stripes. (Von vorne gesehen.)
 
@@ -196,7 +204,6 @@ Den in der seriellen Konsole angezeigten Code dann in die Datei "Configuration.h
 #define LED_RGBW  Da RGBW von FAST-LED (noch) nicht unterstuetzt wird, ist dies ein Hack welcher nur mit dem
                   LPD8806 Treiber und dem Streifen der CLT2 getestet ist. Es ist zu vermuten, dass andere
                   Streifen eine abweichende Ansteuerung verwenden und dehalb nicht korrekt funktionieren.
-
 
 Alle von FAST-LED unterstützten LED-Treiber koennen verwendet werden:
 APA102, APA104, APA106, DOTSTAR, GW6205, GW6205_400, LPD1886, LPD1886_8BIT, LPD8806, NEOPIXEL, 
