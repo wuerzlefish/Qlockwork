@@ -24,6 +24,7 @@
 #ifdef CONFIG_DEFAULT
 
 #define HOSTNAME "QLOCKWORK"
+#define WIFI_AP_TIMEOUT 120
 #define OTA_PASS "1234"
 #define NTP_SERVER "pool.ntp.org"
 
@@ -139,6 +140,7 @@
 
 #ifdef CONFIG_QLOCKDEV
 #define HOSTNAME "QLOCKDEV"
+#define WIFI_AP_TIMEOUT 60
 #define OTA_PASS "1234"
 #define NTP_SERVER "nostromo"
 #define SYSLOG_SERVER "nostromo-test"
@@ -178,6 +180,7 @@
 
 #ifdef CONFIG_CLT2
 #define HOSTNAME "CLT2"
+#define WIFI_AP_TIMEOUT 60
 #define OTA_PASS "1234"
 #define NTP_SERVER "nostromo"
 #define RTC_BACKUP

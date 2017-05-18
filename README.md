@@ -125,6 +125,7 @@ LED-Test: Laesst einen waagerechten Streifen ueber das Display wandern.
 //#define CONFIG_CLT2
 
 #define HOSTNAME            Der Name der Uhr.
+#define WIFI_AP_TIMEOUT     Zeit in Sekunden fuer die der AP zum einrichten/suchen des WLANs aktiv ist.
 #define OTA_PASS            Kennwort fuer "Over the Air" Updates.
 #define NTP_SERVER          Abzufragender NTP-Server.
 

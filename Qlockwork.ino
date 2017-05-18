@@ -28,7 +28,7 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include "Settings.h"
 #include "Timezones.h"
 
-#define FIRMWARE_VERSION "qw20170422"
+#define FIRMWARE_VERSION "qw20170518"
 
 /******************************************************************************
 Init
@@ -115,7 +115,7 @@ void setup() {
 	delay(1000);
 	WiFiManager wifiManager;
 	//wifiManager.resetSettings();
-	wifiManager.setTimeout(60);
+	wifiManager.setTimeout(WIFI_AP_TIMEOUT);
 	wifiManager.autoConnect(HOSTNAME);
 	if (WiFi.status() != WL_CONNECTED) {
 		DEBUG_PRINTLN("Error connecting to WiFi. Shutting down WiFi.");
