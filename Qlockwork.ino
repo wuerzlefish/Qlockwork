@@ -13,11 +13,11 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
-#include <IRremoteESP8266.h>   // https://github.com/markszabo/IRremoteESP8266
-#include <DS3232RTC.h>         // https://github.com/JChristensen/DS3232RTC
-#include <TimeLib.h>           // https://github.com/PaulStoffregen/Time
-#include <Timezone.h>          // https://github.com/JChristensen/Timezone
-#include <Syslog.h>            // https://github.com/arcao/Syslog
+#include <IRremoteESP8266.h>
+#include <DS3232RTC.h>
+#include <TimeLib.h>
+#include <Timezone.h>
+#include <Syslog.h>
 #include "Configuration.h"
 #include "Debug.h"
 #include "Modes.h"
@@ -28,7 +28,7 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include "Settings.h"
 #include "Timezones.h"
 
-#define FIRMWARE_VERSION "qw20170518"
+#define FIRMWARE_VERSION "qw20170525"
 
 /******************************************************************************
 Init
@@ -547,8 +547,8 @@ void loop() {
 			renderer.clearScreenBuffer(matrix);
 			if (second() % 2 == 0) {
 				renderer.setTime(hour(settings.getNightOffTime()), minute(settings.getNightOffTime()), settings.getLanguage(), matrix);
-				renderer.setAMPM(hour(settings.getNightOffTime()), settings.getLanguage(), matrix);
 				renderer.clearEntryWords(settings.getLanguage(), matrix);
+				renderer.setAMPM(hour(settings.getNightOffTime()), settings.getLanguage(), matrix);
 			}
 			break;
 		case EXT_MODE_TEXT_NIGHTON:
@@ -560,8 +560,8 @@ void loop() {
 			renderer.clearScreenBuffer(matrix);
 			if (second() % 2 == 0) {
 				renderer.setTime(hour(settings.getNightOnTime()), minute(settings.getNightOnTime()), settings.getLanguage(), matrix);
-				renderer.setAMPM(hour(settings.getNightOnTime()), settings.getLanguage(), matrix);
 				renderer.clearEntryWords(settings.getLanguage(), matrix);
+				renderer.setAMPM(hour(settings.getNightOnTime()), settings.getLanguage(), matrix);
 			}
 			break;
 		case EXT_MODE_TEXT_TEST:
