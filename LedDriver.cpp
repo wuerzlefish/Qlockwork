@@ -110,25 +110,20 @@ LedDriver::LedDriver() {
 }
 
 void LedDriver::writeScreenBufferToLEDs(word matrix[16], uint8_t color) {
-	FastLED.clear();
+	clear();
 	for (uint8_t y = 0; y < 10; y++) {
 		for (uint8_t x = 5; x < 16; x++) {
 			word t = 1 << x;
-			if ((matrix[y] & t) == t) setPixel(15 - x, y, color);
-		}
-	}
-	byte cornerLedCount[] = { 1, 0, 3, 2, 4 };
-	for (uint8_t i = 0; i < 5; i++) if ((matrix[cornerLedCount[i]] & 0b0000000000010000) > 0) setPixel(110 + i, color);
-	FastLED.show();
-}
-
-void LedDriver::setPixel(uint8_t x, uint8_t y, uint8_t color) {
 #ifdef LED_LAYOUT_HORIZONTAL
-	setPixel(x + (y * 11), color);
+			if ((matrix[y] & t) == t) setPixel(15 - x + y * 11, color);
 #endif
 #ifdef LED_LAYOUT_VERTICAL
-	setPixel(y + (x * 10), color);
+			if ((matrix[y] & t) == t) setPixel(y + (15 - x) * 10, color);
 #endif
+		}
+	}
+	for (uint8_t i = 0; i < 5; i++) if ((matrix[i] & 0b0000000000010000) > 0) setPixel(110 + i, color); // set minutes
+	show();
 }
 
 void LedDriver::setPixel(uint8_t num, uint8_t color) {
@@ -155,24 +150,24 @@ void LedDriver::setPixel(uint8_t num, uint8_t color) {
 #ifdef LED_LAYOUT_HORIZONTAL
 #ifdef LED_RGB
 	if (num < 110) {
-		if ((num / 11) % 2 == 0) leds[num] = ledColor_rgb;
-		else leds[((num / 11) * 11) + 10 - (num % 11)] = ledColor_rgb;
+		if (num / 11 % 2 == 0) leds[num] = ledColor_rgb;
+		else leds[num / 11 * 11 + 10 - (num % 11)] = ledColor_rgb;
 	}
 	else {
 		switch (num) {
-		case 110:
+		case 110: // upper-left
 			leds[111] = ledColor_rgb;
 			break;
-		case 111:
+		case 111: // upper-right
 			leds[112] = ledColor_rgb;
 			break;
-		case 112:
+		case 112: // bottom-right
 			leds[113] = ledColor_rgb;
 			break;
-		case 113:
+		case 113: // bottom-left
 			leds[110] = ledColor_rgb;
 			break;
-		case 114:
+		case 114: // alarm
 			leds[114] = ledColor_rgb;
 			break;
 		default:
@@ -182,34 +177,34 @@ void LedDriver::setPixel(uint8_t num, uint8_t color) {
 #endif // LED_RGB
 #ifdef LED_RGBW
 	if (num < 110) {
-		if ((num / 11) % 2 == 0) {
+		if (num / 11 % 2 == 0) {
 			leds[num * 2] = ledColor_wbg;
 			leds[num * 2 + 1] = ledColor_r;
 		}
 		else {
-			leds[(((num / 11) * 11) + 10 - (num % 11)) * 2] = ledColor_wbg;
-			leds[(((num / 11) * 11) + 10 - (num % 11)) * 2 + 1] = ledColor_r;
+			leds[(num / 11 * 11 + 10 - (num % 11)) * 2] = ledColor_wbg;
+			leds[(num / 11 * 11 + 10 - (num % 11)) * 2 + 1] = ledColor_r;
 		}
 	}
 	else {
 		switch (num) {
-		case 110:
+		case 110: // upper-left
 			leds[111 * 2] = ledColor_wbg;
 			leds[111 * 2 + 1] = ledColor_r;
 			break;
-		case 111:
+		case 111: // upper-right
 			leds[112 * 2] = ledColor_wbg;
 			leds[112 * 2 + 1] = ledColor_r;
 			break;
-		case 112:
+		case 112: // bottom-right
 			leds[113 * 2] = ledColor_wbg;
 			leds[113 * 2 + 1] = ledColor_r;
 			break;
-		case 113:
+		case 113: // bottom-left
 			leds[110 * 2] = ledColor_wbg;
 			leds[110 * 2 + 1] = ledColor_r;
 			break;
-		case 114:
+		case 114: // alarm
 			leds[114 * 2] = ledColor_wbg;
 			leds[114 * 2 + 1] = ledColor_r;
 			break;
@@ -224,27 +219,27 @@ void LedDriver::setPixel(uint8_t num, uint8_t color) {
 #ifdef LED_RGB
 	uint8_t ledNum;
 	if (num < 110) {
-		if ((num / 10) % 2 == 0) ledNum = num;
-		else ledNum = ((num / 10) * 10) + 9 - (num % 10);
+		if (num / 10 % 2 == 0) ledNum = num;
+		else ledNum = num / 10 * 10 + 9 - (num % 10);
 		if (ledNum < 10) leds[ledNum + 1] = ledColor_rgb;
 		else if (ledNum < 100) leds[ledNum + 2] = ledColor_rgb;
 		else leds[ledNum + 3] = ledColor_rgb;
 	}
 	else {
 		switch (num) {
-		case 110:
+		case 110: // upper-left
 			leds[0] = ledColor_rgb;
 			break;
-		case 111:
+		case 111: // upper-right
 			leds[102] = ledColor_rgb;
 			break;
-		case 112:
+		case 112: // bottom-right
 			leds[113] = ledColor_rgb;
 			break;
-		case 113:
+		case 113: // bottom-left
 			leds[11] = ledColor_rgb;
 			break;
-		case 114:
+		case 114: // alarm
 			leds[114] = ledColor_rgb;
 			break;
 		default:
@@ -255,8 +250,8 @@ void LedDriver::setPixel(uint8_t num, uint8_t color) {
 #ifdef LED_RGBW
 	uint8_t ledNum;
 	if (num < 110) {
-		if ((num / 10) % 2 == 0) ledNum = num;
-		else ledNum = ((num / 10) * 10) + 9 - (num % 10);
+		if (num / 10 % 2 == 0) ledNum = num;
+		else ledNum = num / 10 * 10 + 9 - (num % 10);
 		if (ledNum < 10) {
 			leds[(ledNum + 1) * 2] = ledColor_wbg;
 			leds[(ledNum + 1) * 2 + 1] = ledColor_r;
@@ -274,23 +269,23 @@ void LedDriver::setPixel(uint8_t num, uint8_t color) {
 	}
 	else {
 		switch (num) {
-		case 110:
+		case 110: // upper-left
 			leds[0 * 2] = ledColor_wbg;
 			leds[0 * 2 + 1] = ledColor_r;
 			break;
-		case 111:
+		case 111: // upper-right
 			leds[102 * 2] = ledColor_wbg;
 			leds[102 * 2 + 1] = ledColor_r;
 			break;
-		case 112:
+		case 112: // bottom-right
 			leds[113 * 2] = ledColor_wbg;
 			leds[113 * 2 + 1] = ledColor_r;
 			break;
-		case 113:
+		case 113: // bottom-left
 			leds[11 * 2] = ledColor_wbg;
 			leds[11 * 2 + 1] = ledColor_r;
 			break;
-		case 114:
+		case 114: // alarm
 			leds[114 * 2] = ledColor_wbg;
 			leds[114 * 2 + 1] = ledColor_r;
 			break;
@@ -306,19 +301,20 @@ void LedDriver::clear() {
 	FastLED.clear();
 }
 
+void LedDriver::show() {
+	FastLED.show();
+}
+
 void LedDriver::setBrightness(uint8_t ledBrightness) {
 	FastLED.setBrightness(ledBrightness);
+	show();
 }
 
 void LedDriver::getBrightness() {
 	FastLED.getBrightness();
 }
 
-void LedDriver::show() {
-	FastLED.show();
-}
-
-// Calculate white
+// calculate white
 uint8_t LedDriver::getWhite(uint8_t red, uint8_t green, uint8_t blue) {
 	uint8_t low = min(red, min(green, blue));
 	uint8_t high = max(red, max(green, blue));

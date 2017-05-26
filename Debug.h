@@ -17,6 +17,7 @@
 #endif
 
 class Debug {
+
 public:
 	Debug();
 	void debugScreenBuffer(word ScreenBuffer[]);

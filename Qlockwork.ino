@@ -28,10 +28,10 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include "Settings.h"
 #include "Timezones.h"
 
-#define FIRMWARE_VERSION "qw20170525"
+#define FIRMWARE_VERSION "qw20170526"
 
 /******************************************************************************
-Init
+init
 ******************************************************************************/
 
 Renderer renderer;
@@ -81,7 +81,7 @@ setup()
 
 void setup() {
 
-	// Init serial port
+	// init serial port
 	Serial.begin(SERIAL_SPEED);
 	delay(1000);
 
@@ -90,14 +90,14 @@ void setup() {
 	DEBUG_PRINT("Firmware: ");
 	DEBUG_PRINTLN(FIRMWARE_VERSION);
 
-	// Init LDR, Buzzer and LED
+	// init LDR, Buzzer and LED
 	DEBUG_PRINTLN("Stetting up LDR, Buzzer and LED.");
 	pinMode(PIN_LDR, INPUT);
 	pinMode(PIN_BUZZER, OUTPUT);
 	pinMode(PIN_LED, OUTPUT);
 	digitalWrite(PIN_LED, HIGH);
 
-	// Init WiFi and services
+	// init WiFi and services
 	renderer.clearScreenBuffer(matrix);
 	matrix[0] = 0b0000000000010000;
 	matrix[1] = 0b0000111000010000;
@@ -111,7 +111,7 @@ void setup() {
 	matrix[9] = 0b0000000000000000;
 	ledBrightness = settings.getBrightness();
 	ledDriver.setBrightness(ledBrightness);
-	ledDriver.writeScreenBufferToLEDs(matrix, 0); // Color 0: white
+	ledDriver.writeScreenBufferToLEDs(matrix, 0); // color 0: white
 	delay(1000);
 	WiFiManager wifiManager;
 	//wifiManager.resetSettings();
@@ -122,7 +122,7 @@ void setup() {
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("ER", Renderer::TEXT_POS_TOP, matrix);
 		renderer.setSmallText("OR", Renderer::TEXT_POS_BOTTOM, matrix);
-		ledDriver.writeScreenBufferToLEDs(matrix, 1); // Color 1: red
+		ledDriver.writeScreenBufferToLEDs(matrix, 1); // color 1: red
 		WiFi.mode(WIFI_OFF);
 		digitalWrite(PIN_BUZZER, HIGH);
 		delay(1500);
@@ -131,7 +131,7 @@ void setup() {
 	else {
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("OK", Renderer::TEXT_POS_MIDDLE, matrix);
-		ledDriver.writeScreenBufferToLEDs(matrix, 2); // Color 2: green
+		ledDriver.writeScreenBufferToLEDs(matrix, 2); // color 2: green
 		for (uint8_t i = 0; i < 3; i++) {
 			digitalWrite(PIN_BUZZER, HIGH);
 			delay(100);
@@ -159,7 +159,7 @@ void setup() {
 	syslog.log(LOG_DEBUG, "Free RAM: " + String(system_get_free_heap_size()));
 #endif
 
-	// Set timeprovider
+	// set timeprovider
 #ifdef RTC_BACKUP
 	if (WiFi.status() == WL_CONNECTED) {
 		DEBUG_PRINTLN("Setting ESP from NTP with RTC backup.");
@@ -198,7 +198,7 @@ void loop() {
 	debug.debugFps();
 #endif
 
-	// Execute every day
+	// execute every day
 	if (day() != lastDay) {
 		lastDay = day();
 		DEBUG_PRINTLN("Reached a new day.");
@@ -209,7 +209,7 @@ void loop() {
 		//else settings.setColor(0);
 	}
 
-	// Execute every hour
+	// execute every hour
 	if (hour() != lastHour) {
 		lastHour = hour();
 		DEBUG_PRINTLN("Reached a new hour.");
@@ -218,14 +218,14 @@ void loop() {
 #endif
 	}
 
-	 // Execute every five minutes
+	 // execute every five minutes
 	 // lastFiveMinute ist vom Typ uint8_t. Dadurch werden die Nachkommastellen verworfen.
 	if ((minute() / 5) != lastFiveMinute) {
 		lastFiveMinute = minute() / 5;
 		DEBUG_PRINTLN("Reached new five minutes.");
 	}
 
-	// Execute every minute
+	// execute every minute
 	if (minute() != lastMinute) {
 		lastMinute = minute();
 #ifdef DEBUG
@@ -234,18 +234,18 @@ void loop() {
 		if (mode == STD_MODE_NORMAL) ScreenBufferNeedsUpdate = true;
 	}
 
-	// Execute every second
+	// execute every second
 	if (now() != lastTime) {
 		lastTime = now();
 
-		// Countdown fallback
+		// countdown fallback
 		if (fallBackCounter > 1) fallBackCounter--;
 		else if (fallBackCounter == 1) {
 			fallBackCounter = 0;
 			setMode(STD_MODE_NORMAL);
 		}
 
-		// Display needs secondupdate
+		// display needs secondupdate
 		switch (mode) {
 		case STD_MODE_SECONDS:
 #ifdef RTC_BACKUP
@@ -278,16 +278,16 @@ void loop() {
 		}
 
 #ifdef BOARD_LED
-		// Toggle LED on board
+		// toggle LED on board
 		if (digitalRead(PIN_LED) == LOW) digitalWrite(PIN_LED, HIGH);
 		else digitalWrite(PIN_LED, LOW);
 #endif
 
-		// Alarm
+		// alarm
 		if (settings.getAlarm1() && (hour() == hour(settings.getAlarmTime1())) && (minute() == minute(settings.getAlarmTime1())) && (second() == 0)) alarmOn = BUZZTIME_ALARM_1;
 		if (settings.getAlarm2() && (hour() == hour(settings.getAlarmTime2())) && (minute() == minute(settings.getAlarmTime2())) && (second() == 0)) alarmOn = BUZZTIME_ALARM_2;
 
-		// Timer
+		// timer
 		if (timerSet && (now() == timer)) {
 			setMode(STD_MODE_SET_TIMER);
 			timerMinutes = 0;
@@ -295,7 +295,7 @@ void loop() {
 			alarmOn = BUZZTIME_TIMER;
 		}
 
-		// Make some noise
+		// make some noise
 		if (alarmOn) {
 			if (second() % 2 == 0) digitalWrite(PIN_BUZZER, HIGH);
 			else digitalWrite(PIN_BUZZER, LOW);
@@ -303,18 +303,18 @@ void loop() {
 		}
 		else digitalWrite(PIN_BUZZER, LOW);
 
-		// Nightmode on/off
+		// nightmode on/off
 		if ((hour() == hour(settings.getNightOffTime())) && (minute() == minute(settings.getNightOffTime())) && (second() == 0)) setMode(STD_MODE_BLANK);
 		if ((hour() == hour(settings.getNightOnTime())) && (minute() == minute(settings.getNightOnTime())) && (second() == 0)) setMode(lastMode);
 	}
 
-	// Always execute
+	// always execute
 
-	// Check for HTTP- and OTA-requests
+	// check for HTTP- and OTA-requests
 	server.handleClient();
 	ArduinoOTA.handle();
 
-	// LDR ggf. lesen und Helligkeit einstellen
+	// read LDR and set brightness
 #ifdef LDR
 	if (!settings.getUseLdr()) ledBrightness = settings.getBrightness();
 	else {
@@ -335,7 +335,6 @@ void loop() {
 	ledBrightness = settings.getBrightness();
 #endif
 	ledDriver.setBrightness(constrain(ledBrightness, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
-	ledDriver.show();
 
 #ifdef IR_REMOTE
 	// IR-Empfaenger abfragen und ggf. reagieren
@@ -582,38 +581,38 @@ void loop() {
 			break;
 		}
 #if defined(IR_LETTER_OFF)
-		// Die LED hinter dem IR-Sensor abschalten.
+		// turn off LED behind IR-sensor
 		renderer.unsetPixelInScreenBuffer(8, 9, matrix);
 #endif
-		// Write screenbuffer to LEDs
+		// write screenbuffer to LEDs
 		ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor());
 #ifdef DEBUG_MATRIX
-		// Write screenbuffer to console
+		// write screenbuffer to console
 		debug.debugScreenBuffer(matrix);
 #endif
 	}
 }
 
 /******************************************************************************
-"Mode" pressed
+"mode" pressed
 ******************************************************************************/
 
 void modePressed() {
 
-	// Turn off alarm
+	// turn off alarm
 	if (alarmOn) {
 		alarmOn = false;
 		digitalWrite(PIN_BUZZER, LOW);
 		return;
 	}
 
-	// Turn off nightmode
+	// turn off nightmode
 	if (mode == STD_MODE_BLANK) {
 		setMode(STD_MODE_NORMAL);
 		return;
 	}
 
-	// Mode weiterschalten und ggf. Fallback setzen
+	// set mode and fallback
 	setMode(mode++);
 	switch (mode) {
 	case STD_MODE_COUNT:
@@ -651,11 +650,11 @@ void modePressed() {
 		break;
 	}
 
-	// Save settings
+	// save settings
 	settings.saveToEEPROM();
 
 #ifdef RTC_BACKUP
-	// Set RTC
+	// set RTC
 	RTC.set(now());
 #endif
 }
@@ -896,10 +895,10 @@ void remoteAction(uint32_t irDecodeResults) {
 #endif
 
 /******************************************************************************
-Misc
+misc
 ******************************************************************************/
 
-// Set mode
+// set mode
 void setMode(Mode newmode) {
 	DEBUG_PRINT("Mode: ");
 	DEBUG_PRINTLN(newmode);
@@ -908,26 +907,26 @@ void setMode(Mode newmode) {
 	mode = newmode;
 }
 
-// Turn off LEDs
+// turn off LEDs
 void setLedsOff() {
 	DEBUG_PRINTLN("LEDs off.");
 	setMode(STD_MODE_BLANK);
 }
 
-// Turn on LEDs
+// turn on LEDs
 void setLedsOn() {
 	DEBUG_PRINTLN("LEDs on.");
 	setMode(lastMode);
 }
 
-// Toggle LEDs
+// toggle LEDs
 void setDisplayToToggle() {
 	if (mode != STD_MODE_BLANK) setLedsOff();
 	else setLedsOn();
 }
 
 #ifdef RTC_BACKUP
-// Get time from RTC
+// get time from RTC
 time_t getRtcTime() {
 	DEBUG_PRINTLN("*** ESP set from RTC. ***");
 #ifdef SYSLOG_SERVER
@@ -937,7 +936,7 @@ time_t getRtcTime() {
 }
 #endif
 
-// Get time with NTP
+// get time with NTP
 time_t getNtpTime() {
 	if (WiFi.status() == WL_CONNECTED) {
 		while (Udp.parsePacket() > 0);
@@ -981,7 +980,7 @@ time_t getNtpTime() {
 	return now();
 }
 
-// Send NTP packet
+// send NTP packet
 void sendNTPpacket(IPAddress & address) {
 	memset(packetBuffer, 0, 48);
 	packetBuffer[0] = 0b11100011;
@@ -998,10 +997,10 @@ void sendNTPpacket(IPAddress & address) {
 }
 
 /******************************************************************************
-Webserver
+webserver
 ******************************************************************************/
 
-// Setup
+// setup
 void setupWebServer() {
 	server.onNotFound(handleNotFound);
 	server.on("/", handleRoot);
@@ -1014,12 +1013,12 @@ void setupWebServer() {
 	server.begin();
 }
 
-// Page 404
+// page 404
 void handleNotFound() {
 	server.send(404, "text/plain", "404 - File Not Found.");
 }
 
-// Page /
+// page /
 void handleRoot() {
 	String message = "<!doctype html>";
 	message += "<html>";
@@ -1066,7 +1065,7 @@ void handleRoot() {
 	server.send(200, "text/html", message);
 }
 
-// Site buttons
+// site buttons
 
 void handle_TOGGLEBLANK() {
 	String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
@@ -1077,7 +1076,7 @@ void handle_TOGGLEBLANK() {
 void handle_BUTTON_TIME() {
 	String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
 	server.send(200, "text/html", message);
-	// Alarm abschalten
+	// turn off alarm
 	if (alarmOn) {
 		alarmOn = false;
 		digitalWrite(PIN_BUZZER, LOW);

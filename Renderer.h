@@ -6,27 +6,27 @@
 #define RENDERER_H
 
 #include <Arduino.h>
-#include "Woerter_DE.h"
-#include "Woerter_DE_MKF.h"
-#include "Woerter_D3.h"
-#include "Woerter_CH.h"
-#include "Woerter_EN.h"
-#include "Woerter_ES.h"
-#include "Woerter_FR.h"
-#include "Woerter_IT.h"
-#include "Woerter_NL.h"
+#include "Words_DE.h"
+#include "Words_DE_MKF.h"
+#include "Words_D3.h"
+#include "Words_CH.h"
+#include "Words_EN.h"
+#include "Words_ES.h"
+#include "Words_FR.h"
+#include "Words_IT.h"
+#include "Words_NL.h"
 #include "Languages.h"
-#include "Staben.h"
-#include "Zahlen.h"
+#include "Letters.h"
+#include "Numbers.h"
 
 class Renderer {
+
   public:
     enum eTextPos : uint8_t {
       TEXT_POS_TOP,
       TEXT_POS_MIDDLE = 2,
       TEXT_POS_BOTTOM = 5
     };
-
     Renderer();
     void setHours(uint8_t hours, boolean glatt, uint8_t language, word matrix[16]);
     void setTime(uint8_t hours, uint8_t minutes, uint8_t language, word matrix[16]);
@@ -43,7 +43,6 @@ class Renderer {
     
   private:
     boolean isNumber(char symbol);
-
     void FR_hours(uint8_t hours, word matrix[16]);
     void IT_hours(uint8_t hours, word matrix[16]);
     void ES_hours(uint8_t hours, word matrix[16]);

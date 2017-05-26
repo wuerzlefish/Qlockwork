@@ -105,7 +105,7 @@ void Settings::setNightOnTime(time_t nightOnTime) {
 }
 
 
-// Setzt alle Werte auf Defaulteinstellungen
+// set all defaults
 void Settings::resetToDefault() {
 	mySettings.magicNumber = SETTINGS_MAGIC_NUMBER;
 	mySettings.version = SETTINGS_VERSION;
@@ -124,14 +124,14 @@ void Settings::resetToDefault() {
 	saveToEEPROM();
 }
 
-// Einstellungen laden
+// load settings
 void Settings::loadFromEEPROM() {
 	EEPROM.begin(512);
 	EEPROM.get(0, mySettings);
 	if ((mySettings.magicNumber != SETTINGS_MAGIC_NUMBER) || (mySettings.version != SETTINGS_VERSION)) resetToDefault();
 }
 
-// Einstellungen speichern
+// write settings
 void Settings::saveToEEPROM() {
 	EEPROM.begin(512);
 	EEPROM.put(0, mySettings);

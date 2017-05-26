@@ -11,24 +11,8 @@
 #define SETTINGS_MAGIC_NUMBER 0x2A
 #define SETTINGS_VERSION 15
 
-struct MySettings {
-	uint8_t magicNumber;
-	uint8_t version;
-	uint8_t language;
-	boolean useLdr;
-	int16_t brightness;
-	uint8_t color;
-	uint8_t timeout;
-	boolean esIst;
-	boolean alarm1;
-	time_t alarmTime1;
-	boolean alarm2;
-	time_t alarmTime2;
-	time_t nightOffTime;
-	time_t nightOnTime;
-};
-
 class Settings {
+
 public:
 	Settings();
 	uint8_t getLanguage();
@@ -55,12 +39,27 @@ public:
 	void setNightOffTime(time_t nightOffTime);
 	time_t getNightOnTime();
 	void setNightOnTime(time_t nightOnTime);
-	void resetToDefault();
-	void loadFromEEPROM();
 	void saveToEEPROM();
 
 private:
-	MySettings mySettings;
+	struct MySettings {
+		uint8_t magicNumber;
+		uint8_t version;
+		uint8_t language;
+		boolean useLdr;
+		int16_t brightness;
+		uint8_t color;
+		uint8_t timeout;
+		boolean esIst;
+		boolean alarm1;
+		time_t alarmTime1;
+		boolean alarm2;
+		time_t alarmTime2;
+		time_t nightOffTime;
+		time_t nightOnTime;
+	} mySettings;
+	void resetToDefault();
+	void loadFromEEPROM();
 };
 
 #endif

@@ -7,7 +7,7 @@
 Renderer::Renderer() {
 }
 
-// Zeit in den Screenbuffer schreiben
+// write time to screenbuffer
 void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, word matrix[16]) {
 	switch (language) {
 	case LANGUAGE_DE_DE:
@@ -810,7 +810,7 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, word ma
 	}
 }
 
-// Stunden in den Screenbuffer schreiben
+// write hours to screenbuffer
 void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, word matrix[16]) {
 	switch (language) {
 	case LANGUAGE_DE_DE:
@@ -1328,50 +1328,51 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, word mat
 	}
 }
 
+// clear entry words
 void Renderer::clearEntryWords(uint8_t language, word matrix[16]) {
 	switch (language) {
 	case LANGUAGE_DE_DE:
 	case LANGUAGE_DE_SW:
 	case LANGUAGE_DE_BA:
 	case LANGUAGE_DE_SA:
-		matrix[0] &= 0b0010001111111111; // ES IST weg
+		matrix[0] &= 0b0010001111111111; // remove ES IST
 		break;
 	case LANGUAGE_DE_MKF_DE:
 	case LANGUAGE_DE_MKF_SW:
 	case LANGUAGE_DE_MKF_BA:
 	case LANGUAGE_DE_MKF_SA:
-		matrix[0] &= 0b0010001111111111; // ES IST weg
+		matrix[0] &= 0b0010001111111111; // remove ES IST
 		break;
 	case LANGUAGE_D3:
-		matrix[0] &= 0b0010000111111111; // ES ISCH weg
+		matrix[0] &= 0b0010000111111111; // remove ISCH
 		break;
 	case LANGUAGE_CH:
 	case LANGUAGE_CH_GS:
-		matrix[0] &= 0b0010000111111111; // ES ISCH weg
+		matrix[0] &= 0b0010000111111111; // remove ES ISCH
 		break;
 	case LANGUAGE_EN:
-		matrix[0] &= 0b0010011111111111; // IT IS weg
+		matrix[0] &= 0b0010011111111111; // remove IT IS
 		break;
 	case LANGUAGE_ES:
-		matrix[0] &= 0b1000100011111111; // SON LAS weg
-		matrix[0] &= 0b0011100111111111; // ES LA weg
+		matrix[0] &= 0b1000100011111111; // remove SON LAS
+		matrix[0] &= 0b0011100111111111; // remove ES LA
 		break;
 	case LANGUAGE_FR:
-		matrix[0] &= 0b0010001111111111; // IL EST weg
+		matrix[0] &= 0b0010001111111111; // remove IL EST
 		break;
 	case LANGUAGE_IT:
-		matrix[0] &= 0b0000100111111111; // SONO LE weg
-		matrix[1] &= 0b0111111111111111; // E (L'UNA) weg
+		matrix[0] &= 0b0000100111111111; // remove SONO LE
+		matrix[1] &= 0b0111111111111111; // remove E (L'UNA)
 		break;
 	case LANGUAGE_NL:
-		matrix[0] &= 0b0001001111111111; // HET IS weg
+		matrix[0] &= 0b0001001111111111; // remove HET IS
 		break;
 	default:
 		;
 	}
 }
 
-// AM oder PM einschalten
+// turn on AM or PM
 void Renderer::setAMPM(uint8_t hours, uint8_t language, word matrix[16]) {
 	switch (language) {
 	case LANGUAGE_DE_DE:
@@ -1422,46 +1423,42 @@ void Renderer::setAMPM(uint8_t hours, uint8_t language, word matrix[16]) {
 	}
 }
 
-// Sonderfall ES
+// special case ES
 void Renderer::ES_hours(uint8_t hours, word matrix[16]) {
 	if ((hours == 1) || (hours == 13)) ES_ESLA;
 	else ES_SONLAS;
 }
 
-// Sonderfall FR
+// special case FR
 void Renderer::FR_hours(uint8_t hours, word matrix[16]) {
 	if ((hours == 1) || (hours == 13)) FR_HEURE;
 	else if ((hours == 0) || (hours == 12) || (hours == 24));
 	else FR_HEURES;
 }
 
-// Sonderfall IT
+// special case IT
 void Renderer::IT_hours(uint8_t hours, word matrix[16]) {
 	if ((hours != 1) && (hours != 13)) IT_SONOLE;
 	else IT_E;
 }
 
-// Minuten in den Screebuffer schreiben
+// write minutes to screebuffer
 void Renderer::setCorners(uint8_t minutes, word matrix[16]) {
 	uint8_t b_minutes = minutes % 5;
-	for (uint8_t i = 0; i < b_minutes; i++) {
-		uint8_t j;
-		j = (1 - i + 4) % 4;
-		bitSet(matrix[j], 4);
-	}
+	for (uint8_t i = 0; i < b_minutes; i++) bitSet(matrix[i], 4);
 }
 
-// Alarm-LED setzen
+// turn on alarm-LED
 void Renderer::activateAlarmLed(word matrix[16]) {
 	bitSet(matrix[4], 4);
 }
 
-// Alarm-LED setzen
+// turn off alarm-LED
 void Renderer::deactivateAlarmLed(word matrix[16]) {
 	bitClear(matrix[4], 4);
 }
 
-// Menuetext in den Screenbuffer schreiben
+// write text to screenbuffer
 void Renderer::setSmallText(String menuText, eTextPos textPos, word matrix[16]) {
 	if (menuText.length() == 2) {
 		for (uint8_t i = 0; i < 5; i++) {
@@ -1479,28 +1476,28 @@ void Renderer::setSmallText(String menuText, eTextPos textPos, word matrix[16]) 
 	}
 }
 
-// Test ob Zahl
+// test for number
 boolean Renderer::isNumber(char symbol) {
 	if ((symbol >= '0') && (symbol <= '9')) return true;
 	else return false;
 }
 
-// Einen Pixel in den Screenbuffer schreiben
+// write pixel to screenbuffer
 void Renderer::setPixelInScreenBuffer(uint8_t x, uint8_t y, word matrix[16]) {
 	bitSet(matrix[y], x);
 }
 
-// Einen Pixel aus dem Screenbuffer loeschen
+// clear pixel from screenbuffer
 void Renderer::unsetPixelInScreenBuffer(uint8_t x, uint8_t y, word matrix[16]) {
 	bitClear(matrix[y], x);
 }
 
-// Screenbuffer loeschen
+// clear screenbuffer
 void Renderer::clearScreenBuffer(word matrix[16]) {
 	for (uint8_t i = 0; i < 16; i++) matrix[i] = 0b0000000000000000;
 }
 
-// Screenbuffer komplett einschalten
+// turn on all LEDs in screenbuffer
 void Renderer::setAllScreenBuffer(word matrix[16]) {
 	for (uint8_t i = 0; i < 16; i++) matrix[i] = 0b1111111111111111;
 }

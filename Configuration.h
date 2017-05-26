@@ -17,8 +17,8 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#define CONFIG_DEFAULT
-//#define CONFIG_QLOCKDEV
+//#define CONFIG_DEFAULT
+#define CONFIG_QLOCKDEV
 //#define CONFIG_CLT2
 
 #ifdef CONFIG_DEFAULT
@@ -174,7 +174,7 @@
 #define PIN_LDR         A0
 #define SERIAL_SPEED 115200
 #define DEBUG
-//#define DEBUG_MATRIX
+#define DEBUG_MATRIX
 //#define DEBUG_FPS
 #endif // CONFIG_QLOCKDEV
 
