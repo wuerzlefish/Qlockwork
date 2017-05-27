@@ -5,8 +5,8 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-//#define CONFIG_DEFAULT
-#define CONFIG_QLOCKDEV
+#define CONFIG_DEFAULT
+//#define CONFIG_QLOCKDEV
 //#define CONFIG_CLT2
 
 #ifdef CONFIG_DEFAULT
