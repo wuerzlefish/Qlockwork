@@ -24,7 +24,7 @@ void Debug::debugScreenBuffer(word ScreenBuffer[]) {
 	Serial.println("\033[0;0H"); // set cursor to 0, 0 position
 	Serial.println(" -----------");
 	for (uint8_t line = 0; line < 10; line++) {
-		word leds = ScreenBuffer[line];
+		uint16_t leds = ScreenBuffer[line];
 		char row[16];
 		for (int8_t i = 15; i >= 0; i--) {
 			row[i] = ((leds & 1) ? buchstabensalat[line][i] : ' ');

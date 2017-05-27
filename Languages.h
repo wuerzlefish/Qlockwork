@@ -6,41 +6,41 @@
 #define LANGUAGES_H
 
 const String sLanguage[] = {
-  "DE",   // 00
-  "DESW", // 01
-  "DEBA", // 02
-  "DESA", // 03
-  "MKDE", // 04
-  "MKSW", // 05
-  "MKBA", // 06
-  "MKSA", // 07
-  "D3",   // 08
-  "CH",   // 09
-  "CHGS", // 10
-  "EN",   // 11
-  "ES",   // 12
-  "FR",   // 13
-  "IT",   // 14
-  "NL"    // 15
+	"DE",   // 00
+	"DESW", // 01
+	"DEBA", // 02
+	"DESA", // 03
+	"MKDE", // 04
+	"MKSW", // 05
+	"MKBA", // 06
+	"MKSA", // 07
+	"D3",   // 08
+	"CH",   // 09
+	"CHGS", // 10
+	"EN",   // 11
+	"ES",   // 12
+	"FR",   // 13
+	"IT",   // 14
+	"NL"    // 15
 };
 
 const String sWeekday[][8] = {
-{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DE
-{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DESW
-{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DEBA
-{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DESA
-{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // MKDE
-{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // MKSW
-{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // MKBA
-{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // MKSA
-{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // D3
-{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // CH
-{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // CHGS
-{ "", "SU", "MO", "TU", "WE", "TH", "FR", "SA" }, // EN
-{ "", "DO", "LU", "MA", "MI", "JU", "VI", "SA" }, // ES
-{ "", "DI", "LU", "MA", "ME", "JE", "VE", "SA" }, // FR
-{ "", "DO", "LU", "MA", "ME", "GI", "VE", "SA" }, // IT
-{ "", "ZO", "MA", "DI", "WO", "DO", "VR", "ZA" }  // NL
+	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DE
+	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DESW
+	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DEBA
+	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DESA
+	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // MKDE
+	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // MKSW
+	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // MKBA
+	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // MKSA
+	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // D3
+	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // CH
+	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // CHGS
+	{ "", "SU", "MO", "TU", "WE", "TH", "FR", "SA" }, // EN
+	{ "", "DO", "LU", "MA", "MI", "JU", "VI", "SA" }, // ES
+	{ "", "DI", "LU", "MA", "ME", "JE", "VE", "SA" }, // FR
+	{ "", "DO", "LU", "MA", "ME", "GI", "VE", "SA" }, // IT
+	{ "", "ZO", "MA", "DI", "WO", "DO", "VR", "ZA" }  // NL
 };
 
 enum eLanguage : uint8_t {

@@ -1,26 +1,26 @@
 # QLOCKWORK
-### Eine Firmware der Selbstbau-QLOCKTWO.
+### A firmware for the DIY-QLOCKTWO.
 
 ### Features:
 ```
 Almost no electronics needed.
 Only ESP8266 (NodeMCU or WeMos D1 mini) and an LED-stripe.
-Optional support for RTC, LDR, Buzzer and IR-remote.
+Optional support for WiFi, RTC, LDR, Buzzer and IR-remote.
 Supports more than 30 types of LED stripes.
-RGB and RGBW (experimental).
+FastLED (RGB), LPD8806 (RGBW), NeoPixel (RGB and RGBW).
 Horizontal and vertial LED layout.
+Webserver to controll the clock.
 16 Languages.
+37 Colors.
 Timer.
-Alarm.
+2 Alarmtimes.
 NTP timesync.
 RTC timesync as backup.
 Timezones.
-DST.
-Webserver to controll the clock.
-OTA.
+Daylight saving time.
+Over-the-air updates.
 WiFi manager for initial setup via accesspoint.
 Log to Syslog.
-(RGBW ist only tested with LPD8806 of the CLT2.)
 ```
 ### Standard modes
 ```
@@ -56,6 +56,7 @@ WiFiManager by tzapu
 WiFiClient
 WiFiUdp
 ArduinoOTA by Ivan Grokhotkov
+Adafruit NeoPixel by Adafruit
 FastLED by Daniel Garcia
 
 via Web:
@@ -64,6 +65,7 @@ https://github.com/PaulStoffregen/Time
 https://github.com/JChristensen/Timezone
 https://github.com/JChristensen/DS3232RTC
 https://github.com/arcao/Syslog
+https://github.com/ch570512/LPD8806RGBW
 
 There is a warning from FastLED about SPI when compiling. Just ignore it.
 ```
@@ -74,8 +76,9 @@ There is a warning from FastLED about SPI when compiling. Just ignore it.
 Sie gleicht die Zeit jede Stunde per NTP mit einem Zeitserver im Internet ab. Auf der Web-Seite kann man die Uhr steuern.
 Updates sind OTA moeglich. Dazu im Arduino IDE den ESP als Port auswaehlen.
 
-WiFi Manager: Wenn die Uhr sich beim Start mit keinem WLAN verbinden kann, schaltet sie einen AccessPoint ein. Dann ein Handy oder Tablet mit diesem verbinden und die WLAN Daten eingeben.
+WiFi Manager: Wenn die Uhr sich beim Start mit keinem WLAN verbinden kann, schaltet sie einen AccessPoint ein. Dann ein Handy oder Tablet mit diesem verbinden und die WLAN Daten eingeben. WiFi wird nicht zwingend benoetigt. Nach dem WiFi-Timeout funktioniert die Uhr auch ohne NTP. Dazu benutzt sie die optionale RTC oder muss von Hand gestellt werden.
 
+Ein Schaltplan und eine Stueckliste liegen im Verzeichnis.
 Die Firmware gibt es hier: https://github.com/ch570512/Qlockwork
 
 ### Standard Modi
@@ -96,31 +99,32 @@ Alarm2: Setzt den zweiten 24-Stunden-Alarm wenn Alarm2 "ein" ist.
 ```
 ### Erweiterte Modi
 ```
-Titel MAIN: + und - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
-Automatische Helligkeitsregelung ein/aus
-Helligkeitsregelung
-Farbe
+Titel MAIN: + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
+Automatische Helligkeitsregelung: ein/aus
+Helligkeitsregelung: + oder - aendern die Helligkeit.
+Farbe: 0: Weiss, 1: Rot, 2: Gruen, 3: Blau usw. Wenn die Reihenfolge der Farben abweicht, ist die Anordnung der
+       RGB-LEDs im Streifen anders.
 Ruecksprungverzoegerung (FB nn): Wie lange soll es dauern, bis z.B. aus der Sekundenanzeige wieder zurueck in die
                                  Zeitanzeige gewechselt wird. (0 = deaktiviert.)
 Sprache (DE/CH/EN/...): Die passende Sprache zur benutzten Front waehlen.
 
-Titel TIME: + und - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
-Zeit einstellen: + für Stunden und - für Minuten druecken um die Zeit zu stellen. Die Sekunden springen mit jedem
-                 Druck auf Null.
+Titel TIME: + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
+Zeit einstellen: + fuer Stunden oder - fuer Minuten druecken um die Zeit zu stellen. Die Sekunden springen mit
+                 jedem Druck auf Null.
 "Es ist" anzeigen oder nicht (IT EN/DA)
-Tag einstellen   (DD nn): + und - druecken um den aktuellen Tag einzustellen.
-Monat einstellen (MM nn): + und - druecken um den aktuellen Monat einzustellen.
-Jahr einstellen  (YY nn): + und - druecken um das aktuelle Jahr einzustellen.
-Nachtauschaltung        (NI OF): + und - druecken um die Ausschaltzeit des Displays einzustellen.
-Nachtwiedereinschaltung (NI ON): + und - druecken um die Einschaltzeit des Displays einzustellen.
+Tag einstellen   (DD nn): + oder - druecken um den aktuellen Tag einzustellen.
+Monat einstellen (MM nn): + oder - druecken um den aktuellen Monat einzustellen.
+Jahr einstellen  (YY nn): + oder - druecken um das aktuelle Jahr einzustellen.
+Nachtauschaltung        (NI OF): + oder - druecken um die Ausschaltzeit des Displays einzustellen.
+Nachtwiedereinschaltung (NI ON): + oder - druecken um die Einschaltzeit des Displays einzustellen.
 
-Titel TEST: + und - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
+Titel TEST: + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
 LED-Test: Laesst einen waagerechten Streifen ueber das Display wandern.
 ```
 ### Configuration.h
 ```
 
-#define CONFIG_DEFAULT      Einfache Unterstützung verschiedener Konfugurationen in einem File.
+#define CONFIG_DEFAULT      Einfache Unterstuetzung verschiedener Konfigurationen in einem File.
 //#define CONFIG_QLOCKDEV
 //#define CONFIG_CLT2
 
@@ -145,24 +149,24 @@ LED-Test: Laesst einen waagerechten Streifen ueber das Display wandern.
 #define BUZZTIME_ALARM_2    Maximale Zeit in Sekunden, die Alarm 2 Laerm macht wenn er nicht manuell abgestellt wird.
 #define BUZZTIME_TIMER      Maximale Zeit in Sekunden, die der Timer Laerm macht wenn er nicht manuell abgestellt wird.
 
-Die Zeitzone in der sich die Uhr befindet. Wichtig fuer den UTC-Versatz und die Sommer-/Winterzeitumstellung.
+Die Zeitzone in der sich die Uhr befindet. Wichtig fuer den UTC-Versatz und die Sommer-/Winterzeitumstellung:
 
-//#define TIMEZONE_USMST // USMST Mountain Standard Time (USA) UTC-7
-//#define TIMEZONE_USAZ  // USAZ  Mountain Standard Time (USA) UTC-7 (no DST)
-//#define TIMEZONE_USCST // USCST Central Standard Time (USA) UTC-6
-//#define TIMEZONE_USEST // USEST Eastern Standard Time (USA) UTC-5
-//#define TIMEZONE_GMT   // GMT   Greenwich Mean Time UTC
-#define TIMEZONE_CET     // CET   Central Europe Time UTC+1
-//#define TIMEZONE_EST   // EST   Eastern Europe Time UTC+2
-//#define TIMEZONE_MSK   // MSK   Moscow Time UTC+3 (no DST)
+#define TIMEZONE_USMST      USMST Mountain Standard Time (USA) UTC-7
+#define TIMEZONE_USAZ       USAZ  Mountain Standard Time (USA) UTC-7 (no DST)
+#define TIMEZONE_USCST      USCST Central Standard Time (USA) UTC-6
+#define TIMEZONE_USEST      USEST Eastern Standard Time (USA) UTC-5
+#define TIMEZONE_GMT        GMT   Greenwich Mean Time UTC
+#define TIMEZONE_CET        CET   Central Europe Time UTC+1
+#define TIMEZONE_EST        EST   Eastern Europe Time UTC+2
+#define TIMEZONE_MSK        MSK   Moscow Time UTC+3 (no DST)
 
 #define IR_REMOTE           Eine IR-Fernbedienung verwenden.
 #define IR_LETTER_OFF       Schaltet die LED hinter dem IR-Sensor dauerhaft ab. Das verbessert den IR-Empfang.
                             Hier das K vor Uhr.
-							
-Jede Fernbedienung kann verwendet werden. Es werden 6 Tasten unterstützt.
+
+Jede Fernbedienung kann verwendet werden. Es werden 6 Tasten unterstuetzt.
 Um die Fernbedienung anzulernen "#define DEBUG" einschalten und einen Knopf auf der Fernbedienung druecken.
-Den in der seriellen Konsole angezeigten Code dann in die Datei "Configuration.h" schreiben.
+Den in der seriellen Konsole angezeigten Code fuer die Taste dann in die Datei "Configuration.h" schreiben.
 
 #define IR_CODE_ONOFF   16769565
 #define IR_CODE_TIME    16753245
@@ -201,15 +205,21 @@ Den in der seriellen Konsole angezeigten Code dann in die Datei "Configuration.h
 010 012 031 032 051 052 071 072 091 092 112
 011                                     113
 
-#define LED_RGB
-#define LED_RGBW  Da RGBW von FAST-LED (noch) nicht unterstuetzt wird, ist dies ein Hack welcher nur mit dem
-                  LPD8806 Treiber und dem Streifen der CLT2 getestet ist. Es ist zu vermuten, dass andere
-                  Streifen eine abweichende Ansteuerung verwenden und dehalb nicht korrekt funktionieren.
+#define LED_LIBRARAY_LPD8806RGBW  LED Driver fuer LPD8806 RGBW LEDs.
 
-Alle von FAST-LED unterstützten LED-Treiber koennen verwendet werden:
-APA102, APA104, APA106, DOTSTAR, GW6205, GW6205_400, LPD1886, LPD1886_8BIT, LPD8806, NEOPIXEL, 
-P9813, PL9823, SK6812, SK6822, SK9822, SM16716, TM1803, TM1804, TM1809, TM1812, TM1829, UCS1903,
-UCS1903B, UCS1904, UCS2903, WS2801, WS2803, WS2811, WS2811_400, WS2812, WS2812B, WS2813, WS2852.
+#define LED_LIBRARAY_NEOPIXEL     LED Driver fuer NeoPixel LEDs.
+#define LED_DRIVER_NEO_*          Gibt in Verbindung mit LED_LIBRARAY_NEOPIXEL den Typ der NeoPixel an.
+                                  400kHz, 800kHz, GRB, RGB und RGBW.
+
+#define LED_LIBRARAY_FASTLED      FastLED Driver fuer LEDs.
+#define LED_DRIVER_FAST_*         Gibt in Verbindung mit LED_LIBRARAY_FASTLED den Typ der LEDs an.
+                                  Alle von FAST-LED unterstuetzten LED-Treiber (nur RGB) koennen verwendet
+                                  werden:
+                                  APA102, APA104, APA106, DOTSTAR, DMXSIMPLE, GW6205, GW6205_400, LPD1886,
+                                  LPD1886_8BIT, LPD8806, NEOPIXEL, P9813, PL9823, SK6812, SK6822, SK9822,
+                                  SM16716, TM1803, TM1804, TM1809, TM1812, TM1829, UCS1903, UCS1903B,
+                                  UCS1904, UCS2903, WS2801, WS2803, WS2811, WS2811_400, WS2812, WS2812B,
+                                  WS2813, WS2852.
 
 Die Hardwarebelegung des ESP:
 
@@ -220,10 +230,21 @@ Die Hardwarebelegung des ESP:
 #define PIN_LEDS_DATA   D8
 #define PIN_LDR         A0
 
-Debugeinstelltungen:
+#define NUM_LEDS 115  Anzahl der LEDs im Streifen.
 
 #define SERIAL_SPEED  Geschwindigkeit der seriellen Schnittstelle fuer die serielle Konsole.
 #define DEBUG         Gibt technische Informationen in der seriellen Konsole aus.
 #define DEBUG_MATRIX  Rendert die Ausgabe der Matrix fuer die deutsche Front in der seriellen Konsole.
 #define DEBUG_FPS     Durchlaeufe der loop() pro Sekunde.
+
+D0 = GPIO16 = NodeMCU_LED
+D1 = GPIO05 = PIN_WIRE_SCL
+D2 = GPIO04 = PIN_WIRE_SDA
+D3 = GPIO00 = PIN_IR_RECEIVER
+D4 = GPIO02 = ESP8266_LED
+D5 = GPIO14 = PIN_BUZZER
+D6 = GPIO12 = nc
+D7 = GPIO13 = PIN_LEDS_CLOCK
+D8 = GPIO15 = PIN_LEDS_DATA
+A0 = ADC0   = PIN_LDR
 ```

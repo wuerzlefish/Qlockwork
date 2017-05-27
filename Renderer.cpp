@@ -17,7 +17,7 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, word ma
 		DE_ESIST;
 		switch (minutes / 5) {
 		case 0:
-			// glatte Stunde
+			// full hour
 			setHours(hours, true, language, matrix);
 			break;
 		case 1:
@@ -1442,7 +1442,7 @@ void Renderer::IT_hours(uint8_t hours, word matrix[16]) {
 	else IT_E;
 }
 
-// write minutes to screebuffer
+// write minutes to screenbuffer
 void Renderer::setCorners(uint8_t minutes, word matrix[16]) {
 	uint8_t b_minutes = minutes % 5;
 	for (uint8_t i = 0; i < b_minutes; i++) bitSet(matrix[i], 4);
@@ -1487,7 +1487,7 @@ void Renderer::setPixelInScreenBuffer(uint8_t x, uint8_t y, word matrix[16]) {
 	bitSet(matrix[y], x);
 }
 
-// clear pixel from screenbuffer
+// remove pixel from screenbuffer
 void Renderer::unsetPixelInScreenBuffer(uint8_t x, uint8_t y, word matrix[16]) {
 	bitClear(matrix[y], x);
 }

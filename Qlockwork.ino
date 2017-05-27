@@ -24,18 +24,28 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include "Renderer.h"
 #include "Colors.h"
 #include "Languages.h"
-#include "LedDriver.h"
+#include "LedDriver_FastLED.h"
+#include "LedDriver_LPD8806RGBW.h"
+#include "LedDriver_NeoPixel.h"
 #include "Settings.h"
 #include "Timezones.h"
 
-#define FIRMWARE_VERSION "qw20170526"
+#define FIRMWARE_VERSION "qw20170527"
 
 /******************************************************************************
 init
 ******************************************************************************/
 
+#ifdef LED_LIBRARAY_FASTLED
+LedDriver_FastLED ledDriver;
+#endif
+#ifdef LED_LIBRARAY_LPD8806RGBW
+LedDriver_LPD8806RGBW ledDriver;
+#endif
+#ifdef LED_LIBRARAY_NEOPIXEL
+LedDriver_NeoPixel ledDriver;
+#endif
 Renderer renderer;
-LedDriver ledDriver;
 Settings settings;
 WiFiUDP Udp;
 ESP8266WebServer server(80);
@@ -65,7 +75,7 @@ time_t lastTime = 0;
 uint8_t alarmOn = 0;
 uint8_t testColumn = 0;
 uint32_t lastBrightnessCheck = 0;
-uint8_t ledBrightness = 0;
+uint8_t brightness = 0;
 uint8_t lv = 0;
 uint16_t minBrightness = 1023;
 uint16_t maxBrightness = 0;
@@ -83,15 +93,16 @@ void setup() {
 
 	// init serial port
 	Serial.begin(SERIAL_SPEED);
-	delay(1000);
+	while (!Serial);
 
 	DEBUG_PRINTLN();
 	DEBUG_PRINTLN("QLOCKWORK");
 	DEBUG_PRINT("Firmware: ");
 	DEBUG_PRINTLN(FIRMWARE_VERSION);
+	DEBUG_PRINTLN(String("LED-driver: " + ledDriver.getSignature()));
 
 	// init LDR, Buzzer and LED
-	DEBUG_PRINTLN("Stetting up LDR, Buzzer and LED.");
+	DEBUG_PRINTLN("Setting up LDR, buzzer and LED.");
 	pinMode(PIN_LDR, INPUT);
 	pinMode(PIN_BUZZER, OUTPUT);
 	pinMode(PIN_LED, OUTPUT);
@@ -109,9 +120,8 @@ void setup() {
 	matrix[7] = 0b0000111000000000;
 	matrix[8] = 0b0000010000000000;
 	matrix[9] = 0b0000000000000000;
-	ledBrightness = settings.getBrightness();
-	ledDriver.setBrightness(ledBrightness);
-	ledDriver.writeScreenBufferToLEDs(matrix, 0); // color 0: white
+	brightness = settings.getBrightness();
+	ledDriver.writeScreenBufferToLEDs(matrix, 0, brightness); // color 0: white
 	delay(1000);
 	WiFiManager wifiManager;
 	//wifiManager.resetSettings();
@@ -122,7 +132,7 @@ void setup() {
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("ER", Renderer::TEXT_POS_TOP, matrix);
 		renderer.setSmallText("OR", Renderer::TEXT_POS_BOTTOM, matrix);
-		ledDriver.writeScreenBufferToLEDs(matrix, 1); // color 1: red
+		ledDriver.writeScreenBufferToLEDs(matrix, 1, brightness); // color 1: red
 		WiFi.mode(WIFI_OFF);
 		digitalWrite(PIN_BUZZER, HIGH);
 		delay(1500);
@@ -131,7 +141,7 @@ void setup() {
 	else {
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("OK", Renderer::TEXT_POS_MIDDLE, matrix);
-		ledDriver.writeScreenBufferToLEDs(matrix, 2); // color 2: green
+		ledDriver.writeScreenBufferToLEDs(matrix, 2, brightness); // color 2: green
 		for (uint8_t i = 0; i < 3; i++) {
 			digitalWrite(PIN_BUZZER, HIGH);
 			delay(100);
@@ -141,9 +151,9 @@ void setup() {
 	}
 	DEBUG_PRINTLN("Starting mDNS responder.");
 	MDNS.begin(HOSTNAME);
-	DEBUG_PRINTLN("Starting WebServer on Port 80.");
+	DEBUG_PRINTLN("Starting webserver on port 80.");
 	setupWebServer();
-	DEBUG_PRINTLN("Starting UDP on Port 2390.");
+	DEBUG_PRINTLN("Starting UDP on port 2390.");
 	Udp.begin(2390);
 	DEBUG_PRINTLN("Starting Arduino-OTA service.");
 	ArduinoOTA.setPassword((const char*)OTA_PASS);
@@ -214,12 +224,11 @@ void loop() {
 		lastHour = hour();
 		DEBUG_PRINTLN("Reached a new hour.");
 #if defined(RTC_BACKUP) && defined(SYSLOG_SERVER)
-		syslog.log(LOG_INFO, "Temperature: " + String(RTC.temperature() / 4 + RTC_TEMP_OFFSET) + "C / " + String((RTC.temperature() / 4 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "F");
+		syslog.log(LOG_INFO, "Temperature: " + String(RTC.temperature() / 4 + RTC_TEMP_OFFSET) + "C / " + String((RTC.temperature() / 4 + RTC_TEMP_OFFSET) * 9 / 5 + 32) + "F");
 #endif
 	}
 
-	 // execute every five minutes
-	 // lastFiveMinute ist vom Typ uint8_t. Dadurch werden die Nachkommastellen verworfen.
+	// execute every five minutes
 	if ((minute() / 5) != lastFiveMinute) {
 		lastFiveMinute = minute() / 5;
 		DEBUG_PRINTLN("Reached new five minutes.");
@@ -245,7 +254,7 @@ void loop() {
 			setMode(STD_MODE_NORMAL);
 		}
 
-		// display needs secondupdate
+		// display needs update every second
 		switch (mode) {
 		case STD_MODE_SECONDS:
 #ifdef RTC_BACKUP
@@ -310,13 +319,13 @@ void loop() {
 
 	// always execute
 
-	// check for HTTP- and OTA-requests
+	// call HTTP- and OTA-handler
 	server.handleClient();
 	ArduinoOTA.handle();
 
 	// read LDR and set brightness
 #ifdef LDR
-	if (!settings.getUseLdr()) ledBrightness = settings.getBrightness();
+	if (!settings.getUseLdr()) brightness = settings.getBrightness();
 	else {
 		if (millis() > (lastBrightnessCheck + 25)) {
 			uint16_t val = (1023 - analogRead(PIN_LDR));
@@ -326,18 +335,20 @@ void loop() {
 				lv = map(val, minBrightness, maxBrightness, 0, 255);
 				lastValue = val;
 			}
-			if (ledBrightness < lv) ledBrightness++;
-			if (ledBrightness > lv) ledBrightness--;
+			if (brightness < lv) brightness++;
+			if (brightness > lv) brightness--;
 			lastBrightnessCheck = millis();
+			brightness = constrain(brightness, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
 		}
 	}
 #else 
 	ledBrightness = settings.getBrightness();
 #endif
-	ledDriver.setBrightness(constrain(ledBrightness, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
+	// write screenbuffer to LEDs
+	ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
 
 #ifdef IR_REMOTE
-	// IR-Empfaenger abfragen und ggf. reagieren
+	// call IR-receiver
 	if (irrecv.decode(&irDecodeResults)) {
 		DEBUG_PRINT("IR signal: ");
 		DEBUG_PRINTLN(irDecodeResults.value);
@@ -346,7 +357,7 @@ void loop() {
 	}
 #endif
 
-	// Wenn noetig, den Screenbuffer neu erstellen und in die LEDs schreiben
+	// render new screenbuffer
 	if (ScreenBufferNeedsUpdate) {
 		ScreenBufferNeedsUpdate = false;
 		switch (mode) {
@@ -390,7 +401,7 @@ void loop() {
 				matrix[1 + i] |= (zahlenGross[(int(RTC.temperature() / 4) + RTC_TEMP_OFFSET) / 10][i]) << 11;
 				matrix[1 + i] |= (zahlenGross[(int(RTC.temperature() / 4) + RTC_TEMP_OFFSET) % 10][i]) << 5;
 			}
-			renderer.setPixelInScreenBuffer(4, 0, matrix); // LED rechts oben setzen als "Grad"
+			renderer.setPixelInScreenBuffer(4, 1, matrix); // turn on upper-right led
 			DEBUG_PRINTLN(String(RTC.temperature() / 4 + RTC_TEMP_OFFSET));
 			break;
 #endif
@@ -584,8 +595,6 @@ void loop() {
 		// turn off LED behind IR-sensor
 		renderer.unsetPixelInScreenBuffer(8, 9, matrix);
 #endif
-		// write screenbuffer to LEDs
-		ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor());
 #ifdef DEBUG_MATRIX
 		// write screenbuffer to console
 		debug.debugScreenBuffer(matrix);
@@ -737,13 +746,13 @@ void buttonPlusPressed() {
 	case EXT_MODE_NIGHTOFF:
 		settings.setNightOffTime(settings.getNightOffTime() + 3600);
 #ifdef DEBUG
-		debug.debugTime("Night Off:", settings.getNightOffTime());
+		debug.debugTime("Night off:", settings.getNightOffTime());
 #endif
 		break;
 	case EXT_MODE_NIGHTON:
 		settings.setNightOnTime(settings.getNightOnTime() + 3600);
 #ifdef DEBUG
-		debug.debugTime("Night On:", settings.getNightOnTime());
+		debug.debugTime("Night on:", settings.getNightOnTime());
 #endif
 		break;
 	case EXT_MODE_TEXT_TEST:
@@ -837,13 +846,13 @@ void buttonMinusPressed() {
 	case EXT_MODE_NIGHTOFF:
 		settings.setNightOffTime(settings.getNightOffTime() + 300);
 #ifdef DEBUG
-		debug.debugTime("Night Off:", settings.getNightOffTime());
+		debug.debugTime("Night off:", settings.getNightOffTime());
 #endif
 		break;
 	case EXT_MODE_NIGHTON:
 		settings.setNightOnTime(settings.getNightOnTime() + 300);
 #ifdef DEBUG
-		debug.debugTime("Night On:", settings.getNightOnTime());
+		debug.debugTime("Night on:", settings.getNightOnTime());
 #endif
 		break;
 	case EXT_MODE_TEXT_TEST:
@@ -966,9 +975,9 @@ time_t getNtpTime() {
 				return (timeZone.toLocal(secsSince1900 - 2208988800UL));
 			}
 		}
-		DEBUG_PRINTLN("No NTP Response. :(");
+		DEBUG_PRINTLN("No NTP response. :(");
 #ifdef SYSLOG_SERVER
-		syslog.log(LOG_ERR, "No NTP Response.");
+		syslog.log(LOG_ERR, "No NTP response.");
 #endif
 #ifdef RTC_BACKUP
 		return getRtcTime();
