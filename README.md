@@ -9,7 +9,7 @@ Optional support for WiFi, RTC, LDR, Buzzer and IR-remote.
 Supports more than 30 types of LED stripes.
 FastLED (RGB), LPD8806 (RGBW), NeoPixel (RGB and RGBW).
 Horizontal and vertial LED layout.
-Webserver to controll the clock.
+Webserver to control the clock.
 16 Languages.
 37 Colors.
 Timer.
