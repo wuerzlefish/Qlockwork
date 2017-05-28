@@ -16,14 +16,11 @@
 #define OTA_PASS "1234"
 #define NTP_SERVER "pool.ntp.org"
 
-//#define SYSLOG_SERVER "192.168.0.1"
-//#define SYSLOG_FACILITY LOG_LOCAL0
-//#define SYSLOG_PORT 514
-
 #define RTC_BACKUP
 #define RTC_TEMP_OFFSET 0
 #define BOARD_LED
 #define LDR
+#define LDR_HYSTERESE 5
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
 //#define NONE_TECHNICAL_ZERO
@@ -129,6 +126,7 @@
 #define NUM_LEDS 115
 #define SERIAL_SPEED 115200
 //#define DEBUG
+//#define DEBUG_WEBSITE
 //#define DEBUG_MATRIX
 //#define DEBUG_FPS
 
@@ -139,13 +137,11 @@
 #define WIFI_AP_TIMEOUT 60
 #define OTA_PASS "1234"
 #define NTP_SERVER "nostromo"
-#define SYSLOG_SERVER "nostromo-test"
-#define SYSLOG_FACILITY LOG_LOCAL0
-#define SYSLOG_PORT 514
 #define RTC_BACKUP
-#define RTC_TEMP_OFFSET 0
+#define RTC_TEMP_OFFSET -0.75
 #define BOARD_LED
 #define LDR
+#define LDR_HYSTERESE 15
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
 #define BUZZTIME_ALARM_1 60
@@ -174,6 +170,7 @@
 #define NUM_LEDS 115
 #define SERIAL_SPEED 115200
 #define DEBUG
+#define DEBUG_WEBSITE
 //#define DEBUG_MATRIX
 //#define DEBUG_FPS
 #endif // CONFIG_QLOCKDEV
@@ -186,7 +183,8 @@
 #define RTC_BACKUP
 #define RTC_TEMP_OFFSET -5
 #define LDR
-#define MIN_BRIGHTNESS 5
+#define LDR_HYSTERESE 5
+#define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 1
@@ -210,6 +208,7 @@
 #define PIN_LDR         A0
 #define NUM_LEDS 115
 #define SERIAL_SPEED 115200
+#define DEBUG_WEBSITE
 #endif // CONFIG_CLT2
 
 #endif

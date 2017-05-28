@@ -17,7 +17,6 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include <DS3232RTC.h>
 #include <TimeLib.h>
 #include <Timezone.h>
-#include <Syslog.h>
 #include "Configuration.h"
 #include "Debug.h"
 #include "Modes.h"
@@ -30,7 +29,7 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include "Settings.h"
 #include "Timezones.h"
 
-#define FIRMWARE_VERSION "qw20170527"
+#define FIRMWARE_VERSION "qw20170528"
 
 /******************************************************************************
 init
@@ -53,9 +52,6 @@ Debug debug;
 #ifdef IR_REMOTE
 IRrecv irrecv(PIN_IR_RECEIVER);
 #endif
-#ifdef SYSLOG_SERVER
-Syslog syslog(Udp, SYSLOG_SERVER, SYSLOG_PORT, HOSTNAME, "", SYSLOG_FACILITY);
-#endif
 
 word matrix[16];
 boolean ScreenBufferNeedsUpdate = true;
@@ -74,16 +70,14 @@ time_t timer = 0;
 time_t lastTime = 0;
 uint8_t alarmOn = 0;
 uint8_t testColumn = 0;
-uint32_t lastBrightnessCheck = 0;
-uint8_t brightness = 0;
-uint8_t lv = 0;
-uint16_t minBrightness = 1023;
-uint16_t maxBrightness = 0;
-uint16_t lastValue = 0;
 int8_t maxColor = sizeof(defaultColors) / 3 - 1;
-#ifdef IR_REMOTE
 decode_results irDecodeResults;
-#endif
+uint8_t brightness = settings.getBrightness();
+uint8_t ldrValue = 0;
+uint8_t lastLdrValue = 0;
+uint32_t lastBrightnessCheck = 0;
+uint8_t minAutoBrightness = 255;
+uint8_t maxAutoBrightness = 0;
 
 /******************************************************************************
 setup()
@@ -120,7 +114,6 @@ void setup() {
 	matrix[7] = 0b0000111000000000;
 	matrix[8] = 0b0000010000000000;
 	matrix[9] = 0b0000000000000000;
-	brightness = settings.getBrightness();
 	ledDriver.writeScreenBufferToLEDs(matrix, 0, brightness); // color 0: white
 	delay(1000);
 	WiFiManager wifiManager;
@@ -164,10 +157,6 @@ void setup() {
 #endif
 	DEBUG_PRINT("Free RAM: ");
 	DEBUG_PRINTLN(system_get_free_heap_size());
-#ifdef SYSLOG_SERVER
-	syslog.log(LOG_INFO, "Firmware: " + String(FIRMWARE_VERSION));
-	syslog.log(LOG_DEBUG, "Free RAM: " + String(system_get_free_heap_size()));
-#endif
 
 	// set timeprovider
 #ifdef RTC_BACKUP
@@ -212,9 +201,6 @@ void loop() {
 	if (day() != lastDay) {
 		lastDay = day();
 		DEBUG_PRINTLN("Reached a new day.");
-#ifdef SYSLOG_SERVER
-		syslog.log(LOG_DEBUG, "Free RAM: " + String(system_get_free_heap_size()));
-#endif
 		//if (settings.getColor() < maxColor) settings.setColor(settings.getColor() + 1);
 		//else settings.setColor(0);
 	}
@@ -223,9 +209,8 @@ void loop() {
 	if (hour() != lastHour) {
 		lastHour = hour();
 		DEBUG_PRINTLN("Reached a new hour.");
-#if defined(RTC_BACKUP) && defined(SYSLOG_SERVER)
-		syslog.log(LOG_INFO, "Temperature: " + String(RTC.temperature() / 4 + RTC_TEMP_OFFSET) + "C / " + String((RTC.temperature() / 4 + RTC_TEMP_OFFSET) * 9 / 5 + 32) + "F");
-#endif
+		DEBUG_PRINT("Free RAM: ");
+		DEBUG_PRINTLN(system_get_free_heap_size());
 	}
 
 	// execute every five minutes
@@ -323,29 +308,21 @@ void loop() {
 	server.handleClient();
 	ArduinoOTA.handle();
 
-	// read LDR and set brightness
 #ifdef LDR
-	if (!settings.getUseLdr()) brightness = settings.getBrightness();
-	else {
-		if (millis() > (lastBrightnessCheck + 25)) {
-			uint16_t val = (1023 - analogRead(PIN_LDR));
-			if ((val > (lastValue + 25)) || (val < (lastValue - 25))) {
-				if (val < minBrightness) minBrightness = val;
-				if (val > maxBrightness) maxBrightness = val + 1;
-				lv = map(val, minBrightness, maxBrightness, 0, 255);
-				lastValue = val;
-			}
-			if (brightness < lv) brightness++;
-			if (brightness > lv) brightness--;
-			lastBrightnessCheck = millis();
+	if (millis() > (lastBrightnessCheck + 250)) {
+		lastBrightnessCheck = millis();
+		ldrValue = map(1023 - analogRead(PIN_LDR), 0, 1023, 0, 254);
+		if (ldrValue < minAutoBrightness) minAutoBrightness = ldrValue;
+		if (ldrValue > maxAutoBrightness) maxAutoBrightness = ldrValue + 1;
+		if (settings.getUseLdr() && ((ldrValue >= (lastLdrValue + LDR_HYSTERESE)) || (ldrValue <= (lastLdrValue - LDR_HYSTERESE)))) {
+			lastLdrValue = ldrValue;
+			brightness = map(ldrValue, minAutoBrightness, maxAutoBrightness, 0, 255);
 			brightness = constrain(brightness, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
+			ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
+			DEBUG_PRINTLN("Brightness: " + String(brightness) + " (LDR: " + String(ldrValue) + ", Min: " + String(minAutoBrightness) + ", Max: " + String(maxAutoBrightness) + ")");
 		}
 	}
-#else 
-	ledBrightness = settings.getBrightness();
 #endif
-	// write screenbuffer to LEDs
-	ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
 
 #ifdef IR_REMOTE
 	// call IR-receiver
@@ -398,11 +375,11 @@ void loop() {
 		case STD_MODE_TEMP:
 			renderer.clearScreenBuffer(matrix);
 			for (uint8_t i = 0; i < 7; i++) {
-				matrix[1 + i] |= (zahlenGross[(int(RTC.temperature() / 4) + RTC_TEMP_OFFSET) / 10][i]) << 11;
-				matrix[1 + i] |= (zahlenGross[(int(RTC.temperature() / 4) + RTC_TEMP_OFFSET) % 10][i]) << 5;
+				matrix[1 + i] |= (zahlenGross[(RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) / 10][i]) << 11;
+				matrix[1 + i] |= (zahlenGross[(RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) % 10][i]) << 5;
 			}
 			renderer.setPixelInScreenBuffer(4, 1, matrix); // turn on upper-right led
-			DEBUG_PRINTLN(String(RTC.temperature() / 4 + RTC_TEMP_OFFSET));
+			DEBUG_PRINTLN(String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET)); // .0 to get float values for temp
 			break;
 #endif
 		case STD_MODE_SET_TIMER:
@@ -595,6 +572,7 @@ void loop() {
 		// turn off LED behind IR-sensor
 		renderer.unsetPixelInScreenBuffer(8, 9, matrix);
 #endif
+		ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
 #ifdef DEBUG_MATRIX
 		// write screenbuffer to console
 		debug.debugScreenBuffer(matrix);
@@ -705,10 +683,13 @@ void buttonPlusPressed() {
 #ifdef LDR
 	case EXT_MODE_LDR:
 		settings.toggleUseLdr();
+		lastLdrValue = 0;
 		break;
 #endif
 	case EXT_MODE_BRIGHTNESS:
-		settings.setBrightness(constrain(settings.getBrightness() + 10, 0, 255));
+		settings.setBrightness(constrain(settings.getBrightness() + 10, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
+		brightness = settings.getBrightness();
+		ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
 		DEBUG_PRINTLN(settings.getBrightness());
 		break;
 	case EXT_MODE_COLOR:
@@ -805,10 +786,13 @@ void buttonMinusPressed() {
 #ifdef LDR
 	case EXT_MODE_LDR:
 		settings.toggleUseLdr();
+		lastLdrValue = 0;
 		break;
 #endif
 	case EXT_MODE_BRIGHTNESS:
-		settings.setBrightness(constrain(settings.getBrightness() - 10, 0, 255));
+		settings.setBrightness(constrain(settings.getBrightness() - 10, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
+		brightness = settings.getBrightness();
+		ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
 		DEBUG_PRINTLN(settings.getBrightness());
 		break;
 	case EXT_MODE_COLOR:
@@ -938,9 +922,6 @@ void setDisplayToToggle() {
 // get time from RTC
 time_t getRtcTime() {
 	DEBUG_PRINTLN("*** ESP set from RTC. ***");
-#ifdef SYSLOG_SERVER
-	syslog.log(LOG_DEBUG, "ESP set from RTC.");
-#endif
 	return RTC.get();
 }
 #endif
@@ -963,22 +944,13 @@ time_t getNtpTime() {
 				secsSince1900 |= (unsigned long)packetBuffer[43];
 #ifdef RTC_BACKUP
 				DEBUG_PRINTLN("*** RTC set from NTP. ***");
-#ifdef SYSLOG_SERVER
-				syslog.log(LOG_DEBUG, "RTC set from NTP.");
-#endif
 				RTC.set(timeZone.toLocal(secsSince1900 - 2208988800UL));
 #endif
 				DEBUG_PRINTLN("*** ESP set from NTP. ***");
-#ifdef SYSLOG_SERVER
-				syslog.log(LOG_DEBUG, "ESP set from NTP.");
-#endif
 				return (timeZone.toLocal(secsSince1900 - 2208988800UL));
 			}
 		}
 		DEBUG_PRINTLN("No NTP response. :(");
-#ifdef SYSLOG_SERVER
-		syslog.log(LOG_ERR, "No NTP response.");
-#endif
 #ifdef RTC_BACKUP
 		return getRtcTime();
 #else
@@ -1056,17 +1028,19 @@ void handleRoot() {
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_MINUS'\">-</button>";
 	message += "<br><br>";
 #ifdef RTC_BACKUP
-	message += "Temperature: " + String(RTC.temperature() / 4 + RTC_TEMP_OFFSET) + "&#176;C / " + String((RTC.temperature() / 4 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "&#176;F";
+	message += "Temperature: " + String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) + "&#176;C / " + String((RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "&#176;F";
 	message += "<br>";
 #endif
 	message += "<font size=2>";
 	message += "Firmware: ";
 	message += FIRMWARE_VERSION;
-#ifdef DEBUG
+#ifdef DEBUG_WEBSITE
 	message += "<br>";
 	message += "Free RAM: ";
 	message += system_get_free_heap_size();
 	message += " bytes";
+	message += "<br>";
+	message += "Brightness: " + String(brightness) + " (LDR: " + String(ldrValue) + ", Min: " + String(minAutoBrightness) + ", Max: " + String(maxAutoBrightness) + ")";
 #endif
 	message += "</font>";
 	message += "</body>";

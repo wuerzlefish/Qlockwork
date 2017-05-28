@@ -20,7 +20,6 @@ Timezones.
 Daylight saving time.
 Over-the-air updates.
 WiFi manager for initial setup via accesspoint.
-Log to Syslog.
 ```
 ### Standard modes
 ```
@@ -64,7 +63,6 @@ https://github.com/markszabo/IRremoteESP8266
 https://github.com/PaulStoffregen/Time
 https://github.com/JChristensen/Timezone
 https://github.com/JChristensen/DS3232RTC
-https://github.com/arcao/Syslog
 https://github.com/ch570512/LPD8806RGBW
 
 There is a warning from FastLED about SPI when compiling. Just ignore it.
@@ -133,15 +131,11 @@ LED-Test: Laesst einen waagerechten Streifen ueber das Display wandern.
 #define OTA_PASS            Kennwort fuer "Over the Air" Updates.
 #define NTP_SERVER          Abzufragender NTP-Server.
 
-#define SYSLOG_SERVER       Daten an einen Syslogserver senden.
-#define SYSLOG_FACILITY
-#define SYSLOG_PORT
-
 #define RTC_BACKUP          Eine RTC als Backup verwenden.
 #define RTC_TEMP_OFFSET     Gibt an, um wieviel Grad die gemessene Temperatur (+ oder -) korrigiert werden soll.
-                            Nur ganze Zahlen verwenden.
 #define BOARD_LED           Zeigt mit Hilfe der LED auf dem ESP die Funktion an. Sie blinkt einmal pro Sekunde.
 #define LDR                 Einen LDR fuer die Helligkeitsregelung verwenden.
+#define LDR_HYSTERESE       Helligkeitsregelung ab einer Abweichung im Bereich von 0 bis 255.
 #define MIN_BRIGHTNESS 10   Minimale Helligkeit der LEDs im Bereich von 0 bis 255.
 #define MAX_BRIGHTNESS 255  Maximale Helligkeit der LEDs im Bereich von 0 bis 255.
 #define NONE_TECHNICAL_ZERO Zeigt die Null ohne den diagonalen Strich.
@@ -230,12 +224,13 @@ Die Hardwarebelegung des ESP:
 #define PIN_LEDS_DATA   D8
 #define PIN_LDR         A0
 
-#define NUM_LEDS 115  Anzahl der LEDs im Streifen.
+#define NUM_LEDS 115   Anzahl der LEDs im Streifen.
 
-#define SERIAL_SPEED  Geschwindigkeit der seriellen Schnittstelle fuer die serielle Konsole.
-#define DEBUG         Gibt technische Informationen in der seriellen Konsole aus.
-#define DEBUG_MATRIX  Rendert die Ausgabe der Matrix fuer die deutsche Front in der seriellen Konsole.
-#define DEBUG_FPS     Durchlaeufe der loop() pro Sekunde.
+#define SERIAL_SPEED   Geschwindigkeit der seriellen Schnittstelle fuer die serielle Konsole.
+#define DEBUG          Gibt technische Informationen in der seriellen Konsole aus.
+#define DEBUG_WEBSITE  Gibt technische Informationen auf der Web-Seite aus.
+#define DEBUG_MATRIX   Rendert die Ausgabe der Matrix fuer die deutsche Front in der seriellen Konsole.
+#define DEBUG_FPS      Durchlaeufe der loop() pro Sekunde.
 
 D0 = GPIO16 = NodeMCU_LED
 D1 = GPIO05 = PIN_WIRE_SCL
