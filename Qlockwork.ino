@@ -326,9 +326,8 @@ void loop() {
 			DEBUG_PRINTLN("Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", Min: " + String(minLdrValue) + ", Max: " + String(maxLdrValue) + ")");
 		}
 	}
-#endif
 
-	if (millis() > (lastBrightnessCheck + 50)) {
+	if (settings.getUseLdr() && (millis() > (lastBrightnessCheck + 50))) {
 		lastBrightnessCheck = millis();
 		if (brightness < ratedBrightness) brightness++;
 		if (brightness > ratedBrightness) brightness--;
@@ -337,6 +336,7 @@ void loop() {
 			//DEBUG_PRINTLN("Brightness: " + String(brightness) + ", rated Brightness: " + String(ratedBrightness));
 		}
 	}
+#endif
 
 #ifdef IR_REMOTE
 	// call IR-receiver
