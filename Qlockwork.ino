@@ -311,29 +311,28 @@ void loop() {
 	ArduinoOTA.handle();
 
 #ifdef LDR
+	// get rated brightness from LDR
 	if (millis() > (lastLdrCheck + 250)) {
 		lastLdrCheck = millis();
 		ldrValue = 1023 - analogRead(PIN_LDR);
 		if (ldrValue < minLdrValue) minLdrValue = ldrValue;
 		if (ldrValue > maxLdrValue) maxLdrValue = ldrValue;
-		if (settings.getUseLdr() && ((ldrValue >= (lastLdrValue + LDR_HYSTERESE)) || (ldrValue <= (lastLdrValue - LDR_HYSTERESE)))) {
+		if (settings.getUseLdr() && ((ldrValue >= (lastLdrValue + LDR_HYSTERESIS)) || (ldrValue <= (lastLdrValue - LDR_HYSTERESIS)))) {
 			lastLdrValue = ldrValue;
 			ratedBrightness = map(ldrValue, minLdrValue, maxLdrValue + 1, 0, 255); // ESP will crash if min and max are equal
 			ratedBrightness = constrain(ratedBrightness, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
-			//brightness = map(ldrValue, minLdrValue, maxLdrValue + 1, 0, 255); // ESP will crash if min and max are equal
-			//brightness = constrain(ratedBrightness, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
-			//ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
-			DEBUG_PRINTLN("Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", Min: " + String(minLdrValue) + ", Max: " + String(maxLdrValue) + ")");
+			DEBUG_PRINTLN("Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")");
 		}
 	}
 
+	// set brightness to rated brightness
 	if (settings.getUseLdr() && (millis() > (lastBrightnessCheck + 50))) {
 		lastBrightnessCheck = millis();
 		if (brightness < ratedBrightness) brightness++;
 		if (brightness > ratedBrightness) brightness--;
 		if (brightness != ratedBrightness) {
 			ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
-			//DEBUG_PRINTLN("Brightness: " + String(brightness) + ", rated Brightness: " + String(ratedBrightness));
+			//DEBUG_PRINTLN("Brightness: " + String(brightness) + ", rated brightness: " + String(ratedBrightness));
 		}
 	}
 #endif
@@ -1054,7 +1053,7 @@ void handleRoot() {
 	message += system_get_free_heap_size();
 	message += " bytes";
 	message += "<br>";
-	message += "Brightness: " + String(brightness) + " (LDR: " + String(ldrValue) + ", Min: " + String(minLdrValue) + ", Max: " + String(maxLdrValue) + ")";
+	message += "Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")";
 #endif
 	message += "</font>";
 	message += "</body>";
