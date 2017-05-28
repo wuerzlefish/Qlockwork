@@ -29,7 +29,7 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include "Settings.h"
 #include "Timezones.h"
 
-#define FIRMWARE_VERSION "qw20170528"
+#define FIRMWARE_VERSION "qw20170529"
 
 /******************************************************************************
 init
@@ -73,11 +73,13 @@ uint8_t testColumn = 0;
 int8_t maxColor = sizeof(defaultColors) / 3 - 1;
 decode_results irDecodeResults;
 uint8_t brightness = settings.getBrightness();
-uint8_t ldrValue = 0;
-uint8_t lastLdrValue = 0;
+uint8_t ratedBrightness = settings.getBrightness();
+uint16_t ldrValue = 0;
+uint16_t lastLdrValue = 0;
+uint16_t minLdrValue = 255;
+uint16_t maxLdrValue = 0;
+uint32_t lastLdrCheck = 0;
 uint32_t lastBrightnessCheck = 0;
-uint8_t minAutoBrightness = 255;
-uint8_t maxAutoBrightness = 0;
 
 /******************************************************************************
 setup()
@@ -309,20 +311,32 @@ void loop() {
 	ArduinoOTA.handle();
 
 #ifdef LDR
-	if (millis() > (lastBrightnessCheck + 250)) {
-		lastBrightnessCheck = millis();
-		ldrValue = map(1023 - analogRead(PIN_LDR), 0, 1023, 0, 254);
-		if (ldrValue < minAutoBrightness) minAutoBrightness = ldrValue;
-		if (ldrValue > maxAutoBrightness) maxAutoBrightness = ldrValue + 1;
+	if (millis() > (lastLdrCheck + 250)) {
+		lastLdrCheck = millis();
+		ldrValue = 1023 - analogRead(PIN_LDR);
+		if (ldrValue < minLdrValue) minLdrValue = ldrValue;
+		if (ldrValue > maxLdrValue) maxLdrValue = ldrValue;
 		if (settings.getUseLdr() && ((ldrValue >= (lastLdrValue + LDR_HYSTERESE)) || (ldrValue <= (lastLdrValue - LDR_HYSTERESE)))) {
 			lastLdrValue = ldrValue;
-			brightness = map(ldrValue, minAutoBrightness, maxAutoBrightness, 0, 255);
-			brightness = constrain(brightness, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
-			ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
-			DEBUG_PRINTLN("Brightness: " + String(brightness) + " (LDR: " + String(ldrValue) + ", Min: " + String(minAutoBrightness) + ", Max: " + String(maxAutoBrightness) + ")");
+			ratedBrightness = map(ldrValue, minLdrValue, maxLdrValue + 1, 0, 255); // ESP will crash if min and max are equal
+			ratedBrightness = constrain(ratedBrightness, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
+			//brightness = map(ldrValue, minLdrValue, maxLdrValue + 1, 0, 255); // ESP will crash if min and max are equal
+			//brightness = constrain(ratedBrightness, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
+			//ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
+			DEBUG_PRINTLN("Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", Min: " + String(minLdrValue) + ", Max: " + String(maxLdrValue) + ")");
 		}
 	}
 #endif
+
+	if (millis() > (lastBrightnessCheck + 50)) {
+		lastBrightnessCheck = millis();
+		if (brightness < ratedBrightness) brightness++;
+		if (brightness > ratedBrightness) brightness--;
+		if (brightness != ratedBrightness) {
+			ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
+			//DEBUG_PRINTLN("Brightness: " + String(brightness) + ", rated Brightness: " + String(ratedBrightness));
+		}
+	}
 
 #ifdef IR_REMOTE
 	// call IR-receiver
@@ -1040,7 +1054,7 @@ void handleRoot() {
 	message += system_get_free_heap_size();
 	message += " bytes";
 	message += "<br>";
-	message += "Brightness: " + String(brightness) + " (LDR: " + String(ldrValue) + ", Min: " + String(minAutoBrightness) + ", Max: " + String(maxAutoBrightness) + ")";
+	message += "Brightness: " + String(brightness) + " (LDR: " + String(ldrValue) + ", Min: " + String(minLdrValue) + ", Max: " + String(maxLdrValue) + ")";
 #endif
 	message += "</font>";
 	message += "</body>";

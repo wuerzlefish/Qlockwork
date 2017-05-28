@@ -20,7 +20,7 @@
 #define RTC_TEMP_OFFSET 0
 #define BOARD_LED
 #define LDR
-#define LDR_HYSTERESE 5
+#define LDR_HYSTERESE 30
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
 //#define NONE_TECHNICAL_ZERO
@@ -138,10 +138,10 @@
 #define OTA_PASS "1234"
 #define NTP_SERVER "nostromo"
 #define RTC_BACKUP
-#define RTC_TEMP_OFFSET -0.75
+#define RTC_TEMP_OFFSET -0.25
 #define BOARD_LED
 #define LDR
-#define LDR_HYSTERESE 15
+#define LDR_HYSTERESE 150
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
 #define BUZZTIME_ALARM_1 60
@@ -183,7 +183,7 @@
 #define RTC_BACKUP
 #define RTC_TEMP_OFFSET -5
 #define LDR
-#define LDR_HYSTERESE 5
+#define LDR_HYSTERESE 30
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
 #define BUZZTIME_ALARM_1 60

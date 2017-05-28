@@ -135,9 +135,9 @@ LED-Test: Laesst einen waagerechten Streifen ueber das Display wandern.
 #define RTC_TEMP_OFFSET     Gibt an, um wieviel Grad die gemessene Temperatur (+ oder -) korrigiert werden soll.
 #define BOARD_LED           Zeigt mit Hilfe der LED auf dem ESP die Funktion an. Sie blinkt einmal pro Sekunde.
 #define LDR                 Einen LDR fuer die Helligkeitsregelung verwenden.
-#define LDR_HYSTERESE       Helligkeitsregelung ab einer Abweichung im Bereich von 0 bis 255.
-#define MIN_BRIGHTNESS 10   Minimale Helligkeit der LEDs im Bereich von 0 bis 255.
-#define MAX_BRIGHTNESS 255  Maximale Helligkeit der LEDs im Bereich von 0 bis 255.
+#define LDR_HYSTERESE       Helligkeitsregelung ab einer Abweichung im Bereich von 0 bis 1023.
+#define MIN_BRIGHTNESS      Minimale Helligkeit der LEDs im Bereich von 0 bis 255.
+#define MAX_BRIGHTNESS      Maximale Helligkeit der LEDs im Bereich von 0 bis 255.
 #define NONE_TECHNICAL_ZERO Zeigt die Null ohne den diagonalen Strich.
 #define BUZZTIME_ALARM_1    Maximale Zeit in Sekunden, die Alarm 1 Laerm macht wenn er nicht manuell abgestellt wird.
 #define BUZZTIME_ALARM_2    Maximale Zeit in Sekunden, die Alarm 2 Laerm macht wenn er nicht manuell abgestellt wird.
