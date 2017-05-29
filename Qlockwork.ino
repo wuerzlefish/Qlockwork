@@ -29,7 +29,7 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include "Settings.h"
 #include "Timezones.h"
 
-#define FIRMWARE_VERSION "qw20170529"
+#define FIRMWARE_VERSION "qw20170530"
 
 /******************************************************************************
 init
@@ -905,12 +905,12 @@ misc
 ******************************************************************************/
 
 // set mode
-void setMode(Mode newmode) {
+void setMode(Mode newMode) {
 	DEBUG_PRINT("Mode: ");
-	DEBUG_PRINTLN(newmode);
+	DEBUG_PRINTLN(newMode);
 	ScreenBufferNeedsUpdate = true;
 	lastMode = mode;
-	mode = newmode;
+	mode = newMode;
 }
 
 // turn off LEDs
