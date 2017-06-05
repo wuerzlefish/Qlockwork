@@ -15,12 +15,14 @@ class LedDriver_FastLED {
 
 public:
 	LedDriver_FastLED();
-	void writeScreenBufferToLEDs(word matrix[16], uint8_t color, uint8_t brightness);
 	String getSignature();
+	void clear();
+	void show();
+	void setPixel(uint8_t x, uint8_t y, uint8_t color, uint8_t brightness);
+	void setPixel(uint8_t num, uint8_t color, uint8_t brightness);
 
 private:
 	CRGB leds[NUM_LEDS];
-	void setPixel(uint8_t x, uint8_t y, uint8_t color, uint8_t brightness);
 };
 
 #endif

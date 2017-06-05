@@ -6,57 +6,55 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 @created 01.02.2017
 ******************************************************************************/
 
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
-#include <WiFiManager.h>
-#include <WiFiClient.h>
-#include <WiFiUdp.h>
 #include <ArduinoOTA.h>
-#include <IRremoteESP8266.h>
 #include <DS3232RTC.h>
+#include <ESP8266mDNS.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266WiFi.h>
+#include <IRremoteESP8266.h>
 #include <TimeLib.h>
 #include <Timezone.h>
+#include <WiFiManager.h>
+
 #include "Configuration.h"
-#include "Debug.h"
-#include "Modes.h"
-#include "Renderer.h"
 #include "Colors.h"
+#include "Debug.h"
 #include "Languages.h"
 #include "LedDriver_FastLED.h"
-#include "LedDriver_LPD8806RGBW.h"
 #include "LedDriver_NeoPixel.h"
+#include "LedDriver_LPD8806RGBW.h"
+#include "Modes.h"
+#include "Renderer.h"
 #include "Settings.h"
 #include "Timezones.h"
-
-#define FIRMWARE_VERSION "qw20170530"
 
 /******************************************************************************
 init
 ******************************************************************************/
 
-#ifdef LED_LIBRARAY_FASTLED
-LedDriver_FastLED ledDriver;
-#endif
-#ifdef LED_LIBRARAY_LPD8806RGBW
-LedDriver_LPD8806RGBW ledDriver;
-#endif
-#ifdef LED_LIBRARAY_NEOPIXEL
-LedDriver_NeoPixel ledDriver;
-#endif
-Renderer renderer;
-Settings settings;
-WiFiUDP Udp;
-ESP8266WebServer server(80);
-Debug debug;
+WiFiUDP wifiUdp;
+ESP8266WebServer esp8266WebServer(80);
 #ifdef IR_REMOTE
 IRrecv irrecv(PIN_IR_RECEIVER);
 #endif
 
-word matrix[16];
-boolean ScreenBufferNeedsUpdate = true;
-IPAddress timeServerIP;
-uint8_t packetBuffer[48];
+Renderer renderer;
+Settings settings;
+Debug debug;
+#ifdef LED_LIBRARY_FASTLED
+LedDriver_FastLED ledDriver;
+#endif
+#ifdef LED_LIBRARY_LPD8806RGBW
+LedDriver_LPD8806RGBW ledDriver;
+#endif
+#ifdef LED_LIBRARY_NEOPIXEL
+LedDriver_NeoPixel ledDriver;
+#endif
+
+uint16_t matrix[10] = {};
+uint16_t matrixOld[10] = {};
+boolean screenBufferNeedsUpdate = true;
+uint8_t packetBuffer[48] = {};
 Mode mode = STD_MODE_NORMAL;
 Mode lastMode = mode;
 uint8_t fallBackCounter = 0;
@@ -64,13 +62,12 @@ uint8_t lastDay = 0;
 uint8_t lastHour = 0;
 uint8_t lastMinute = 0;
 uint8_t lastFiveMinute = 0;
-boolean timerSet = false;
-uint8_t timerMinutes = 0;
-time_t timer = 0;
 time_t lastTime = 0;
+boolean timerSet = false;
+time_t timer = 0;
+uint8_t timerMinutes = 0;
 uint8_t alarmOn = 0;
 uint8_t testColumn = 0;
-int8_t maxColor = sizeof(defaultColors) / 3 - 1;
 decode_results irDecodeResults;
 uint8_t brightness = settings.getBrightness();
 uint8_t ratedBrightness = settings.getBrightness();
@@ -93,19 +90,17 @@ void setup() {
 
 	DEBUG_PRINTLN();
 	DEBUG_PRINTLN("QLOCKWORK");
-	DEBUG_PRINT("Firmware: ");
-	DEBUG_PRINTLN(FIRMWARE_VERSION);
-	DEBUG_PRINTLN(String("LED-driver: " + ledDriver.getSignature()));
+	DEBUG_PRINTLN(String("Firmware: " + String(FIRMWARE_VERSION)));
+	DEBUG_PRINTLN(String("LED-Driver: " + ledDriver.getSignature()));
 
 	// init LDR, Buzzer and LED
-	DEBUG_PRINTLN("Setting up LDR, buzzer and LED.");
+	DEBUG_PRINTLN("Setting up LDR, Buzzer and LED.");
 	pinMode(PIN_LDR, INPUT);
 	pinMode(PIN_BUZZER, OUTPUT);
 	pinMode(PIN_LED, OUTPUT);
 	digitalWrite(PIN_LED, HIGH);
 
 	// init WiFi and services
-	renderer.clearScreenBuffer(matrix);
 	matrix[0] = 0b0000000000010000;
 	matrix[1] = 0b0000111000010000;
 	matrix[2] = 0b0011111110010000;
@@ -116,8 +111,7 @@ void setup() {
 	matrix[7] = 0b0000111000000000;
 	matrix[8] = 0b0000010000000000;
 	matrix[9] = 0b0000000000000000;
-	ledDriver.writeScreenBufferToLEDs(matrix, 0, brightness); // color 0: white
-	delay(1000);
+	writeScreenBuffer(matrix, 0, brightness); // color 0: white
 	WiFiManager wifiManager;
 	//wifiManager.resetSettings();
 	wifiManager.setTimeout(WIFI_AP_TIMEOUT);
@@ -127,7 +121,7 @@ void setup() {
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("ER", Renderer::TEXT_POS_TOP, matrix);
 		renderer.setSmallText("OR", Renderer::TEXT_POS_BOTTOM, matrix);
-		ledDriver.writeScreenBufferToLEDs(matrix, 1, brightness); // color 1: red
+		writeScreenBuffer(matrix, 1, brightness); // color 1: red
 		WiFi.mode(WIFI_OFF);
 		digitalWrite(PIN_BUZZER, HIGH);
 		delay(1500);
@@ -136,22 +130,24 @@ void setup() {
 	else {
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("OK", Renderer::TEXT_POS_MIDDLE, matrix);
-		ledDriver.writeScreenBufferToLEDs(matrix, 2, brightness); // color 2: green
-		for (uint8_t i = 0; i < 3; i++) {
+		writeScreenBuffer(matrix, 2, brightness); // color 2: green
+		for (uint8_t i = 0; i <= 2; i++) {
 			digitalWrite(PIN_BUZZER, HIGH);
 			delay(100);
 			digitalWrite(PIN_BUZZER, LOW);
 			delay(100);
 		}
 	}
+	renderer.clearScreenBuffer(matrix);
 	DEBUG_PRINTLN("Starting mDNS responder.");
 	MDNS.begin(HOSTNAME);
 	DEBUG_PRINTLN("Starting webserver on port 80.");
 	setupWebServer();
 	DEBUG_PRINTLN("Starting UDP on port 2390.");
-	Udp.begin(2390);
+	wifiUdp.begin(2390);
 	DEBUG_PRINTLN("Starting Arduino-OTA service.");
-	ArduinoOTA.setPassword((const char*)OTA_PASS);
+	char otaPassword[] = OTA_PASS;
+	ArduinoOTA.setPassword(otaPassword);
 	ArduinoOTA.begin();
 #ifdef IR_REMOTE
 	DEBUG_PRINTLN("Starting IR-receiver.");
@@ -159,6 +155,8 @@ void setup() {
 #endif
 	DEBUG_PRINT("Free RAM: ");
 	DEBUG_PRINTLN(system_get_free_heap_size());
+	DEBUG_PRINT("Use LDR: ");
+	if (settings.getUseLdr()) DEBUG_PRINTLN("On"); else DEBUG_PRINTLN("Off");
 
 	// set timeprovider
 #ifdef RTC_BACKUP
@@ -227,7 +225,7 @@ void loop() {
 #ifdef DEBUG
 		debug.debugTime("Time:", now());
 #endif
-		if (mode == STD_MODE_NORMAL) ScreenBufferNeedsUpdate = true;
+		if (mode == STD_MODE_NORMAL) screenBufferNeedsUpdate = true;
 	}
 
 	// execute every second
@@ -257,6 +255,7 @@ void loop() {
 		case EXT_MODE_LDR:
 #endif
 		case EXT_MODE_COLOR:
+		case EXT_MODE_TRANSITION:
 		case EXT_MODE_TIMEOUT:
 		case EXT_MODE_LANGUAGE:
 		case EXT_MODE_TIMESET:
@@ -267,14 +266,13 @@ void loop() {
 		case EXT_MODE_NIGHTOFF:
 		case EXT_MODE_NIGHTON:
 		case EXT_MODE_TEST:
-			ScreenBufferNeedsUpdate = true;
+			screenBufferNeedsUpdate = true;
 			break;
 		default:
 			break;
 		}
 
-#ifdef BOARD_LED
-		// toggle LED on board
+#ifdef ESP_LED
 		if (digitalRead(PIN_LED) == LOW) digitalWrite(PIN_LED, HIGH);
 		else digitalWrite(PIN_LED, LOW);
 #endif
@@ -307,7 +305,7 @@ void loop() {
 	// always execute
 
 	// call HTTP- and OTA-handler
-	server.handleClient();
+	esp8266WebServer.handleClient();
 	ArduinoOTA.handle();
 
 #ifdef LDR
@@ -331,7 +329,7 @@ void loop() {
 		if (brightness < ratedBrightness) brightness++;
 		if (brightness > ratedBrightness) brightness--;
 		if (brightness != ratedBrightness) {
-			ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
+			writeScreenBuffer(matrix, settings.getColor(), brightness);
 			//DEBUG_PRINTLN("Brightness: " + String(brightness) + ", rated brightness: " + String(ratedBrightness));
 		}
 	}
@@ -348,15 +346,16 @@ void loop() {
 #endif
 
 	// render new screenbuffer
-	if (ScreenBufferNeedsUpdate) {
-		ScreenBufferNeedsUpdate = false;
+	if (screenBufferNeedsUpdate) {
+		screenBufferNeedsUpdate = false;
+		for (uint8_t i = 0; i <= 9; i++) matrixOld[i] = matrix[i];
 		switch (mode) {
 		case STD_MODE_NORMAL:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setTime(hour(), minute(), settings.getLanguage(), matrix);
 			renderer.setCorners(minute(), matrix);
+			if (settings.getAlarm1() || settings.getAlarm2()) renderer.setAlarmLed(matrix);
 			if (!settings.getEsIst() && ((minute() / 5) % 6)) renderer.clearEntryWords(settings.getLanguage(), matrix);
-			if (settings.getAlarm1() || settings.getAlarm2()) renderer.activateAlarmLed(matrix);
 			break;
 		case STD_MODE_AMPM:
 			renderer.clearScreenBuffer(matrix);
@@ -366,7 +365,7 @@ void loop() {
 		case STD_MODE_SECONDS:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setCorners(minute(), matrix);
-			for (uint8_t i = 0; i < 7; i++) {
+			for (uint8_t i = 0; i <= 6; i++) {
 				matrix[1 + i] |= (zahlenGross[second() / 10][i]) << 11;
 				matrix[1 + i] |= (zahlenGross[second() % 10][i]) << 5;
 			}
@@ -387,9 +386,9 @@ void loop() {
 #ifdef RTC_BACKUP
 		case STD_MODE_TEMP:
 			renderer.clearScreenBuffer(matrix);
-			for (uint8_t i = 0; i < 7; i++) {
-				matrix[1 + i] |= (zahlenGross[(RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) / 10][i]) << 11;
-				matrix[1 + i] |= (zahlenGross[(RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) % 10][i]) << 5;
+			for (uint8_t i = 0; i <= 6; i++) {
+				matrix[i + 1] |= (zahlenGross[(RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) / 10][i]) << 11;
+				matrix[i + 1] |= (zahlenGross[(RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) % 10][i]) << 5;
 			}
 			renderer.setPixelInScreenBuffer(4, 1, matrix); // turn on upper-right led
 			DEBUG_PRINTLN(String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET)); // .0 to get float values for temp
@@ -397,24 +396,24 @@ void loop() {
 #endif
 		case STD_MODE_SET_TIMER:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("TR", Renderer::TEXT_POS_TOP, matrix);
-			if (second() % 2 == 0) for (uint8_t i = 5; i < 10; i++) matrix[i] = 0;
+			renderer.setSmallText("TI", Renderer::TEXT_POS_TOP, matrix);
+			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else renderer.setSmallText(String(timerMinutes), Renderer::TEXT_POS_BOTTOM, matrix);
 			break;
 		case STD_MODE_TIMER:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("TR", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("TI", Renderer::TEXT_POS_TOP, matrix);
 			renderer.setSmallText(String((timer - now() + 60) / 60), Renderer::TEXT_POS_BOTTOM, matrix);
 			DEBUG_PRINTLN(String(timer - now()));
 			break;
 		case STD_MODE_ALARM_1:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("A1", Renderer::TEXT_POS_TOP, matrix);
-			if (second() % 2 == 0) for (uint8_t i = 5; i < 10; i++) matrix[i] = 0;
+			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else {
 				if (settings.getAlarm1()) {
 					renderer.setSmallText("EN", Renderer::TEXT_POS_BOTTOM, matrix);
-					renderer.activateAlarmLed(matrix);
+					renderer.setAlarmLed(matrix);
 				}
 				else renderer.setSmallText("DA", Renderer::TEXT_POS_BOTTOM, matrix);
 			}
@@ -425,17 +424,17 @@ void loop() {
 				renderer.setTime(hour(settings.getAlarmTime1()), minute(settings.getAlarmTime1()), settings.getLanguage(), matrix);
 				renderer.clearEntryWords(settings.getLanguage(), matrix);
 				renderer.setAMPM(hour(settings.getAlarmTime1()), settings.getLanguage(), matrix);
-				renderer.activateAlarmLed(matrix);
+				renderer.setAlarmLed(matrix);
 			}
 			break;
 		case STD_MODE_ALARM_2:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("A2", Renderer::TEXT_POS_TOP, matrix);
-			if (second() % 2 == 0) for (uint8_t i = 5; i < 10; i++) matrix[i] = 0;
+			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else {
 				if (settings.getAlarm2()) {
 					renderer.setSmallText("EN", Renderer::TEXT_POS_BOTTOM, matrix);
-					renderer.activateAlarmLed(matrix);
+					renderer.setAlarmLed(matrix);
 				}
 				else renderer.setSmallText("DA", Renderer::TEXT_POS_BOTTOM, matrix);
 			}
@@ -446,10 +445,10 @@ void loop() {
 				renderer.setTime(hour(settings.getAlarmTime2()), minute(settings.getAlarmTime2()), settings.getLanguage(), matrix);
 				renderer.clearEntryWords(settings.getLanguage(), matrix);
 				renderer.setAMPM(hour(settings.getAlarmTime2()), settings.getLanguage(), matrix);
-				renderer.activateAlarmLed(matrix);
+				renderer.setAlarmLed(matrix);
 			}
 			break;
-		case EXT_MODE_TEXT_MAIN:
+		case EXT_MODE_TITLE_MAIN:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("MA", Renderer::TEXT_POS_TOP, matrix);
 			renderer.setSmallText("IN", Renderer::TEXT_POS_BOTTOM, matrix);
@@ -458,7 +457,7 @@ void loop() {
 		case EXT_MODE_LDR:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("LD", Renderer::TEXT_POS_TOP, matrix);
-			if (second() % 2 == 0) for (uint8_t i = 5; i < 10; i++) matrix[i] = 0;
+			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else {
 				if (settings.getUseLdr()) renderer.setSmallText("EN", Renderer::TEXT_POS_BOTTOM, matrix);
 				else renderer.setSmallText("DA", Renderer::TEXT_POS_BOTTOM, matrix);
@@ -467,8 +466,8 @@ void loop() {
 #endif
 		case EXT_MODE_BRIGHTNESS:
 			renderer.clearScreenBuffer(matrix);
-			for (uint8_t xb = 0; xb < map(settings.getBrightness(), 0, 255, 1, 10); xb++) {
-				for (uint8_t yb = 0; yb <= xb; yb++) matrix[9 - yb] |= 1 << (14 - xb);
+			for (uint8_t x = 0; x < map(settings.getBrightness(), 0, 255, 1, 10); x++) {
+				for (uint8_t y = 0; y <= x; y++) matrix[9 - y] |= 1 << (14 - x);
 			}
 			break;
 		case EXT_MODE_COLOR:
@@ -478,13 +477,22 @@ void loop() {
 			renderer.setPixelInScreenBuffer(4, 1, matrix);
 			renderer.setPixelInScreenBuffer(4, 2, matrix);
 			renderer.setPixelInScreenBuffer(4, 3, matrix);
-			if (second() % 2 == 0) for (uint8_t i = 5; i < 10; i++) matrix[i] = 0;
+			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else renderer.setSmallText(String(settings.getColor()), Renderer::TEXT_POS_BOTTOM, matrix);
+			break;
+		case EXT_MODE_TRANSITION:
+			renderer.clearScreenBuffer(matrix);
+			renderer.setSmallText("TR", Renderer::TEXT_POS_TOP, matrix);
+			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
+			else {
+				if (settings.getTransition() == 0) renderer.setSmallText("NO", Renderer::TEXT_POS_BOTTOM, matrix);
+				if (settings.getTransition() == 1) renderer.setSmallText("FD", Renderer::TEXT_POS_BOTTOM, matrix);
+			}
 			break;
 		case EXT_MODE_TIMEOUT:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("FB", Renderer::TEXT_POS_TOP, matrix);
-			if (second() % 2 == 0) for (uint8_t i = 5; i < 10; i++) matrix[i] = 0;
+			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else renderer.setSmallText(String(settings.getTimeout()), Renderer::TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_LANGUAGE:
@@ -497,7 +505,7 @@ void loop() {
 				}
 			}
 			break;
-		case EXT_MODE_TEXT_TIME:
+		case EXT_MODE_TITLE_TIME:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("TI", Renderer::TEXT_POS_TOP, matrix);
 			renderer.setSmallText("ME", Renderer::TEXT_POS_BOTTOM, matrix);
@@ -514,7 +522,7 @@ void loop() {
 		case EXT_MODE_IT_IS:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("IT", Renderer::TEXT_POS_TOP, matrix);
-			if (second() % 2 == 0) for (uint8_t i = 5; i < 10; i++) matrix[i] = 0;
+			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else {
 				if (settings.getEsIst()) renderer.setSmallText("EN", Renderer::TEXT_POS_BOTTOM, matrix);
 				else renderer.setSmallText("DA", Renderer::TEXT_POS_BOTTOM, matrix);
@@ -523,20 +531,20 @@ void loop() {
 		case EXT_MODE_DAYSET:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("DD", Renderer::TEXT_POS_TOP, matrix);
-			if (second() % 2 == 0) for (uint8_t i = 5; i < 10; i++) matrix[i] = 0;
+			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else renderer.setSmallText(String(day()), Renderer::TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_MONTHSET:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("MM", Renderer::TEXT_POS_TOP, matrix);
-			if (second() % 2 == 0) for (uint8_t i = 5; i < 10; i++) matrix[i] = 0;
+			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else renderer.setSmallText(String(month()), Renderer::TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_YEARSET:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("YY", Renderer::TEXT_POS_TOP, matrix);
-			if (second() % 2 == 0) for (uint8_t i = 5; i < 10; i++) matrix[i] = 0;
-			else renderer.setSmallText(String(year()).substring(2, 4), Renderer::TEXT_POS_BOTTOM, matrix);
+			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
+			else renderer.setSmallText(String(year() % 100), Renderer::TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_TEXT_NIGHTOFF:
 			renderer.clearScreenBuffer(matrix);
@@ -564,7 +572,43 @@ void loop() {
 				renderer.setAMPM(hour(settings.getNightOnTime()), settings.getLanguage(), matrix);
 			}
 			break;
-		case EXT_MODE_TEXT_TEST:
+		case EXT_MODE_TITLE_IP:
+			renderer.clearScreenBuffer(matrix);
+			renderer.setSmallText("IP", Renderer::TEXT_POS_MIDDLE, matrix);
+			break;
+		case EXT_MODE_IP_0:
+			renderer.clearScreenBuffer(matrix);
+			if (WiFi.localIP()[0] / 10 == 0) renderer.setSmallText(String(WiFi.localIP()[0] % 10), Renderer::TEXT_POS_MIDDLE, matrix);
+			else {
+				renderer.setSmallText(String(WiFi.localIP()[0] / 10), Renderer::TEXT_POS_TOP, matrix);
+				renderer.setSmallText(String(WiFi.localIP()[0] % 10), Renderer::TEXT_POS_BOTTOM, matrix);
+			}
+			break;
+		case EXT_MODE_IP_1:
+			renderer.clearScreenBuffer(matrix);
+			if (WiFi.localIP()[1] / 10 == 0) renderer.setSmallText(String(WiFi.localIP()[1] % 10), Renderer::TEXT_POS_MIDDLE, matrix);
+			else {
+				renderer.setSmallText(String(WiFi.localIP()[1] / 10), Renderer::TEXT_POS_TOP, matrix);
+				renderer.setSmallText(String(WiFi.localIP()[1] % 10), Renderer::TEXT_POS_BOTTOM, matrix);
+			}
+			break;
+		case EXT_MODE_IP_2:
+			renderer.clearScreenBuffer(matrix);
+			if (WiFi.localIP()[2] / 10 == 0) renderer.setSmallText(String(WiFi.localIP()[2] % 10), Renderer::TEXT_POS_MIDDLE, matrix);
+			else {
+				renderer.setSmallText(String(WiFi.localIP()[2] / 10), Renderer::TEXT_POS_TOP, matrix);
+				renderer.setSmallText(String(WiFi.localIP()[2] % 10), Renderer::TEXT_POS_BOTTOM, matrix);
+			}
+			break;
+		case EXT_MODE_IP_3:
+			renderer.clearScreenBuffer(matrix);
+			if (WiFi.localIP()[3] / 10 == 0) renderer.setSmallText(String(WiFi.localIP()[3] % 10), Renderer::TEXT_POS_MIDDLE, matrix);
+			else {
+				renderer.setSmallText(String(WiFi.localIP()[3] / 10), Renderer::TEXT_POS_TOP, matrix);
+				renderer.setSmallText(String(WiFi.localIP()[3] % 10), Renderer::TEXT_POS_BOTTOM, matrix);
+			}
+			break;
+		case EXT_MODE_TITLE_TEST:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("TE", Renderer::TEXT_POS_TOP, matrix);
 			renderer.setSmallText("ST", Renderer::TEXT_POS_BOTTOM, matrix);
@@ -585,11 +629,20 @@ void loop() {
 		// turn off LED behind IR-sensor
 		renderer.unsetPixelInScreenBuffer(8, 9, matrix);
 #endif
-		ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
 #ifdef DEBUG_MATRIX
 		// write screenbuffer to console
 		debug.debugScreenBuffer(matrix);
 #endif
+		switch (mode) {
+		case STD_MODE_NORMAL:
+		case STD_MODE_BLANK:
+			if (settings.getTransition() == Settings::TRANSITION_NORMAL) writeScreenBuffer(matrix, settings.getColor(), brightness);
+			if (settings.getTransition() == Settings::TRANSITION_FADE) writeScreenBufferFade(matrixOld, matrix, settings.getColor(), brightness);
+			break;
+		default:
+			writeScreenBuffer(matrix, settings.getColor(), brightness);
+			break;
+		}
 	}
 }
 
@@ -665,7 +718,7 @@ void modePressed() {
 
 void buttonPlusPressed() {
 	DEBUG_PRINTLN("+ pressed.");
-	ScreenBufferNeedsUpdate = true;
+	screenBufferNeedsUpdate = true;
 	switch (mode) {
 	case STD_MODE_SET_TIMER:
 		if (timerMinutes < 100) timerMinutes++;
@@ -690,8 +743,8 @@ void buttonPlusPressed() {
 		debug.debugTime("Alarm 2:", settings.getAlarmTime2());
 #endif
 		break;
-	case EXT_MODE_TEXT_MAIN:
-		setMode(EXT_MODE_TEXT_TIME);
+	case EXT_MODE_TITLE_MAIN:
+		setMode(EXT_MODE_TITLE_TIME);
 		break;
 #ifdef LDR
 	case EXT_MODE_LDR:
@@ -702,22 +755,26 @@ void buttonPlusPressed() {
 	case EXT_MODE_BRIGHTNESS:
 		settings.setBrightness(constrain(settings.getBrightness() + 10, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
 		brightness = settings.getBrightness();
-		ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
+		writeScreenBuffer(matrix, settings.getColor(), brightness);
 		DEBUG_PRINTLN(settings.getBrightness());
 		break;
 	case EXT_MODE_COLOR:
-		if (settings.getColor() < maxColor) settings.setColor(settings.getColor() + 1);
+		if (settings.getColor() < COLOR_COUNT) settings.setColor(settings.getColor() + 1);
 		else settings.setColor(0);
+		break;
+	case EXT_MODE_TRANSITION:
+		if (settings.getTransition() < TRANSITION_COUNT) settings.setTransition(settings.getTransition() + 1);
+		else settings.setTransition(0);
 		break;
 	case EXT_MODE_TIMEOUT:
 		if (settings.getTimeout() < 99) settings.setTimeout(settings.getTimeout() + 1);
 		break;
 	case EXT_MODE_LANGUAGE:
-		if (settings.getLanguage() < LANGUAGE_COUNT - 1) settings.setLanguage(settings.getLanguage() + 1);
+		if (settings.getLanguage() < LANGUAGE_COUNT) settings.setLanguage(settings.getLanguage() + 1);
 		else settings.setLanguage(0);
 		break;
-	case EXT_MODE_TEXT_TIME:
-		setMode(EXT_MODE_TEXT_TEST);
+	case EXT_MODE_TITLE_TIME:
+		setMode(EXT_MODE_TITLE_IP);
 		break;
 	case EXT_MODE_TIMESET:
 		setTime(hour() + 1, minute(), second(), day(), month(), year());
@@ -749,8 +806,11 @@ void buttonPlusPressed() {
 		debug.debugTime("Night on:", settings.getNightOnTime());
 #endif
 		break;
-	case EXT_MODE_TEXT_TEST:
-		setMode(EXT_MODE_TEXT_MAIN);
+	case EXT_MODE_TITLE_IP:
+		setMode(EXT_MODE_TITLE_TEST);
+		break;
+	case EXT_MODE_TITLE_TEST:
+		setMode(EXT_MODE_TITLE_MAIN);
 		break;
 	default:
 		break;
@@ -763,7 +823,7 @@ void buttonPlusPressed() {
 
 void buttonMinusPressed() {
 	DEBUG_PRINTLN("- pressed.");
-	ScreenBufferNeedsUpdate = true;
+	screenBufferNeedsUpdate = true;
 	switch (mode) {
 	case STD_MODE_SET_TIMER:
 		if (timerMinutes > 0) {
@@ -793,8 +853,8 @@ void buttonMinusPressed() {
 		debug.debugTime("Alarm 2:", settings.getAlarmTime2());
 #endif
 		break;
-	case EXT_MODE_TEXT_MAIN:
-		setMode(EXT_MODE_TEXT_TEST);
+	case EXT_MODE_TITLE_MAIN:
+		setMode(EXT_MODE_TITLE_TEST);
 		break;
 #ifdef LDR
 	case EXT_MODE_LDR:
@@ -805,22 +865,26 @@ void buttonMinusPressed() {
 	case EXT_MODE_BRIGHTNESS:
 		settings.setBrightness(constrain(settings.getBrightness() - 10, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
 		brightness = settings.getBrightness();
-		ledDriver.writeScreenBufferToLEDs(matrix, settings.getColor(), brightness);
+		writeScreenBuffer(matrix, settings.getColor(), brightness);
 		DEBUG_PRINTLN(settings.getBrightness());
 		break;
 	case EXT_MODE_COLOR:
 		if (settings.getColor() > 0) settings.setColor(settings.getColor() - 1);
-		else settings.setColor(maxColor);
+		else settings.setColor(COLOR_COUNT);
+		break;
+	case EXT_MODE_TRANSITION:
+		if (settings.getTransition() > 0) settings.setTransition(settings.getTransition() - 1);
+		else settings.setTransition(TRANSITION_COUNT);
 		break;
 	case EXT_MODE_TIMEOUT:
 		if (settings.getTimeout() > 0) settings.setTimeout(settings.getTimeout() - 1);
 		break;
 	case EXT_MODE_LANGUAGE:
 		if (settings.getLanguage() > 0) settings.setLanguage(settings.getLanguage() - 1);
-		else settings.setLanguage(LANGUAGE_COUNT - 1);
+		else settings.setLanguage(LANGUAGE_COUNT);
 		break;
-	case EXT_MODE_TEXT_TIME:
-		setMode(EXT_MODE_TEXT_MAIN);
+	case EXT_MODE_TITLE_TIME:
+		setMode(EXT_MODE_TITLE_MAIN);
 		break;
 	case EXT_MODE_TIMESET:
 		setTime(hour(), minute() + 1, 0, day(), month(), year());
@@ -852,8 +916,11 @@ void buttonMinusPressed() {
 		debug.debugTime("Night on:", settings.getNightOnTime());
 #endif
 		break;
-	case EXT_MODE_TEXT_TEST:
-		setMode(EXT_MODE_TEXT_TIME);
+	case EXT_MODE_TITLE_IP:
+		setMode(EXT_MODE_TITLE_TIME);
+		break;
+	case EXT_MODE_TITLE_TEST:
+		setMode(EXT_MODE_TITLE_IP);
 		break;
 	default:
 		break;
@@ -871,7 +938,6 @@ void remoteAction(uint32_t irDecodeResults) {
 		setDisplayToToggle();
 		break;
 	case IR_CODE_TIME:
-		settings.saveToEEPROM();
 #ifdef RTC_BACKUP
 		RTC.set(now());
 #endif
@@ -879,6 +945,8 @@ void remoteAction(uint32_t irDecodeResults) {
 			alarmOn = false;
 			digitalWrite(PIN_BUZZER, LOW);
 		}
+		fallBackCounter = 0;
+		settings.saveToEEPROM();
 		setMode(STD_MODE_NORMAL);
 		break;
 	case IR_CODE_MODE:
@@ -901,6 +969,46 @@ void remoteAction(uint32_t irDecodeResults) {
 #endif
 
 /******************************************************************************
+transitions
+******************************************************************************/
+
+void writeScreenBuffer(uint16_t screenBuffer[], uint8_t color, uint8_t brightness) {
+	ledDriver.clear();
+	for (uint8_t y = 0; y <= 9; y++) {
+		for (uint8_t x = 0; x <= 10; x++) {
+			if (bitRead(screenBuffer[y], 15 - x)) ledDriver.setPixel(x, y, color, brightness);
+		}
+	}
+	for (uint8_t y = 0; y <= 4; y++) {
+		if (bitRead(screenBuffer[y], 4)) ledDriver.setPixel(110 + y, color, brightness);
+	}
+	ledDriver.show();
+}
+
+void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[], uint8_t color, uint8_t brightness) {
+	ledDriver.clear();
+	uint8_t brightnessBuffer[10][12] = {};
+	for (uint8_t y = 0; y <= 9; y++) {
+		for (uint8_t x = 0; x <= 11; x++) {
+			if (bitRead(screenBufferOld[y], 15 - x)) brightnessBuffer[y][x] = brightness;
+		}
+	}
+	for (uint8_t i = 0; i < brightness; i++) {
+		for (uint8_t y = 0; y <= 9; y++) {
+			for (uint8_t x = 0; x <= 11; x++) {
+				if (!(bitRead(screenBufferOld[y], 15 - x)) && (bitRead(screenBufferNew[y], 15 - x))) brightnessBuffer[y][x]++;
+				if ((bitRead(screenBufferOld[y], 15 - x)) && !(bitRead(screenBufferNew[y], 15 - x))) brightnessBuffer[y][x]--;
+				ledDriver.setPixel(x, y, color, brightnessBuffer[y][x]);
+			}
+		}
+		for (uint8_t y = 0; y <= 4; y++) ledDriver.setPixel(110 + y, color, brightnessBuffer[y][11]);
+		esp8266WebServer.handleClient();
+		ledDriver.show();
+		delay(3);
+	}
+}
+
+/******************************************************************************
 misc
 ******************************************************************************/
 
@@ -908,7 +1016,7 @@ misc
 void setMode(Mode newMode) {
 	DEBUG_PRINT("Mode: ");
 	DEBUG_PRINTLN(newMode);
-	ScreenBufferNeedsUpdate = true;
+	screenBufferNeedsUpdate = true;
 	lastMode = mode;
 	mode = newMode;
 }
@@ -939,17 +1047,22 @@ time_t getRtcTime() {
 }
 #endif
 
-// get time with NTP
+/******************************************************************************
+ntp
+******************************************************************************/
+
 time_t getNtpTime() {
+	char server[] = NTP_SERVER;
+	IPAddress timeServerIP;
+	WiFi.hostByName(server, timeServerIP);
 	if (WiFi.status() == WL_CONNECTED) {
-		while (Udp.parsePacket() > 0);
-		WiFi.hostByName(NTP_SERVER, timeServerIP);
+		while (wifiUdp.parsePacket() > 0);
 		sendNTPpacket(timeServerIP);
 		uint32_t beginWait = millis();
 		while (millis() - beginWait < 1500) {
-			int size = Udp.parsePacket();
+			int size = wifiUdp.parsePacket();
 			if (size >= 48) {
-				Udp.read(packetBuffer, 48);
+				wifiUdp.read(packetBuffer, 48);
 				unsigned long secsSince1900;
 				secsSince1900 = (unsigned long)packetBuffer[40] << 24;
 				secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
@@ -974,8 +1087,7 @@ time_t getNtpTime() {
 	return now();
 }
 
-// send NTP packet
-void sendNTPpacket(IPAddress & address) {
+void sendNTPpacket(IPAddress &timeServerIP) {
 	memset(packetBuffer, 0, 48);
 	packetBuffer[0] = 0b11100011;
 	packetBuffer[1] = 0;
@@ -985,31 +1097,30 @@ void sendNTPpacket(IPAddress & address) {
 	packetBuffer[13] = 0x4E;
 	packetBuffer[14] = 49;
 	packetBuffer[15] = 52;
-	Udp.beginPacket(address, 123);
-	Udp.write(packetBuffer, 48);
-	Udp.endPacket();
+	wifiUdp.beginPacket(timeServerIP, 123);
+	wifiUdp.write(packetBuffer, 48);
+	wifiUdp.endPacket();
 }
 
 /******************************************************************************
 webserver
 ******************************************************************************/
 
-// setup
 void setupWebServer() {
-	server.onNotFound(handleNotFound);
-	server.on("/", handleRoot);
-	server.on("/handle_TOGGLEBLANK", handle_TOGGLEBLANK);
-	server.on("/handle_BUTTON_TIME", handle_BUTTON_TIME);
-	server.on("/handle_BUTTON_MODE", handle_BUTTON_MODE);
-	server.on("/handle_BUTTON_EXTMODE", handle_BUTTON_EXTMODE);
-	server.on("/handle_BUTTON_PLUS", handle_BUTTON_PLUS);
-	server.on("/handle_BUTTON_MINUS", handle_BUTTON_MINUS);
-	server.begin();
+	esp8266WebServer.onNotFound(handleNotFound);
+	esp8266WebServer.on("/", handleRoot);
+	esp8266WebServer.on("/handle_TOGGLEBLANK", handle_TOGGLEBLANK);
+	esp8266WebServer.on("/handle_BUTTON_TIME", handle_BUTTON_TIME);
+	esp8266WebServer.on("/handle_BUTTON_MODE", handle_BUTTON_MODE);
+	esp8266WebServer.on("/handle_BUTTON_EXTMODE", handle_BUTTON_EXTMODE);
+	esp8266WebServer.on("/handle_BUTTON_PLUS", handle_BUTTON_PLUS);
+	esp8266WebServer.on("/handle_BUTTON_MINUS", handle_BUTTON_MINUS);
+	esp8266WebServer.begin();
 }
 
 // page 404
 void handleNotFound() {
-	server.send(404, "text/plain", "404 - File Not Found.");
+	esp8266WebServer.send(404, "text/plain", "404 - File Not Found.");
 }
 
 // page /
@@ -1045,66 +1156,68 @@ void handleRoot() {
 	message += "<br>";
 #endif
 	message += "<font size=2>";
-	message += "Firmware: ";
-	message += FIRMWARE_VERSION;
+	message += "Firmware: " + String(FIRMWARE_VERSION);
 #ifdef DEBUG_WEBSITE
 	message += "<br>";
-	message += "Free RAM: ";
-	message += system_get_free_heap_size();
-	message += " bytes";
+	message += "LED-Driver: " + ledDriver.getSignature();
+	message += "<br>";
+	message += "Free RAM: " + String(system_get_free_heap_size()) + " bytes";
+	message += "<br>";
+	message += "Use LDR: ";
+	if (settings.getUseLdr()) message += "On"; else message += "Off";
 	message += "<br>";
 	message += "Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")";
 #endif
 	message += "</font>";
 	message += "</body>";
 	message += "</html>";
-	server.send(200, "text/html", message);
+	esp8266WebServer.send(200, "text/html", message);
 }
 
 // site buttons
 
 void handle_TOGGLEBLANK() {
 	String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
-	server.send(200, "text/html", message);
+	esp8266WebServer.send(200, "text/html", message);
 	setDisplayToToggle();
 }
 
 void handle_BUTTON_TIME() {
 	String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
-	server.send(200, "text/html", message);
-	// turn off alarm
+	esp8266WebServer.send(200, "text/html", message);
+#ifdef RTC_BACKUP
+	RTC.set(now());
+#endif
 	if (alarmOn) {
 		alarmOn = false;
 		digitalWrite(PIN_BUZZER, LOW);
 	}
+	fallBackCounter = 0;
 	settings.saveToEEPROM();
-#ifdef RTC_BACKUP
-	RTC.set(now());
-#endif
 	setMode(STD_MODE_NORMAL);
 }
 
 void handle_BUTTON_MODE() {
 	String message = "<!doctype html><html><head><script>window.onload = function() {window.location.replace('/')};</script></head><body></body></html>";
-	server.send(200, "text/html", message);
+	esp8266WebServer.send(200, "text/html", message);
 	modePressed();
 }
 
 void handle_BUTTON_EXTMODE() {
 	String message = "<!doctype html><html><head><script>window.onload = function() {window.location.replace('/')};</script></head><body></body></html>";
-	server.send(200, "text/html", message);
+	esp8266WebServer.send(200, "text/html", message);
 	if (mode < EXT_MODE_START) setMode(EXT_MODE_START);
 	else modePressed();
 }
 
 void handle_BUTTON_PLUS() {
 	String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
-	server.send(200, "text/html", message);
+	esp8266WebServer.send(200, "text/html", message);
 	buttonPlusPressed();
 }
 
 void handle_BUTTON_MINUS() {
 	String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
-	server.send(200, "text/html", message);
+	esp8266WebServer.send(200, "text/html", message);
 	buttonMinusPressed();
 }

@@ -27,33 +27,29 @@ String LedDriver_NeoPixel::getSignature() {
 	return "NeoPixel";
 }
 
-void LedDriver_NeoPixel::writeScreenBufferToLEDs(word matrix[16], uint8_t color, uint8_t brightness) {
+void LedDriver_NeoPixel::clear() {
 	for (uint8_t i = 0; i < NUM_LEDS; i++) strip->setPixelColor(i, 0);
-	for (uint8_t y = 0; y < 10; y++) {
-		for (uint8_t x = 5; x < 16; x++) {
-			uint16_t t = 1 << x;
-			if ((matrix[y] & t) == t) setPixel(x, y, color, brightness);
-		}
-	}
-	// set corners and alarm
-	for (uint8_t i = 0; i < 5; i++) if ((matrix[i] & 0b0000000000010000) > 0) {
-#ifdef LED_LAYOUT_HORIZONTAL
-		setPixel(i * -1 + 15, 10, color, brightness);
-#endif // LED_LAYOUT_HORIZONTAL
-#ifdef LED_LAYOUT_VERTICAL
-		setPixel(5, i + 10, color, brightness);
-#endif // LED_LAYOUT_VERTICAL
-	}
+}
+
+void LedDriver_NeoPixel::show() {
 	strip->show();
 }
 
 void LedDriver_NeoPixel::setPixel(uint8_t x, uint8_t y, uint8_t color, uint8_t brightness) {
+#ifdef LED_LAYOUT_HORIZONTAL
+	setPixel(x + (y * 11), color, brightness);
+#endif
+#ifdef LED_LAYOUT_VERTICAL
+	setPixel(y + (x * 10), color, brightness);
+#endif
+}
+
+void LedDriver_NeoPixel::setPixel(uint8_t num, uint8_t color, uint8_t brightness) {
 	uint8_t red = map(brightness, 0, 255, 0, defaultColors[color].red);
 	uint8_t green = map(brightness, 0, 255, 0, defaultColors[color].green);
 	uint8_t blue = map(brightness, 0, 255, 0, defaultColors[color].blue);
 	uint32_t ledColor = (red << 16) + (green << 8) + blue;
 #ifdef LED_LAYOUT_HORIZONTAL
-	uint8_t num = 15 - x + y * 11;
 	if (num < 110) {
 		if (num / 11 % 2 == 0) strip->setPixelColor(num, ledColor);
 		else strip->setPixelColor(num / 11 * 11 + 10 - (num % 11), ledColor);
@@ -81,7 +77,6 @@ void LedDriver_NeoPixel::setPixel(uint8_t x, uint8_t y, uint8_t color, uint8_t b
 	}
 #endif // LED_LAYOUT_HORIZONTAL
 #ifdef LED_LAYOUT_VERTICAL
-	uint8_t num = y + (15 - x) * 10;
 	uint8_t ledNum;
 	if (num < 110) {
 		if (num / 10 % 2 == 0) ledNum = num;
@@ -109,7 +104,7 @@ void LedDriver_NeoPixel::setPixel(uint8_t x, uint8_t y, uint8_t color, uint8_t b
 			break;
 		default:
 			break;
-		}
 	}
+}
 #endif // LED_LAYOUT_VERTICAL
 }

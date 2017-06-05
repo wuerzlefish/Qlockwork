@@ -8,7 +8,7 @@ Renderer::Renderer() {
 }
 
 // write time to screenbuffer
-void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, word matrix[16]) {
+void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_t matrix[]) {
 	switch (language) {
 	case LANGUAGE_DE_DE:
 	case LANGUAGE_DE_SW:
@@ -811,7 +811,7 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, word ma
 }
 
 // write hours to screenbuffer
-void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, word matrix[16]) {
+void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t matrix[]) {
 	switch (language) {
 	case LANGUAGE_DE_DE:
 	case LANGUAGE_DE_SW:
@@ -1329,7 +1329,7 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, word mat
 }
 
 // clear entry words
-void Renderer::clearEntryWords(uint8_t language, word matrix[16]) {
+void Renderer::clearEntryWords(uint8_t language, uint16_t matrix[]) {
 	switch (language) {
 	case LANGUAGE_DE_DE:
 	case LANGUAGE_DE_SW:
@@ -1373,7 +1373,7 @@ void Renderer::clearEntryWords(uint8_t language, word matrix[16]) {
 }
 
 // turn on AM or PM
-void Renderer::setAMPM(uint8_t hours, uint8_t language, word matrix[16]) {
+void Renderer::setAMPM(uint8_t hours, uint8_t language, uint16_t matrix[]) {
 	switch (language) {
 	case LANGUAGE_DE_DE:
 	case LANGUAGE_DE_SW:
@@ -1424,44 +1424,44 @@ void Renderer::setAMPM(uint8_t hours, uint8_t language, word matrix[16]) {
 }
 
 // special case ES
-void Renderer::ES_hours(uint8_t hours, word matrix[16]) {
+void Renderer::ES_hours(uint8_t hours, uint16_t matrix[]) {
 	if ((hours == 1) || (hours == 13)) ES_ESLA;
 	else ES_SONLAS;
 }
 
 // special case FR
-void Renderer::FR_hours(uint8_t hours, word matrix[16]) {
+void Renderer::FR_hours(uint8_t hours, uint16_t matrix[]) {
 	if ((hours == 1) || (hours == 13)) FR_HEURE;
 	else if ((hours == 0) || (hours == 12) || (hours == 24));
 	else FR_HEURES;
 }
 
 // special case IT
-void Renderer::IT_hours(uint8_t hours, word matrix[16]) {
+void Renderer::IT_hours(uint8_t hours, uint16_t matrix[]) {
 	if ((hours != 1) && (hours != 13)) IT_SONOLE;
 	else IT_E;
 }
 
 // write minutes to screenbuffer
-void Renderer::setCorners(uint8_t minutes, word matrix[16]) {
+void Renderer::setCorners(uint8_t minutes, uint16_t matrix[]) {
 	uint8_t b_minutes = minutes % 5;
 	for (uint8_t i = 0; i < b_minutes; i++) bitSet(matrix[i], 4);
 }
 
 // turn on alarm-LED
-void Renderer::activateAlarmLed(word matrix[16]) {
+void Renderer::setAlarmLed(uint16_t matrix[]) {
 	bitSet(matrix[4], 4);
 }
 
 // turn off alarm-LED
-void Renderer::deactivateAlarmLed(word matrix[16]) {
+void Renderer::deactivateAlarmLed(uint16_t matrix[]) {
 	bitClear(matrix[4], 4);
 }
 
 // write text to screenbuffer
-void Renderer::setSmallText(String menuText, eTextPos textPos, word matrix[16]) {
+void Renderer::setSmallText(String menuText, eTextPos textPos, uint16_t matrix[]) {
 	if (menuText.length() == 2) {
-		for (uint8_t i = 0; i < 5; i++) {
+		for (uint8_t i = 0; i <= 4; i++) {
 			for (uint8_t j = 0; j < menuText.length(); j++) {
 				if (!isNumber(menuText[j])) matrix[textPos + i] |= (staben[menuText[j] - 'A'][i]) << (5 + ((j + 1) % 2) * 6);
 				else matrix[textPos + i] |= (zahlenKlein[menuText[j] - '0'][i]) << (5 + ((j + 1) % 2) * 5);
@@ -1469,7 +1469,7 @@ void Renderer::setSmallText(String menuText, eTextPos textPos, word matrix[16]) 
 		}
 	}
 	else if (menuText.length() == 1) {
-		for (uint8_t i = 0; i < 5; i++) {
+		for (uint8_t i = 0; i <= 4; i++) {
 			if (!isNumber(menuText[0])) matrix[textPos + i] |= (staben[menuText[0] - 'A'][i]) << 8;
 			else matrix[textPos + i] |= (zahlenKlein[menuText[0] - '0'][i]) << 8;
 		}
@@ -1483,21 +1483,21 @@ boolean Renderer::isNumber(char symbol) {
 }
 
 // write pixel to screenbuffer
-void Renderer::setPixelInScreenBuffer(uint8_t x, uint8_t y, word matrix[16]) {
+void Renderer::setPixelInScreenBuffer(uint8_t x, uint8_t y, uint16_t matrix[]) {
 	bitSet(matrix[y], x);
 }
 
 // remove pixel from screenbuffer
-void Renderer::unsetPixelInScreenBuffer(uint8_t x, uint8_t y, word matrix[16]) {
+void Renderer::unsetPixelInScreenBuffer(uint8_t x, uint8_t y, uint16_t matrix[]) {
 	bitClear(matrix[y], x);
 }
 
 // clear screenbuffer
-void Renderer::clearScreenBuffer(word matrix[16]) {
-	for (uint8_t i = 0; i < 16; i++) matrix[i] = 0b0000000000000000;
+void Renderer::clearScreenBuffer(uint16_t matrix[]) {
+	for (uint8_t i = 0; i <= 9; i++) matrix[i] = 0b0000000000000000;
 }
 
 // turn on all LEDs in screenbuffer
-void Renderer::setAllScreenBuffer(word matrix[16]) {
-	for (uint8_t i = 0; i < 16; i++) matrix[i] = 0b1111111111111111;
+void Renderer::setAllScreenBuffer(uint16_t matrix[]) {
+	for (uint8_t i = 0; i <= 9; i++) matrix[i] = 0b1111111111111111;
 }

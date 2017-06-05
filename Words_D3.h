@@ -31,4 +31,3 @@
 #define D3_H_ZWOELFE    matrix[7] |= 0b0000011111100000
 
 #endif
-

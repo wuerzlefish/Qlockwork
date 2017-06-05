@@ -9,20 +9,26 @@
 #include <EEPROM.h>
 
 #define SETTINGS_MAGIC_NUMBER 0x2A
-#define SETTINGS_VERSION 15
+#define SETTINGS_VERSION 16
 
 class Settings {
 
 public:
 	Settings();
+	enum eTransition : uint8_t {
+		TRANSITION_NORMAL,
+		TRANSITION_FADE
+	};
 	uint8_t getLanguage();
 	void setLanguage(uint8_t language);
 	boolean getUseLdr();
 	void toggleUseLdr();
 	int16_t getBrightness();
 	void setBrightness(int16_t brightness);
-	void setColor(uint8_t color);
 	uint8_t getColor();
+	void setColor(uint8_t color);
+	uint8_t getTransition();
+	void setTransition(uint8_t color);
 	uint8_t getTimeout();
 	void setTimeout(uint8_t timeout);
 	boolean getEsIst();
@@ -49,6 +55,7 @@ private:
 		boolean useLdr;
 		int16_t brightness;
 		uint8_t color;
+		uint8_t transition;
 		uint8_t timeout;
 		boolean esIst;
 		boolean alarm1;

@@ -59,8 +59,7 @@ enum eLanguage : uint8_t {
 	LANGUAGE_ES,
 	LANGUAGE_FR,
 	LANGUAGE_IT,
-	LANGUAGE_NL,
-	LANGUAGE_COUNT
+	LANGUAGE_NL
 };
 
 #endif

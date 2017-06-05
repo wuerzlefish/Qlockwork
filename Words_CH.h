@@ -32,4 +32,3 @@
 #define CH_H_ZWOEUFI    matrix[9] |= 0b1111110000000000
 
 #endif
-

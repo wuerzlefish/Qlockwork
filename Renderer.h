@@ -28,24 +28,24 @@ public:
 		TEXT_POS_BOTTOM = 5
 	};
 	Renderer();
-	void setHours(uint8_t hours, boolean glatt, uint8_t language, word matrix[16]);
-	void setTime(uint8_t hours, uint8_t minutes, uint8_t language, word matrix[16]);
-	void setCorners(uint8_t minutes, word matrix[16]);
-	void activateAlarmLed(word matrix[16]);
-	void deactivateAlarmLed(word matrix[16]);
-	void clearEntryWords(uint8_t language, word matrix[16]);
-	void setSmallText(String menuText, eTextPos textPos, word matrix[16]);
-	void setAMPM(uint8_t hours, uint8_t language, word matrix[16]);
-	void setPixelInScreenBuffer(uint8_t x, uint8_t y, word matrix[16]);
-	void unsetPixelInScreenBuffer(uint8_t x, uint8_t y, word matrix[16]);
-	void clearScreenBuffer(word matrix[16]);
-	void setAllScreenBuffer(word matrix[16]);
+	void setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t matrix[]);
+	void setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_t matrix[]);
+	void setCorners(uint8_t minutes, uint16_t matrix[]);
+	void setAlarmLed(uint16_t matrix[]);
+	void deactivateAlarmLed(uint16_t matrix[]);
+	void clearEntryWords(uint8_t language, uint16_t matrix[]);
+	void setSmallText(String menuText, eTextPos textPos, uint16_t matrix[]);
+	void setAMPM(uint8_t hours, uint8_t language, uint16_t matrix[]);
+	void setPixelInScreenBuffer(uint8_t x, uint8_t y, uint16_t matrix[]);
+	void unsetPixelInScreenBuffer(uint8_t x, uint8_t y, uint16_t matrix[]);
+	void clearScreenBuffer(uint16_t matrix[]);
+	void setAllScreenBuffer(uint16_t matrix[]);
 
 private:
 	boolean isNumber(char symbol);
-	void FR_hours(uint8_t hours, word matrix[16]);
-	void IT_hours(uint8_t hours, word matrix[16]);
-	void ES_hours(uint8_t hours, word matrix[16]);
+	void FR_hours(uint8_t hours, uint16_t matrix[]);
+	void IT_hours(uint8_t hours, uint16_t matrix[]);
+	void ES_hours(uint8_t hours, uint16_t matrix[]);
 };
 
 #endif

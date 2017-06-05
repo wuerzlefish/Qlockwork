@@ -32,12 +32,20 @@ void Settings::setBrightness(int16_t ledBrightness) {
 	mySettings.brightness = ledBrightness;
 }
 
+uint8_t Settings::getColor() {
+	return mySettings.color;
+}
+
 void Settings::setColor(uint8_t color) {
 	mySettings.color = color;
 }
 
-uint8_t Settings::getColor() {
-	return mySettings.color;
+uint8_t Settings::getTransition() {
+	return mySettings.transition;
+}
+
+void Settings::setTransition(uint8_t transition) {
+	mySettings.transition = transition;
 }
 
 uint8_t Settings::getTimeout() {
@@ -113,6 +121,7 @@ void Settings::resetToDefault() {
 	mySettings.useLdr = false;
 	mySettings.brightness = 128;
 	mySettings.color = 0;
+	mySettings.transition = 1;
 	mySettings.timeout = 5;
 	mySettings.esIst = true;
 	mySettings.alarm1 = false;

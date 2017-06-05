@@ -1,7 +1,7 @@
 # QLOCKWORK
 ### A firmware for the DIY-QLOCKTWO.
 
-### Features:
+### Top Features:
 ```
 Almost no electronics needed.
 Only ESP8266 (NodeMCU or WeMos D1 mini) and an LED-stripe.
@@ -10,6 +10,7 @@ Supports more than 30 types of LED stripes.
 FastLED (RGB), LPD8806 (RGBW), NeoPixel (RGB and RGBW).
 Horizontal and vertial LED layout.
 Webserver to control the clock.
+2 Transitions for timechange (Normal, Fade).
 16 Languages.
 37 Colors.
 Timer.
@@ -37,33 +38,33 @@ Alarm 2.
 ```
 Brightnesscontrol.
 Color.
+Transition.
 Fallbacktime.
 Language.
 Set Time.
 "It is" on/off.
 Set Date.
 Nightmode on/off.
+Show local IP.
 Testmode.
 ```
 ### Needed libraries:
 ```
 via Arduino:
-ESP8266WiFi by Ivan Grokhotkov
-ESP8266WebServer by Ivan Grokhotkov
-ESP8266mDNS by Tony DiCola and Ivan Grokhotkov
-WiFiManager by tzapu
-WiFiClient
-WiFiUdp
 ArduinoOTA by Ivan Grokhotkov
-Adafruit NeoPixel by Adafruit
+ESP8266mDNS by Tony DiCola and Ivan Grokhotkov
+ESP8266WebServer by Ivan Grokhotkov
+ESP8266WiFi by Ivan Grokhotkov
 FastLED by Daniel Garcia
+NeoPixel by Adafruit
+WiFiManager by tzapu
 
 via Web:
+https://github.com/JChristensen/DS3232RTC
 https://github.com/markszabo/IRremoteESP8266
+https://github.com/ch570512/LPD8806RGBW
 https://github.com/PaulStoffregen/Time
 https://github.com/JChristensen/Timezone
-https://github.com/JChristensen/DS3232RTC
-https://github.com/ch570512/LPD8806RGBW
 
 There is a warning from FastLED about SPI when compiling. Just ignore it.
 ```
@@ -87,21 +88,22 @@ Sekunden: Anzeige der Sekunden.
 Wochentag: Zeigt den Wochentag in der eingestellten Sprache an.
 Datum: Anzeige des aktuellen Tages und Monats.
 Temperatur: Anzeige der gemessenen Temperatur.
-Timer Set: Setzt den Minuten-Timer. Null schaltet den Timer ab.
+Timer Set (TI): Setzt den Minuten-Timer. Null schaltet den Timer ab.
            Der Timer startet sofort mit dem Druck auf + oder -.
 Timer: Anzeige der Restzeit wenn ein Timer gesetzt ist.
-Alarm1 ein/aus
+Alarm1 (A1): ein/aus
 Alarm1: Setzt den ersten 24-Stunden-Alarm wenn Alarm1 "ein" ist.
-Alarm2 ein/aus
+Alarm2 (A2): ein/aus
 Alarm2: Setzt den zweiten 24-Stunden-Alarm wenn Alarm2 "ein" ist.
 ```
 ### Erweiterte Modi
 ```
 Titel MAIN: + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
-Automatische Helligkeitsregelung: ein/aus
+Automatische Helligkeitsregelung (LD): ein (EN) / aus (DA)
 Helligkeitsregelung: + oder - aendern die Helligkeit.
 Farbe: 0: Weiss, 1: Rot, 2: Gruen, 3: Blau usw. Wenn die Reihenfolge der Farben abweicht, ist die Anordnung der
        RGB-LEDs im Streifen anders.
+Transition (TR): Normal (NO) / Fade (FD).
 Ruecksprungverzoegerung (FB nn): Wie lange soll es dauern, bis z.B. aus der Sekundenanzeige wieder zurueck in die
                                  Zeitanzeige gewechselt wird. (0 = deaktiviert.)
 Sprache (DE/CH/EN/...): Die passende Sprache zur benutzten Front waehlen.
@@ -109,15 +111,18 @@ Sprache (DE/CH/EN/...): Die passende Sprache zur benutzten Front waehlen.
 Titel TIME: + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
 Zeit einstellen: + fuer Stunden oder - fuer Minuten druecken um die Zeit zu stellen. Die Sekunden springen mit
                  jedem Druck auf Null.
-"Es ist" anzeigen oder nicht (IT EN/DA)
+"Es ist" (IT): anzeigen (EN) oder nicht (DA).
 Tag einstellen   (DD nn): + oder - druecken um den aktuellen Tag einzustellen.
 Monat einstellen (MM nn): + oder - druecken um den aktuellen Monat einzustellen.
 Jahr einstellen  (YY nn): + oder - druecken um das aktuelle Jahr einzustellen.
 Nachtauschaltung        (NI OF): + oder - druecken um die Ausschaltzeit des Displays einzustellen.
 Nachtwiedereinschaltung (NI ON): + oder - druecken um die Einschaltzeit des Displays einzustellen.
 
+Titel IP:   + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
+IP-Adresse: Zeigt die lokale IP Adresse im WLAN an.
+
 Titel TEST: + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
-LED-Test: Laesst einen waagerechten Streifen ueber das Display wandern.
+LED-Test:   Laesst einen waagerechten Streifen ueber das Display wandern.
 ```
 ### Configuration.h
 ```
@@ -133,7 +138,7 @@ LED-Test: Laesst einen waagerechten Streifen ueber das Display wandern.
 
 #define RTC_BACKUP          Eine RTC als Backup verwenden.
 #define RTC_TEMP_OFFSET     Gibt an, um wieviel Grad die gemessene Temperatur (+ oder -) korrigiert werden soll.
-#define BOARD_LED           Zeigt mit Hilfe der LED auf dem ESP die Funktion an. Sie blinkt einmal pro Sekunde.
+#define ESP_LED             Zeigt mit Hilfe der LED auf dem ESP die Funktion an. Sie blinkt einmal pro Sekunde.
 #define LDR                 Einen LDR fuer die Helligkeitsregelung verwenden.
 #define LDR_HYSTERESIS      Helligkeitsregelung ab einer Abweichung im Bereich von 0 bis 1023.
 #define MIN_BRIGHTNESS      Minimale Helligkeit der LEDs im Bereich von 0 bis 255.
@@ -215,22 +220,13 @@ Den in der seriellen Konsole angezeigten Code fuer die Taste dann in die Datei "
                                   UCS1904, UCS2903, WS2801, WS2803, WS2811, WS2811_400, WS2812, WS2812B,
                                   WS2813, WS2852.
 
-Die Hardwarebelegung des ESP:
-
-#define PIN_IR_RECEIVER D3
-#define PIN_LED         D4
-#define PIN_BUZZER      D5
-#define PIN_LEDS_CLOCK  D7
-#define PIN_LEDS_DATA   D8
-#define PIN_LDR         A0
-
-#define NUM_LEDS 115   Anzahl der LEDs im Streifen.
-
 #define SERIAL_SPEED   Geschwindigkeit der seriellen Schnittstelle fuer die serielle Konsole.
 #define DEBUG          Gibt technische Informationen in der seriellen Konsole aus.
 #define DEBUG_WEBSITE  Gibt technische Informationen auf der Web-Seite aus.
 #define DEBUG_MATRIX   Rendert die Ausgabe der Matrix fuer die deutsche Front in der seriellen Konsole.
 #define DEBUG_FPS      Durchlaeufe der loop() pro Sekunde.
+
+Hardwarebelegung des ESP:
 
 D0 = GPIO16 = NodeMCU_LED
 D1 = GPIO05 = PIN_WIRE_SCL
@@ -242,4 +238,5 @@ D6 = GPIO12 = nc
 D7 = GPIO13 = PIN_LEDS_CLOCK
 D8 = GPIO15 = PIN_LEDS_DATA
 A0 = ADC0   = PIN_LDR
+
 ```
