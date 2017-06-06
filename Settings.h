@@ -17,7 +17,8 @@ public:
 	Settings();
 	enum eTransition : uint8_t {
 		TRANSITION_NORMAL,
-		TRANSITION_FADE
+		TRANSITION_FADE,
+		TRANSITION_COUNT
 	};
 	uint8_t getLanguage();
 	void setLanguage(uint8_t language);

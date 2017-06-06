@@ -6,12 +6,15 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 @created 01.02.2017
 ******************************************************************************/
 
+#include <ArduinoHttpClient.h>
+#include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <DS3232RTC.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
 #include <IRremoteESP8266.h>
+#include <IRrecv.h>
 #include <TimeLib.h>
 #include <Timezone.h>
 #include <WiFiManager.h>
@@ -32,15 +35,15 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 init
 ******************************************************************************/
 
+WiFiClient wifiClient;
 WiFiUDP wifiUdp;
 ESP8266WebServer esp8266WebServer(80);
-#ifdef IR_REMOTE
-IRrecv irrecv(PIN_IR_RECEIVER);
-#endif
-
 Renderer renderer;
 Settings settings;
 Debug debug;
+#ifdef IR_REMOTE
+IRrecv irrecv(PIN_IR_RECEIVER);
+#endif
 #ifdef LED_LIBRARY_FASTLED
 LedDriver_FastLED ledDriver;
 #endif
@@ -68,7 +71,6 @@ time_t timer = 0;
 uint8_t timerMinutes = 0;
 uint8_t alarmOn = 0;
 uint8_t testColumn = 0;
-decode_results irDecodeResults;
 uint8_t brightness = settings.getBrightness();
 uint8_t ratedBrightness = settings.getBrightness();
 uint16_t ldrValue = 0;
@@ -77,6 +79,10 @@ uint16_t minLdrValue = 255;
 uint16_t maxLdrValue = 0;
 uint32_t lastLdrCheck = 0;
 uint32_t lastBrightnessCheck = 0;
+decode_results irDecodeResult;
+irparams_t irDecodeSave;
+int8_t extTemp;
+uint8_t randomMinute;
 
 /******************************************************************************
 setup()
@@ -111,7 +117,7 @@ void setup() {
 	matrix[7] = 0b0000111000000000;
 	matrix[8] = 0b0000010000000000;
 	matrix[9] = 0b0000000000000000;
-	writeScreenBuffer(matrix, 0, brightness); // color 0: white
+	writeScreenBuffer(matrix, WHITE, brightness);
 	WiFiManager wifiManager;
 	//wifiManager.resetSettings();
 	wifiManager.setTimeout(WIFI_AP_TIMEOUT);
@@ -121,7 +127,7 @@ void setup() {
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("ER", Renderer::TEXT_POS_TOP, matrix);
 		renderer.setSmallText("OR", Renderer::TEXT_POS_BOTTOM, matrix);
-		writeScreenBuffer(matrix, 1, brightness); // color 1: red
+		writeScreenBuffer(matrix, RED, brightness);
 		WiFi.mode(WIFI_OFF);
 		digitalWrite(PIN_BUZZER, HIGH);
 		delay(1500);
@@ -130,7 +136,7 @@ void setup() {
 	else {
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("OK", Renderer::TEXT_POS_MIDDLE, matrix);
-		writeScreenBuffer(matrix, 2, brightness); // color 2: green
+		writeScreenBuffer(matrix, GREEN, brightness);
 		for (uint8_t i = 0; i <= 2; i++) {
 			digitalWrite(PIN_BUZZER, HIGH);
 			delay(100);
@@ -157,6 +163,10 @@ void setup() {
 	DEBUG_PRINTLN(system_get_free_heap_size());
 	DEBUG_PRINT("Use LDR: ");
 	if (settings.getUseLdr()) DEBUG_PRINTLN("On"); else DEBUG_PRINTLN("Off");
+	randomSeed(analogRead(PIN_LDR));
+	randomMinute = random(1, 60);
+	DEBUG_PRINTLN("Random minute is: " + String(randomMinute));
+	extTemp = getExtTemp(YAHOO_WEATHER);
 
 	// set timeprovider
 #ifdef RTC_BACKUP
@@ -178,8 +188,6 @@ void setup() {
 	}
 	else DEBUG_PRINTLN("No provider for setting the time found.");
 #endif
-
-	// Misc
 	lastDay = day();
 	lastHour = hour();
 	lastFiveMinute = minute() / 5;
@@ -226,6 +234,7 @@ void loop() {
 		debug.debugTime("Time:", now());
 #endif
 		if (mode == STD_MODE_NORMAL) screenBufferNeedsUpdate = true;
+		if ((minute() / float(randomMinute)) == 1.0) extTemp = getExtTemp(YAHOO_WEATHER);
 	}
 
 	// execute every second
@@ -336,13 +345,12 @@ void loop() {
 #endif
 
 #ifdef IR_REMOTE
-	// call IR-receiver
-	if (irrecv.decode(&irDecodeResults)) {
-		DEBUG_PRINT("IR signal: ");
-		DEBUG_PRINTLN(irDecodeResults.value);
-		remoteAction(irDecodeResults.value);
+	if (irrecv.decode(&irDecodeResult, &irDecodeSave)) {
+		DEBUG_PRINTLN("IR signal: " + String(uint32_t(irDecodeResult.value)));
+		remoteAction(irDecodeResult);
 		irrecv.resume();
 	}
+
 #endif
 
 	// render new screenbuffer
@@ -386,14 +394,41 @@ void loop() {
 #ifdef RTC_BACKUP
 		case STD_MODE_TEMP:
 			renderer.clearScreenBuffer(matrix);
-			for (uint8_t i = 0; i <= 6; i++) {
-				matrix[i + 1] |= (zahlenGross[(RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) / 10][i]) << 11;
-				matrix[i + 1] |= (zahlenGross[(RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) % 10][i]) << 5;
+			if ((RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) == 0) {
+				matrix[0] = 0b0000000001000000;
+				matrix[1] = 0b0000000010100000;
+				matrix[2] = 0b0000000010100000;
+				matrix[3] = 0b0000000011100000;
 			}
-			renderer.setPixelInScreenBuffer(4, 1, matrix); // turn on upper-right led
+			if ((RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) > 0) {
+				matrix[0] = 0b0000000001000000;
+				matrix[1] = 0b0100000010100000;
+				matrix[2] = 0b1110000010100000;
+				matrix[3] = 0b0100000011100000;
+			}
+			if ((RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) < 0) {
+				matrix[0] = 0b0000000001000000;
+				matrix[1] = 0b0000000010100000;
+				matrix[2] = 0b1110000010100000;
+				matrix[3] = 0b0000000011100000;
+			}
+			renderer.setSmallText(String(RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)), Renderer::TEXT_POS_BOTTOM, matrix);
 			DEBUG_PRINTLN(String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET)); // .0 to get float values for temp
 			break;
 #endif
+		case STD_MODE_EXT_TEMP:
+			renderer.clearScreenBuffer(matrix);
+			if (extTemp > 0) {
+				matrix[1] = 0b0100000000000000;
+				matrix[2] = 0b1110000000000000;
+				matrix[3] = 0b0100000000000000;
+			}
+			if (extTemp < 0) {
+				matrix[2] = 0b1110000000000000;
+			}
+			renderer.setSmallText(String(extTemp), Renderer::TEXT_POS_BOTTOM, matrix);
+			DEBUG_PRINTLN(String(extTemp));
+			break;
 		case STD_MODE_SET_TIMER:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("TI", Renderer::TEXT_POS_TOP, matrix);
@@ -472,11 +507,12 @@ void loop() {
 			break;
 		case EXT_MODE_COLOR:
 			renderer.clearScreenBuffer(matrix);
+			matrix[0] = 0b0000000000010000;
+			matrix[1] = 0b0000000000010000;
+			matrix[2] = 0b0000000000010000;
+			matrix[3] = 0b0000000000010000;
+			matrix[4] = 0b0000000000010000;
 			renderer.setSmallText("CO", Renderer::TEXT_POS_TOP, matrix);
-			renderer.setPixelInScreenBuffer(4, 0, matrix);
-			renderer.setPixelInScreenBuffer(4, 1, matrix);
-			renderer.setPixelInScreenBuffer(4, 2, matrix);
-			renderer.setPixelInScreenBuffer(4, 3, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else renderer.setSmallText(String(settings.getColor()), Renderer::TEXT_POS_BOTTOM, matrix);
 			break;
@@ -485,8 +521,8 @@ void loop() {
 			renderer.setSmallText("TR", Renderer::TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else {
-				if (settings.getTransition() == 0) renderer.setSmallText("NO", Renderer::TEXT_POS_BOTTOM, matrix);
-				if (settings.getTransition() == 1) renderer.setSmallText("FD", Renderer::TEXT_POS_BOTTOM, matrix);
+				if (settings.getTransition() == Settings::TRANSITION_NORMAL) renderer.setSmallText("NO", Renderer::TEXT_POS_BOTTOM, matrix);
+				if (settings.getTransition() == Settings::TRANSITION_FADE) renderer.setSmallText("FD", Renderer::TEXT_POS_BOTTOM, matrix);
 			}
 			break;
 		case EXT_MODE_TIMEOUT:
@@ -642,8 +678,8 @@ void loop() {
 		default:
 			writeScreenBuffer(matrix, settings.getColor(), brightness);
 			break;
-		}
 	}
+}
 }
 
 /******************************************************************************
@@ -696,6 +732,7 @@ void modePressed() {
 #ifdef RTC_BACKUP
 	case STD_MODE_TEMP:
 #endif
+	case STD_MODE_EXT_TEMP:
 		fallBackCounter = settings.getTimeout();
 		break;
 	default:
@@ -759,18 +796,18 @@ void buttonPlusPressed() {
 		DEBUG_PRINTLN(settings.getBrightness());
 		break;
 	case EXT_MODE_COLOR:
-		if (settings.getColor() < COLOR_COUNT) settings.setColor(settings.getColor() + 1);
+		if (settings.getColor() < COLOR_COUNT - 1) settings.setColor(settings.getColor() + 1);
 		else settings.setColor(0);
 		break;
 	case EXT_MODE_TRANSITION:
-		if (settings.getTransition() < TRANSITION_COUNT) settings.setTransition(settings.getTransition() + 1);
+		if (settings.getTransition() < Settings::TRANSITION_COUNT - 1) settings.setTransition(settings.getTransition() + 1);
 		else settings.setTransition(0);
 		break;
 	case EXT_MODE_TIMEOUT:
 		if (settings.getTimeout() < 99) settings.setTimeout(settings.getTimeout() + 1);
 		break;
 	case EXT_MODE_LANGUAGE:
-		if (settings.getLanguage() < LANGUAGE_COUNT) settings.setLanguage(settings.getLanguage() + 1);
+		if (settings.getLanguage() < LANGUAGE_COUNT - 1) settings.setLanguage(settings.getLanguage() + 1);
 		else settings.setLanguage(0);
 		break;
 	case EXT_MODE_TITLE_TIME:
@@ -870,18 +907,18 @@ void buttonMinusPressed() {
 		break;
 	case EXT_MODE_COLOR:
 		if (settings.getColor() > 0) settings.setColor(settings.getColor() - 1);
-		else settings.setColor(COLOR_COUNT);
+		else settings.setColor(COLOR_COUNT - 1);
 		break;
 	case EXT_MODE_TRANSITION:
 		if (settings.getTransition() > 0) settings.setTransition(settings.getTransition() - 1);
-		else settings.setTransition(TRANSITION_COUNT);
+		else settings.setTransition(Settings::TRANSITION_COUNT - 1);
 		break;
 	case EXT_MODE_TIMEOUT:
 		if (settings.getTimeout() > 0) settings.setTimeout(settings.getTimeout() - 1);
 		break;
 	case EXT_MODE_LANGUAGE:
 		if (settings.getLanguage() > 0) settings.setLanguage(settings.getLanguage() - 1);
-		else settings.setLanguage(LANGUAGE_COUNT);
+		else settings.setLanguage(LANGUAGE_COUNT - 1);
 		break;
 	case EXT_MODE_TITLE_TIME:
 		setMode(EXT_MODE_TITLE_MAIN);
@@ -932,8 +969,8 @@ IR-signal received
 ******************************************************************************/
 
 #ifdef IR_REMOTE
-void remoteAction(uint32_t irDecodeResults) {
-	switch (irDecodeResults) {
+void remoteAction(decode_results irDecodeResult) {
+	switch (irDecodeResult.value) {
 	case IR_CODE_ONOFF:
 		setDisplayToToggle();
 		break;
@@ -1004,7 +1041,7 @@ void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[
 		for (uint8_t y = 0; y <= 4; y++) ledDriver.setPixel(110 + y, color, brightnessBuffer[y][11]);
 		esp8266WebServer.handleClient();
 		ledDriver.show();
-		delay(3);
+		//delay(3);
 	}
 }
 
@@ -1046,6 +1083,29 @@ time_t getRtcTime() {
 	return RTC.get();
 }
 #endif
+
+int8_t getExtTemp(String yahooWeather) {
+	if (WiFi.status() != WL_CONNECTED) {
+		DEBUG_PRINTLN("Wifi not connected. :( Can not get temperature.");
+		return 0;
+	}
+	yahooWeather.replace(" ", "%20");
+	yahooWeather.replace(",", "%2C");
+	DEBUG_PRINTLN("Sending HTTP-request for temperature...");
+	char server[] = "query.yahooapis.com";
+	IPAddress serverIP(0, 0, 0, 0);
+	WiFi.hostByName(server, serverIP);
+	HttpClient httpClient = HttpClient(wifiClient, serverIP, 80);
+	httpClient.get("query.yahooapis.com/v1/public/yql?q=select%20item.condition.temp%20from%20weather.forecast%20where%20woeid%20in%20(select%20woeid%20from%20geo.places(1)%20where%20text%3D%22" + yahooWeather + "%22)%20and%20u=%27c%27&format=json");
+	String response = httpClient.responseBody();
+	//DEBUG_PRINTLN("JSON-response: " + response);
+	DynamicJsonBuffer jsonBuffer;
+	JsonObject &response_json = jsonBuffer.parseObject(response);
+	if (!response_json.success()) Serial.println("Parsing JSON failed.");
+	int8_t extTemp = response_json["query"]["results"]["channel"]["item"]["condition"]["temp"];
+	DEBUG_PRINTLN("External temperature is: " + String(extTemp));
+	return extTemp;
+}
 
 /******************************************************************************
 ntp
@@ -1155,6 +1215,8 @@ void handleRoot() {
 	message += "Temperature: " + String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) + "&#176;C / " + String((RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "&#176;F";
 	message += "<br>";
 #endif
+	message += "Ext. Temperature: " + String(extTemp) + "&#176;C / " + String(extTemp * 9 / 5 + 32) + "&#176;F";
+	message += "<br>";
 	message += "<font size=2>";
 	message += "Firmware: " + String(FIRMWARE_VERSION);
 #ifdef DEBUG_WEBSITE

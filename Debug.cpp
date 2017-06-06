@@ -44,9 +44,8 @@ void Debug::debugTime(String label, time_t time) {
 void Debug::debugFps() {
 	frames++;
 	if (millis() - lastFpsCheck > 1000) {
-		Serial.print("FPS: ");
-		Serial.println(frames);
 		lastFpsCheck = millis();
+		Serial.println("FPS: " + String(frames));
 		frames = 0;
 	}
 }

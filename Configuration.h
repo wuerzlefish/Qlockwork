@@ -28,6 +28,10 @@
 #define BUZZTIME_ALARM_2 60
 #define BUZZTIME_TIMER 30
 
+#define YAHOO_WEATHER "Berlin, BE, DE"
+//#define YAHOO_WEATHER "Zurich, ZH, CH"
+//#define YAHOO_WEATHER "Singapur, SG"
+
 //#define TIMEZONE_IDLW  // IDLW  Internation Date Line West UTC-12
 //#define TIMEZONE_SST   // SST   Samoa Standard Time UTC-11
 //#define TIMEZONE_HST   // HST   Hawaiian Standard Time UTC-10
@@ -62,12 +66,12 @@
 
 //#define IR_REMOTE
 //#define IR_LETTER_OFF
-#define IR_CODE_ONOFF   16769565 // HX1838 Remote CH+
-#define IR_CODE_TIME    16753245 // HX1838 Remote CH-
-#define IR_CODE_MODE    16736925 // HX1838 Remote CH
-#define IR_CODE_EXTMODE 16748655 // HX1838 Remote EQ
-#define IR_CODE_PLUS    16754775 // HX1838 Remote +
-#define IR_CODE_MINUS   16769055 // HX1838 Remote -
+#define IR_CODE_ONOFF   4001918335 // HX1838 Remote CH+
+#define IR_CODE_TIME    3810010651 // HX1838 Remote CH-
+#define IR_CODE_MODE    5316027    // HX1838 Remote CH
+#define IR_CODE_EXTMODE 3855596927 // HX1838 Remote EQ
+#define IR_CODE_PLUS    2747854299 // HX1838 Remote +
+#define IR_CODE_MINUS   4034314555 // HX1838 Remote -
 
 #define LED_LAYOUT_HORIZONTAL
 //#define LED_LAYOUT_VERTICAL
@@ -130,7 +134,7 @@
 #define OTA_PASS "1234"
 #define NTP_SERVER "nostromo"
 #define RTC_BACKUP
-#define RTC_TEMP_OFFSET 0
+#define RTC_TEMP_OFFSET -0.25
 #define ESP_LED
 #define LDR
 #define LDR_HYSTERESIS 150
@@ -139,19 +143,20 @@
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 3
 #define BUZZTIME_TIMER 30
+#define YAHOO_WEATHER "Zurich, ZH, CH"
 #define TIMEZONE_CET
 #define IR_REMOTE
-#define IR_CODE_ONOFF   16769565
-#define IR_CODE_TIME    16753245
-#define IR_CODE_MODE    16736925
-#define IR_CODE_EXTMODE 16748655
-#define IR_CODE_PLUS    16754775
-#define IR_CODE_MINUS   16769055
+#define IR_CODE_ONOFF   4001918335 // HX1838 Remote CH+
+#define IR_CODE_TIME    3810010651 // HX1838 Remote CH-
+#define IR_CODE_MODE    5316027    // HX1838 Remote CH
+#define IR_CODE_EXTMODE 3855596927 // HX1838 Remote EQ
+#define IR_CODE_PLUS    2747854299 // HX1838 Remote +
+#define IR_CODE_MINUS   4034314555 // HX1838 Remote -
 #define LED_LAYOUT_HORIZONTAL
-//#define LED_LIBRARY_FASTLED
-//#define LED_DRIVER_FAST_NEOPIXEL
-#define LED_LIBRARY_NEOPIXEL
-#define LED_DRIVER_NEO_800KHZ_GRB
+#define LED_LIBRARY_FASTLED
+#define LED_DRIVER_FAST_NEOPIXEL
+//#define LED_LIBRARY_NEOPIXEL
+//#define LED_DRIVER_NEO_800KHZ_GRB
 //#define LED_LIBRARY_LPD8806RGBW
 #define DEBUG
 #define DEBUG_WEBSITE
@@ -173,26 +178,24 @@
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 1
 #define BUZZTIME_TIMER 30
+#define YAHOO_WEATHER "Zurich, ZH, CH"
 #define TIMEZONE_CET
 #define IR_REMOTE
 #define IR_LETTER_OFF
-#define IR_CODE_ONOFF   16769055
-#define IR_CODE_TIME    16752735
-#define IR_CODE_MODE    16720095
-#define IR_CODE_EXTMODE 16736415
-#define IR_CODE_PLUS    16734375
-#define IR_CODE_MINUS   16730295
+#define IR_CODE_ONOFF   4034314555 // CLT2 V1.1 Remote Power
+#define IR_CODE_TIME    2878444831 // CLT2 V1.1 Remote Time
+#define IR_CODE_MODE    1373912347 // CLT2 V1.1 Remote Region
+#define IR_CODE_EXTMODE 4287727287 // CLT2 V1.1 Remote Seconds
+#define IR_CODE_PLUS    3691091931 // CLT2 V1.1 Remote +
+#define IR_CODE_MINUS   4084712887 // CLT2 V1.1 Remote -
 #define LED_LAYOUT_VERTICAL
 #define LED_LIBRARY_LPD8806RGBW
 #define DEBUG_WEBSITE
 #endif // CONFIG_CLT2
 
-#define FIRMWARE_VERSION "qw20170604"
+#define FIRMWARE_VERSION "qw20170606"
 #define SERIAL_SPEED 115200
 #define NUM_LEDS 115
-#define COLOR_COUNT 36
-#define TRANSITION_COUNT 1
-#define LANGUAGE_COUNT 15
 #define PIN_IR_RECEIVER D3
 #define PIN_LED         D4
 #define PIN_BUZZER      D5

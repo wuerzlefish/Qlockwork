@@ -24,6 +24,26 @@ const String sLanguage[] = {
 	"NL"    // 15
 };
 
+enum eLanguage : uint8_t {
+	LANGUAGE_DE_DE,
+	LANGUAGE_DE_SW,
+	LANGUAGE_DE_BA,
+	LANGUAGE_DE_SA,
+	LANGUAGE_DE_MKF_DE,
+	LANGUAGE_DE_MKF_SW,
+	LANGUAGE_DE_MKF_BA,
+	LANGUAGE_DE_MKF_SA,
+	LANGUAGE_D3,
+	LANGUAGE_CH,
+	LANGUAGE_CH_GS,
+	LANGUAGE_EN,
+	LANGUAGE_ES,
+	LANGUAGE_FR,
+	LANGUAGE_IT,
+	LANGUAGE_NL,
+	LANGUAGE_COUNT
+};
+
 const String sWeekday[][8] = {
 	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DE
 	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DESW
@@ -41,25 +61,6 @@ const String sWeekday[][8] = {
 	{ "", "DI", "LU", "MA", "ME", "JE", "VE", "SA" }, // FR
 	{ "", "DO", "LU", "MA", "ME", "GI", "VE", "SA" }, // IT
 	{ "", "ZO", "MA", "DI", "WO", "DO", "VR", "ZA" }  // NL
-};
-
-enum eLanguage : uint8_t {
-	LANGUAGE_DE_DE,
-	LANGUAGE_DE_SW,
-	LANGUAGE_DE_BA,
-	LANGUAGE_DE_SA,
-	LANGUAGE_DE_MKF_DE,
-	LANGUAGE_DE_MKF_SW,
-	LANGUAGE_DE_MKF_BA,
-	LANGUAGE_DE_MKF_SA,
-	LANGUAGE_D3,
-	LANGUAGE_CH,
-	LANGUAGE_CH_GS,
-	LANGUAGE_EN,
-	LANGUAGE_ES,
-	LANGUAGE_FR,
-	LANGUAGE_IT,
-	LANGUAGE_NL
 };
 
 #endif

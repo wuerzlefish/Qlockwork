@@ -11,6 +11,7 @@ FastLED (RGB), LPD8806 (RGBW), NeoPixel (RGB and RGBW).
 Horizontal and vertial LED layout.
 Webserver to control the clock.
 2 Transitions for timechange (Normal, Fade).
+Room and external Temperature.
 16 Languages.
 37 Colors.
 Timer.
@@ -29,7 +30,8 @@ AM/PM.
 Seconds.
 Weekday.
 Date.
-Temperature (with RTC only).
+Room Temperature (with RTC only).
+External Temperature (Yahoo weather).
 Timer.
 Alarm 1.
 Alarm 2.
@@ -55,16 +57,18 @@ ArduinoOTA by Ivan Grokhotkov
 ESP8266mDNS by Tony DiCola and Ivan Grokhotkov
 ESP8266WebServer by Ivan Grokhotkov
 ESP8266WiFi by Ivan Grokhotkov
-FastLED by Daniel Garcia
-NeoPixel by Adafruit
-WiFiManager by tzapu
 
 via Web:
 https://github.com/JChristensen/DS3232RTC
-https://github.com/markszabo/IRremoteESP8266
 https://github.com/ch570512/LPD8806RGBW
 https://github.com/PaulStoffregen/Time
 https://github.com/JChristensen/Timezone
+https://github.com/markszabo/IRremoteESP8266 (Version 2.0.0)
+https://github.com/arduino-libraries/ArduinoHttpClient
+https://github.com/bblanchon/ArduinoJson
+https://github.com/tzapu/WiFiManager
+https://github.com/adafruit/Adafruit_NeoPixel
+https://github.com/FastLED/FastLED
 
 There is a warning from FastLED about SPI when compiling. Just ignore it.
 ```
@@ -82,19 +86,20 @@ Die Firmware gibt es hier: https://github.com/ch570512/Qlockwork
 
 ### Standard Modi
 ```
-Zeitanzeige: Der Standardmodus der Uhr. Er zeigt die Zeit an. :)
-Anzeige AM/PM: Zeigt an, ob es vormittags (AM) oder nachmittags (PM) ist.
-Sekunden: Anzeige der Sekunden.
-Wochentag: Zeigt den Wochentag in der eingestellten Sprache an.
-Datum: Anzeige des aktuellen Tages und Monats.
-Temperatur: Anzeige der gemessenen Temperatur.
-Timer Set (TI): Setzt den Minuten-Timer. Null schaltet den Timer ab.
-           Der Timer startet sofort mit dem Druck auf + oder -.
-Timer: Anzeige der Restzeit wenn ein Timer gesetzt ist.
-Alarm1 (A1): ein/aus
-Alarm1: Setzt den ersten 24-Stunden-Alarm wenn Alarm1 "ein" ist.
-Alarm2 (A2): ein/aus
-Alarm2: Setzt den zweiten 24-Stunden-Alarm wenn Alarm2 "ein" ist.
+Zeitanzeige:        Der Standardmodus der Uhr. Er zeigt die Zeit an. :)
+Anzeige AM/PM:      Zeigt an, ob es vormittags (AM) oder nachmittags (PM) ist.
+Sekunden:           Anzeige der Sekunden.
+Wochentag:          Zeigt den Wochentag in der eingestellten Sprache an.
+Datum:              Anzeige des aktuellen Tages und Monats.
+Raumtemperatur:     Anzeige der gemessenen Temperatur (nur mit RTC).
+Externe Temperatur: Anzeige der Temperatur für einen Ort (Yahoo Weather).
+Timer Set (TI):     Setzt den Minuten-Timer. Null schaltet den Timer ab.
+                    Der Timer startet sofort mit dem Druck auf + oder -.
+Timer:              Anzeige der Restzeit wenn ein Timer gesetzt ist.
+Alarm1 (A1):        ein/aus
+Alarm1:             Setzt den ersten 24-Stunden-Alarm wenn Alarm1 "ein" ist.
+Alarm2 (A2):        ein/aus
+Alarm2:             Setzt den zweiten 24-Stunden-Alarm wenn Alarm2 "ein" ist.
 ```
 ### Erweiterte Modi
 ```
@@ -135,7 +140,6 @@ LED-Test:   Laesst einen waagerechten Streifen ueber das Display wandern.
 #define WIFI_AP_TIMEOUT     Zeit in Sekunden fuer die der AP zum einrichten/suchen des WLANs aktiv ist.
 #define OTA_PASS            Kennwort fuer "Over the Air" Updates.
 #define NTP_SERVER          Abzufragender NTP-Server.
-
 #define RTC_BACKUP          Eine RTC als Backup verwenden.
 #define RTC_TEMP_OFFSET     Gibt an, um wieviel Grad die gemessene Temperatur (+ oder -) korrigiert werden soll.
 #define ESP_LED             Zeigt mit Hilfe der LED auf dem ESP die Funktion an. Sie blinkt einmal pro Sekunde.
@@ -147,6 +151,8 @@ LED-Test:   Laesst einen waagerechten Streifen ueber das Display wandern.
 #define BUZZTIME_ALARM_1    Maximale Zeit in Sekunden, die Alarm 1 Laerm macht wenn er nicht manuell abgestellt wird.
 #define BUZZTIME_ALARM_2    Maximale Zeit in Sekunden, die Alarm 2 Laerm macht wenn er nicht manuell abgestellt wird.
 #define BUZZTIME_TIMER      Maximale Zeit in Sekunden, die der Timer Laerm macht wenn er nicht manuell abgestellt wird.
+#define YAHOO_WEATHER       Ort fuer die Temperatur wie er auf der Yahoo-Wetter-Site eingegeben wird.
+                            (Nur Buchstaben, ' ', und ',').
 
 Die Zeitzone in der sich die Uhr befindet. Wichtig fuer den UTC-Versatz und die Sommer-/Winterzeitumstellung:
 
@@ -174,7 +180,7 @@ Den in der seriellen Konsole angezeigten Code fuer die Taste dann in die Datei "
 #define IR_CODE_PLUS    16754775
 #define IR_CODE_MINUS   16769055
 
-#define LED_LAYOUT_HORIZONTAL  Waagerecht und Eck-LEDs am Ende des Stripes. (Von vorne gesehen.)
+#define LED_LAYOUT_HORIZONTAL   Waagerecht und Eck-LEDs am Ende des Stripes. (Von vorne gesehen.)
 
 111                 114                 112
 000 001 002 003 004 005 006 007 008 009 010
@@ -189,7 +195,7 @@ Den in der seriellen Konsole angezeigten Code fuer die Taste dann in die Datei "
 109 108 107 106 105 104 103 102 101 100 099
 110                                     113
 
-#define LED_LAYOUT_VERTICAL  Senkrecht und Eck-LEDs innerhalb des Stripes. (Von vorne gesehen.)
+#define LED_LAYOUT_VERTICAL     Senkrecht und Eck-LEDs innerhalb des Stripes. (Von vorne gesehen.)
 
 000                 114                 102
 001 021 022 041 042 061 062 081 082 101 103
@@ -204,27 +210,27 @@ Den in der seriellen Konsole angezeigten Code fuer die Taste dann in die Datei "
 010 012 031 032 051 052 071 072 091 092 112
 011                                     113
 
-#define LED_LIBRARAY_LPD8806RGBW  LED Driver fuer LPD8806 RGBW LEDs.
+#define LED_LIBRARY_LPD8806RGBW LED Driver fuer LPD8806 RGBW LEDs.
 
-#define LED_LIBRARAY_NEOPIXEL     LED Driver fuer NeoPixel LEDs.
-#define LED_DRIVER_NEO_*          Gibt in Verbindung mit LED_LIBRARAY_NEOPIXEL den Typ der NeoPixel an.
-                                  400kHz, 800kHz, GRB, RGB und RGBW.
+#define LED_LIBRARY_NEOPIXEL    LED Driver fuer NeoPixel LEDs.
+#define LED_DRIVER_NEO_*        Gibt in Verbindung mit LED_LIBRARAY_NEOPIXEL den Typ der NeoPixel an.
+                                400kHz, 800kHz, GRB, RGB und RGBW.
 
-#define LED_LIBRARAY_FASTLED      FastLED Driver fuer LEDs.
-#define LED_DRIVER_FAST_*         Gibt in Verbindung mit LED_LIBRARAY_FASTLED den Typ der LEDs an.
-                                  Alle von FAST-LED unterstuetzten LED-Treiber (nur RGB) koennen verwendet
-                                  werden:
-                                  APA102, APA104, APA106, DOTSTAR, DMXSIMPLE, GW6205, GW6205_400, LPD1886,
-                                  LPD1886_8BIT, LPD8806, NEOPIXEL, P9813, PL9823, SK6812, SK6822, SK9822,
-                                  SM16716, TM1803, TM1804, TM1809, TM1812, TM1829, UCS1903, UCS1903B,
-                                  UCS1904, UCS2903, WS2801, WS2803, WS2811, WS2811_400, WS2812, WS2812B,
-                                  WS2813, WS2852.
+#define LED_LIBRARY_FASTLED     FastLED Driver fuer LEDs.
+#define LED_DRIVER_FAST_*       Gibt in Verbindung mit LED_LIBRARAY_FASTLED den Typ der LEDs an.
+                                Alle von FAST-LED unterstuetzten LED-Treiber (nur RGB) koennen verwendet
+                                werden:
+                                APA102, APA104, APA106, DOTSTAR, DMXSIMPLE, GW6205, GW6205_400, LPD1886,
+                                LPD1886_8BIT, LPD8806, NEOPIXEL, P9813, PL9823, SK6812, SK6822, SK9822,
+                                SM16716, TM1803, TM1804, TM1809, TM1812, TM1829, UCS1903, UCS1903B,
+                                UCS1904, UCS2903, WS2801, WS2803, WS2811, WS2811_400, WS2812, WS2812B,
+                                WS2813, WS2852.
 
-#define SERIAL_SPEED   Geschwindigkeit der seriellen Schnittstelle fuer die serielle Konsole.
-#define DEBUG          Gibt technische Informationen in der seriellen Konsole aus.
-#define DEBUG_WEBSITE  Gibt technische Informationen auf der Web-Seite aus.
-#define DEBUG_MATRIX   Rendert die Ausgabe der Matrix fuer die deutsche Front in der seriellen Konsole.
-#define DEBUG_FPS      Durchlaeufe der loop() pro Sekunde.
+#define SERIAL_SPEED  Geschwindigkeit der seriellen Schnittstelle fuer die serielle Konsole.
+#define DEBUG         Gibt technische Informationen in der seriellen Konsole aus.
+#define DEBUG_WEBSITE Gibt technische Informationen auf der Web-Seite aus.
+#define DEBUG_MATRIX  Rendert die Ausgabe der Matrix fuer die deutsche Front in der seriellen Konsole.
+#define DEBUG_FPS     Durchlaeufe der loop() pro Sekunde.
 
 Hardwarebelegung des ESP:
 
