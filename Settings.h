@@ -7,6 +7,8 @@
 
 #include <Arduino.h>
 #include <EEPROM.h>
+#include "Languages.h"
+#include "Colors.h"
 
 #define SETTINGS_MAGIC_NUMBER 0x2A
 #define SETTINGS_VERSION 16
@@ -32,8 +34,8 @@ public:
 	void setTransition(uint8_t color);
 	uint8_t getTimeout();
 	void setTimeout(uint8_t timeout);
-	boolean getEsIst();
-	void toggleEsIst();
+	boolean getItIs();
+	void toggleItIs();
 	boolean getAlarm1();
 	void toggleAlarm1();
 	time_t getAlarmTime1();
@@ -44,8 +46,8 @@ public:
 	void setAlarmTime2(time_t alarmTime);
 	time_t getNightOffTime();
 	void setNightOffTime(time_t nightOffTime);
-	time_t getNightOnTime();
-	void setNightOnTime(time_t nightOnTime);
+	time_t getDayOnTime();
+	void setDayOnTime(time_t dayOnTime);
 	void saveToEEPROM();
 
 private:
@@ -58,13 +60,13 @@ private:
 		uint8_t color;
 		uint8_t transition;
 		uint8_t timeout;
-		boolean esIst;
+		boolean itIs;
 		boolean alarm1;
 		time_t alarmTime1;
 		boolean alarm2;
 		time_t alarmTime2;
 		time_t nightOffTime;
-		time_t nightOnTime;
+		time_t dayOnTime;
 	} mySettings;
 	void resetToDefault();
 	void loadFromEEPROM();

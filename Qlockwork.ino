@@ -6,7 +6,6 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 @created 01.02.2017
 ******************************************************************************/
 
-#include <ArduinoHttpClient.h>
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <DS3232RTC.h>
@@ -15,10 +14,10 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include <ESP8266WiFi.h>
 #include <IRremoteESP8266.h>
 #include <IRrecv.h>
+#include <RestClient.h>
 #include <TimeLib.h>
 #include <Timezone.h>
 #include <WiFiManager.h>
-
 #include "Configuration.h"
 #include "Colors.h"
 #include "Debug.h"
@@ -35,15 +34,6 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 init
 ******************************************************************************/
 
-WiFiClient wifiClient;
-WiFiUDP wifiUdp;
-ESP8266WebServer esp8266WebServer(80);
-Renderer renderer;
-Settings settings;
-Debug debug;
-#ifdef IR_REMOTE
-IRrecv irrecv(PIN_IR_RECEIVER);
-#endif
 #ifdef LED_LIBRARY_FASTLED
 LedDriver_FastLED ledDriver;
 #endif
@@ -54,10 +44,14 @@ LedDriver_LPD8806RGBW ledDriver;
 LedDriver_NeoPixel ledDriver;
 #endif
 
+ESP8266WebServer esp8266WebServer(80);
+Renderer renderer;
+Settings settings;
+Debug debug;
+
 uint16_t matrix[10] = {};
 uint16_t matrixOld[10] = {};
 boolean screenBufferNeedsUpdate = true;
-uint8_t packetBuffer[48] = {};
 Mode mode = STD_MODE_NORMAL;
 Mode lastMode = mode;
 uint8_t fallBackCounter = 0;
@@ -66,46 +60,58 @@ uint8_t lastHour = 0;
 uint8_t lastMinute = 0;
 uint8_t lastFiveMinute = 0;
 time_t lastTime = 0;
+uint8_t testColumn = 0;
+uint8_t brightness = settings.getBrightness();
+uint8_t randomMinute;
+int8_t yahooTemp;
+uint8_t yahooCode;
+#ifdef BUZZER
 boolean timerSet = false;
 time_t timer = 0;
 uint8_t timerMinutes = 0;
 uint8_t alarmOn = 0;
-uint8_t testColumn = 0;
-uint8_t brightness = settings.getBrightness();
+#endif
+#ifdef LDR
 uint8_t ratedBrightness = settings.getBrightness();
 uint16_t ldrValue = 0;
 uint16_t lastLdrValue = 0;
-uint16_t minLdrValue = 255;
+uint16_t minLdrValue = 1023;
 uint16_t maxLdrValue = 0;
 uint32_t lastLdrCheck = 0;
 uint32_t lastBrightnessCheck = 0;
+#endif
+#ifdef IR_REMOTE
+IRrecv irrecv(PIN_IR_RECEIVER);
 decode_results irDecodeResult;
 irparams_t irDecodeSave;
-int8_t extTemp;
-uint8_t randomMinute;
+#endif
 
 /******************************************************************************
 setup()
 ******************************************************************************/
 
 void setup() {
-
 	// init serial port
 	Serial.begin(SERIAL_SPEED);
 	while (!Serial);
-
 	DEBUG_PRINTLN();
 	DEBUG_PRINTLN("QLOCKWORK");
 	DEBUG_PRINTLN(String("Firmware: " + String(FIRMWARE_VERSION)));
 	DEBUG_PRINTLN(String("LED-Driver: " + ledDriver.getSignature()));
-
 	// init LDR, Buzzer and LED
-	DEBUG_PRINTLN("Setting up LDR, Buzzer and LED.");
-	pinMode(PIN_LDR, INPUT);
+#ifdef BUZZER
+	DEBUG_PRINTLN("Setting up Buzzer.");
 	pinMode(PIN_BUZZER, OUTPUT);
+#endif
+#ifdef LDR
+	DEBUG_PRINTLN("Setting up LDR.");
+	pinMode(PIN_LDR, INPUT);
+#endif
+#ifdef ESP_LED
+	DEBUG_PRINTLN("Setting up ESP LED.");
 	pinMode(PIN_LED, OUTPUT);
 	digitalWrite(PIN_LED, HIGH);
-
+#endif
 	// init WiFi and services
 	matrix[0] = 0b0000000000010000;
 	matrix[1] = 0b0000111000010000;
@@ -149,8 +155,6 @@ void setup() {
 	MDNS.begin(HOSTNAME);
 	DEBUG_PRINTLN("Starting webserver on port 80.");
 	setupWebServer();
-	DEBUG_PRINTLN("Starting UDP on port 2390.");
-	wifiUdp.begin(2390);
 	DEBUG_PRINTLN("Starting Arduino-OTA service.");
 	char otaPassword[] = OTA_PASS;
 	ArduinoOTA.setPassword(otaPassword);
@@ -159,15 +163,11 @@ void setup() {
 	DEBUG_PRINTLN("Starting IR-receiver.");
 	irrecv.enableIRIn();
 #endif
-	DEBUG_PRINT("Free RAM: ");
-	DEBUG_PRINTLN(system_get_free_heap_size());
 	DEBUG_PRINT("Use LDR: ");
 	if (settings.getUseLdr()) DEBUG_PRINTLN("On"); else DEBUG_PRINTLN("Off");
 	randomSeed(analogRead(PIN_LDR));
 	randomMinute = random(1, 60);
 	DEBUG_PRINTLN("Random minute is: " + String(randomMinute));
-	extTemp = getExtTemp(YAHOO_WEATHER);
-
 	// set timeprovider
 #ifdef RTC_BACKUP
 	if (WiFi.status() == WL_CONNECTED) {
@@ -193,6 +193,9 @@ void setup() {
 	lastFiveMinute = minute() / 5;
 	lastMinute = minute();
 	lastTime = now();
+	getYahooWeather(YAHOO_LOCATION);
+	DEBUG_PRINT("Free RAM: ");
+	DEBUG_PRINTLN(system_get_free_heap_size());
 }
 
 /******************************************************************************
@@ -206,6 +209,7 @@ void loop() {
 #endif
 
 	// execute every day
+
 	if (day() != lastDay) {
 		lastDay = day();
 		DEBUG_PRINTLN("Reached a new day.");
@@ -214,6 +218,7 @@ void loop() {
 	}
 
 	// execute every hour
+
 	if (hour() != lastHour) {
 		lastHour = hour();
 		DEBUG_PRINTLN("Reached a new hour.");
@@ -222,44 +227,55 @@ void loop() {
 	}
 
 	// execute every five minutes
+
 	if ((minute() / 5) != lastFiveMinute) {
 		lastFiveMinute = minute() / 5;
 		DEBUG_PRINTLN("Reached new five minutes.");
 	}
 
 	// execute every minute
+
 	if (minute() != lastMinute) {
 		lastMinute = minute();
 #ifdef DEBUG
 		debug.debugTime("Time:", now());
 #endif
-		if (mode == STD_MODE_NORMAL) screenBufferNeedsUpdate = true;
-		if ((minute() / float(randomMinute)) == 1.0) extTemp = getExtTemp(YAHOO_WEATHER);
+		if ((minute() / float(randomMinute)) == 1.0) getYahooWeather(YAHOO_LOCATION);
+		// display needs update every minute
+		switch (mode) {
+		case STD_MODE_NORMAL:
+		case STD_MODE_EXT_TEMP:
+			screenBufferNeedsUpdate = true;
+			break;
+		default:
+			break;
+		}
 	}
 
 	// execute every second
+
 	if (now() != lastTime) {
 		lastTime = now();
-
 		// countdown fallback
 		if (fallBackCounter > 1) fallBackCounter--;
 		else if (fallBackCounter == 1) {
 			fallBackCounter = 0;
 			setMode(STD_MODE_NORMAL);
 		}
-
 		// display needs update every second
 		switch (mode) {
 		case STD_MODE_SECONDS:
 #ifdef RTC_BACKUP
 		case STD_MODE_TEMP:
 #endif
+#ifdef BUZZER
 		case STD_MODE_SET_TIMER:
 		case STD_MODE_TIMER:
 		case STD_MODE_ALARM_1:
 		case STD_MODE_SET_ALARM_1:
 		case STD_MODE_ALARM_2:
 		case STD_MODE_SET_ALARM_2:
+#endif
 #ifdef LDR
 		case EXT_MODE_LDR:
 #endif
@@ -273,19 +289,18 @@ void loop() {
 		case EXT_MODE_MONTHSET:
 		case EXT_MODE_YEARSET:
 		case EXT_MODE_NIGHTOFF:
-		case EXT_MODE_NIGHTON:
+		case EXT_MODE_DAYON:
 		case EXT_MODE_TEST:
 			screenBufferNeedsUpdate = true;
 			break;
 		default:
 			break;
 		}
-
 #ifdef ESP_LED
 		if (digitalRead(PIN_LED) == LOW) digitalWrite(PIN_LED, HIGH);
 		else digitalWrite(PIN_LED, LOW);
 #endif
-
+#ifdef BUZZER
 		// alarm
 		if (settings.getAlarm1() && (hour() == hour(settings.getAlarmTime1())) && (minute() == minute(settings.getAlarmTime1())) && (second() == 0)) alarmOn = BUZZTIME_ALARM_1;
 		if (settings.getAlarm2() && (hour() == hour(settings.getAlarmTime2())) && (minute() == minute(settings.getAlarmTime2())) && (second() == 0)) alarmOn = BUZZTIME_ALARM_2;
@@ -297,7 +312,6 @@ void loop() {
 			timerSet = false;
 			alarmOn = BUZZTIME_TIMER;
 		}
-
 		// make some noise
 		if (alarmOn) {
 			if (second() % 2 == 0) digitalWrite(PIN_BUZZER, HIGH);
@@ -305,10 +319,10 @@ void loop() {
 			alarmOn--;
 		}
 		else digitalWrite(PIN_BUZZER, LOW);
-
-		// nightmode on/off
+#endif
+		// set nightmode/daymode
 		if ((hour() == hour(settings.getNightOffTime())) && (minute() == minute(settings.getNightOffTime())) && (second() == 0)) setMode(STD_MODE_BLANK);
-		if ((hour() == hour(settings.getNightOnTime())) && (minute() == minute(settings.getNightOnTime())) && (second() == 0)) setMode(lastMode);
+		if ((hour() == hour(settings.getDayOnTime())) && (minute() == minute(settings.getDayOnTime())) && (second() == 0)) setMode(lastMode);
 	}
 
 	// always execute
@@ -316,7 +330,6 @@ void loop() {
 	// call HTTP- and OTA-handler
 	esp8266WebServer.handleClient();
 	ArduinoOTA.handle();
-
 #ifdef LDR
 	// get rated brightness from LDR
 	if (millis() > (lastLdrCheck + 250)) {
@@ -331,7 +344,6 @@ void loop() {
 			DEBUG_PRINTLN("Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")");
 		}
 	}
-
 	// set brightness to rated brightness
 	if (settings.getUseLdr() && (millis() > (lastBrightnessCheck + 50))) {
 		lastBrightnessCheck = millis();
@@ -343,16 +355,13 @@ void loop() {
 		}
 	}
 #endif
-
 #ifdef IR_REMOTE
 	if (irrecv.decode(&irDecodeResult, &irDecodeSave)) {
 		DEBUG_PRINTLN("IR signal: " + String(uint32_t(irDecodeResult.value)));
 		remoteAction(irDecodeResult);
 		irrecv.resume();
 	}
-
 #endif
-
 	// render new screenbuffer
 	if (screenBufferNeedsUpdate) {
 		screenBufferNeedsUpdate = false;
@@ -363,7 +372,7 @@ void loop() {
 			renderer.setTime(hour(), minute(), settings.getLanguage(), matrix);
 			renderer.setCorners(minute(), matrix);
 			if (settings.getAlarm1() || settings.getAlarm2()) renderer.setAlarmLed(matrix);
-			if (!settings.getEsIst() && ((minute() / 5) % 6)) renderer.clearEntryWords(settings.getLanguage(), matrix);
+			if (!settings.getItIs() && ((minute() / 5) % 6)) renderer.clearEntryWords(settings.getLanguage(), matrix);
 			break;
 		case STD_MODE_AMPM:
 			renderer.clearScreenBuffer(matrix);
@@ -380,7 +389,7 @@ void loop() {
 			break;
 		case STD_MODE_WEEKDAY:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText(sWeekday[settings.getLanguage()][weekday()], Renderer::TEXT_POS_MIDDLE, matrix);
+			renderer.setSmallText(String(sWeekday[weekday()][0]) + String(sWeekday[weekday()][1]), Renderer::TEXT_POS_MIDDLE, matrix);
 			break;
 		case STD_MODE_DATE:
 			renderer.clearScreenBuffer(matrix);
@@ -390,6 +399,11 @@ void loop() {
 			else renderer.setSmallText(String(month()), Renderer::TEXT_POS_BOTTOM, matrix);
 			renderer.setPixelInScreenBuffer(5, 4, matrix);
 			renderer.setPixelInScreenBuffer(5, 9, matrix);
+			break;
+		case STD_MODE_TITLE_TEMP:
+			renderer.clearScreenBuffer(matrix);
+			renderer.setSmallText("TE", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("MP", Renderer::TEXT_POS_BOTTOM, matrix);
 			break;
 #ifdef RTC_BACKUP
 		case STD_MODE_TEMP:
@@ -418,16 +432,22 @@ void loop() {
 #endif
 		case STD_MODE_EXT_TEMP:
 			renderer.clearScreenBuffer(matrix);
-			if (extTemp > 0) {
+			if (yahooTemp > 0) {
 				matrix[1] = 0b0100000000000000;
 				matrix[2] = 0b1110000000000000;
 				matrix[3] = 0b0100000000000000;
 			}
-			if (extTemp < 0) {
+			if (yahooTemp < 0) {
 				matrix[2] = 0b1110000000000000;
 			}
-			renderer.setSmallText(String(extTemp), Renderer::TEXT_POS_BOTTOM, matrix);
-			DEBUG_PRINTLN(String(extTemp));
+			renderer.setSmallText(String(yahooTemp), Renderer::TEXT_POS_BOTTOM, matrix);
+			DEBUG_PRINTLN(String(yahooTemp));
+			break;
+#ifdef BUZZER
+		case STD_MODE_TITLE_ALARM:
+			renderer.clearScreenBuffer(matrix);
+			renderer.setSmallText("AL", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("RM", Renderer::TEXT_POS_BOTTOM, matrix);
 			break;
 		case STD_MODE_SET_TIMER:
 			renderer.clearScreenBuffer(matrix);
@@ -483,6 +503,7 @@ void loop() {
 				renderer.setAlarmLed(matrix);
 			}
 			break;
+#endif
 		case EXT_MODE_TITLE_MAIN:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("MA", Renderer::TEXT_POS_TOP, matrix);
@@ -534,10 +555,10 @@ void loop() {
 		case EXT_MODE_LANGUAGE:
 			renderer.clearScreenBuffer(matrix);
 			if (second() % 2 == 0) {
-				if (sLanguage[settings.getLanguage()].length() == 2) renderer.setSmallText(sLanguage[settings.getLanguage()], Renderer::TEXT_POS_MIDDLE, matrix);
+				if (sLanguage[settings.getLanguage()][3] == ' ') renderer.setSmallText(String(sLanguage[settings.getLanguage()][0]) + String(sLanguage[settings.getLanguage()][1]), Renderer::TEXT_POS_MIDDLE, matrix);
 				else {
-					renderer.setSmallText(sLanguage[settings.getLanguage()].substring(0, 2), Renderer::TEXT_POS_TOP, matrix);
-					renderer.setSmallText(sLanguage[settings.getLanguage()].substring(2, 4), Renderer::TEXT_POS_BOTTOM, matrix);
+					renderer.setSmallText(String(sLanguage[settings.getLanguage()][0]) + String(sLanguage[settings.getLanguage()][1]), Renderer::TEXT_POS_TOP, matrix);
+					renderer.setSmallText(String(sLanguage[settings.getLanguage()][2]) + String(sLanguage[settings.getLanguage()][3]), Renderer::TEXT_POS_BOTTOM, matrix);
 				}
 			}
 			break;
@@ -560,7 +581,7 @@ void loop() {
 			renderer.setSmallText("IT", Renderer::TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else {
-				if (settings.getEsIst()) renderer.setSmallText("EN", Renderer::TEXT_POS_BOTTOM, matrix);
+				if (settings.getItIs()) renderer.setSmallText("EN", Renderer::TEXT_POS_BOTTOM, matrix);
 				else renderer.setSmallText("DA", Renderer::TEXT_POS_BOTTOM, matrix);
 			}
 			break;
@@ -595,17 +616,17 @@ void loop() {
 				renderer.setAMPM(hour(settings.getNightOffTime()), settings.getLanguage(), matrix);
 			}
 			break;
-		case EXT_MODE_TEXT_NIGHTON:
+		case EXT_MODE_TEXT_DAYON:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("NT", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("DY", Renderer::TEXT_POS_TOP, matrix);
 			renderer.setSmallText("ON", Renderer::TEXT_POS_BOTTOM, matrix);
 			break;
-		case EXT_MODE_NIGHTON:
+		case EXT_MODE_DAYON:
 			renderer.clearScreenBuffer(matrix);
 			if (second() % 2 == 0) {
-				renderer.setTime(hour(settings.getNightOnTime()), minute(settings.getNightOnTime()), settings.getLanguage(), matrix);
+				renderer.setTime(hour(settings.getDayOnTime()), minute(settings.getDayOnTime()), settings.getLanguage(), matrix);
 				renderer.clearEntryWords(settings.getLanguage(), matrix);
-				renderer.setAMPM(hour(settings.getNightOnTime()), settings.getLanguage(), matrix);
+				renderer.setAMPM(hour(settings.getDayOnTime()), settings.getLanguage(), matrix);
 			}
 			break;
 		case EXT_MODE_TITLE_IP:
@@ -678,29 +699,28 @@ void loop() {
 		default:
 			writeScreenBuffer(matrix, settings.getColor(), brightness);
 			break;
+		}
 	}
-}
 }
 
 /******************************************************************************
 "mode" pressed
 ******************************************************************************/
 
-void modePressed() {
-
+void buttonModePressed() {
+#ifdef BUZZER
 	// turn off alarm
 	if (alarmOn) {
 		alarmOn = false;
 		digitalWrite(PIN_BUZZER, LOW);
 		return;
 	}
-
+#endif
 	// turn off nightmode
 	if (mode == STD_MODE_BLANK) {
 		setMode(STD_MODE_NORMAL);
 		return;
 	}
-
 	// set mode and fallback
 	setMode(mode++);
 	switch (mode) {
@@ -708,8 +728,14 @@ void modePressed() {
 	case EXT_MODE_COUNT:
 		setMode(STD_MODE_NORMAL);
 		break;
+#ifdef BUZZER
+	case STD_MODE_SET_TIMER:
+		if (timerSet) setMode(mode++);
+		fallBackCounter = 0;
+		break;
 	case STD_MODE_TIMER:
 		if (!timerSet) setMode(mode++);
+		fallBackCounter = 0;
 		break;
 	case STD_MODE_SET_ALARM_1:
 		if (!settings.getAlarm1()) setMode(STD_MODE_ALARM_2);
@@ -717,6 +743,7 @@ void modePressed() {
 	case STD_MODE_SET_ALARM_2:
 		if (!settings.getAlarm2()) setMode(STD_MODE_NORMAL);
 		break;
+#endif
 #ifdef LDR
 	case EXT_MODE_BRIGHTNESS:
 		if (settings.getUseLdr()) setMode(mode++);
@@ -739,14 +766,20 @@ void modePressed() {
 		fallBackCounter = 0;
 		break;
 	}
-
-	// save settings
-	settings.saveToEEPROM();
-
 #ifdef RTC_BACKUP
-	// set RTC
 	RTC.set(now());
 #endif
+	settings.saveToEEPROM();
+}
+
+/******************************************************************************
+"settings" pressed
+******************************************************************************/
+
+void buttonSettingsPressed() {
+	DEBUG_PRINTLN("Settings pressed.");
+	if (mode < EXT_MODE_START) setMode(EXT_MODE_START);
+	else buttonModePressed();
 }
 
 /******************************************************************************
@@ -757,10 +790,29 @@ void buttonPlusPressed() {
 	DEBUG_PRINTLN("+ pressed.");
 	screenBufferNeedsUpdate = true;
 	switch (mode) {
+	case STD_MODE_NORMAL:
+		setMode(STD_MODE_TITLE_TEMP);
+		break;
+#ifndef BUZZER
+	case STD_MODE_TITLE_TEMP:
+		setMode(STD_MODE_NORMAL);
+		break;
+#endif
+#ifdef BUZZER
+	case STD_MODE_TITLE_TEMP:
+		setMode(STD_MODE_TITLE_ALARM);
+		break;
+	case STD_MODE_TITLE_ALARM:
+		setMode(STD_MODE_NORMAL);
+		break;
 	case STD_MODE_SET_TIMER:
 		if (timerMinutes < 100) timerMinutes++;
 		timer = now() + timerMinutes * 60;
 		timerSet = true;
+		break;
+	case STD_MODE_TIMER:
+		timerSet = false;
+		setMode(STD_MODE_SET_TIMER);
 		break;
 	case STD_MODE_ALARM_1:
 		settings.toggleAlarm1();
@@ -778,6 +830,7 @@ void buttonPlusPressed() {
 		settings.setAlarmTime2(settings.getAlarmTime2() + 3600);
 #ifdef DEBUG
 		debug.debugTime("Alarm 2:", settings.getAlarmTime2());
+#endif
 #endif
 		break;
 	case EXT_MODE_TITLE_MAIN:
@@ -820,7 +873,7 @@ void buttonPlusPressed() {
 #endif
 		break;
 	case EXT_MODE_IT_IS:
-		settings.toggleEsIst();
+		settings.toggleItIs();
 		break;
 	case EXT_MODE_DAYSET:
 		setTime(hour(), minute(), second(), day() + 1, month(), year());
@@ -837,10 +890,10 @@ void buttonPlusPressed() {
 		debug.debugTime("Night off:", settings.getNightOffTime());
 #endif
 		break;
-	case EXT_MODE_NIGHTON:
-		settings.setNightOnTime(settings.getNightOnTime() + 3600);
+	case EXT_MODE_DAYON:
+		settings.setDayOnTime(settings.getDayOnTime() + 3600);
 #ifdef DEBUG
-		debug.debugTime("Night on:", settings.getNightOnTime());
+		debug.debugTime("Night on:", settings.getDayOnTime());
 #endif
 		break;
 	case EXT_MODE_TITLE_IP:
@@ -862,6 +915,21 @@ void buttonMinusPressed() {
 	DEBUG_PRINTLN("- pressed.");
 	screenBufferNeedsUpdate = true;
 	switch (mode) {
+	case STD_MODE_TITLE_TEMP:
+		setMode(STD_MODE_NORMAL);
+		break;
+#ifndef BUZZER
+	case STD_MODE_NORMAL:
+		setMode(STD_MODE_TITLE_TEMP);
+		break;
+#endif
+#ifdef BUZZER
+	case STD_MODE_TITLE_ALARM:
+		setMode(STD_MODE_TITLE_TEMP);
+		break;
+	case STD_MODE_NORMAL:
+		setMode(STD_MODE_TITLE_ALARM);
+		break;
 	case STD_MODE_SET_TIMER:
 		if (timerMinutes > 0) {
 			timerMinutes--;
@@ -871,6 +939,10 @@ void buttonMinusPressed() {
 				timerSet = true;
 			}
 		}
+		break;
+	case STD_MODE_TIMER:
+		timerSet = false;
+		setMode(STD_MODE_SET_TIMER);
 		break;
 	case STD_MODE_ALARM_1:
 		settings.toggleAlarm1();
@@ -888,6 +960,7 @@ void buttonMinusPressed() {
 		settings.setAlarmTime2(settings.getAlarmTime2() + 300);
 #ifdef DEBUG
 		debug.debugTime("Alarm 2:", settings.getAlarmTime2());
+#endif
 #endif
 		break;
 	case EXT_MODE_TITLE_MAIN:
@@ -930,7 +1003,7 @@ void buttonMinusPressed() {
 #endif
 		break;
 	case EXT_MODE_IT_IS:
-		settings.toggleEsIst();
+		settings.toggleItIs();
 		break;
 	case EXT_MODE_DAYSET:
 		setTime(hour(), minute(), second(), day() - 1, month(), year());
@@ -947,10 +1020,10 @@ void buttonMinusPressed() {
 		debug.debugTime("Night off:", settings.getNightOffTime());
 #endif
 		break;
-	case EXT_MODE_NIGHTON:
-		settings.setNightOnTime(settings.getNightOnTime() + 300);
+	case EXT_MODE_DAYON:
+		settings.setDayOnTime(settings.getDayOnTime() + 300);
 #ifdef DEBUG
-		debug.debugTime("Night on:", settings.getNightOnTime());
+		debug.debugTime("Night on:", settings.getDayOnTime());
 #endif
 		break;
 	case EXT_MODE_TITLE_IP:
@@ -965,6 +1038,27 @@ void buttonMinusPressed() {
 }
 
 /******************************************************************************
+"time" pressed
+******************************************************************************/
+
+void buttonTimePressed() {
+	DEBUG_PRINTLN("Time pressed.");
+	screenBufferNeedsUpdate = true;
+#ifdef BUZZER
+	if (alarmOn) {
+		alarmOn = false;
+		digitalWrite(PIN_BUZZER, LOW);
+	}
+#endif
+#ifdef RTC_BACKUP
+	RTC.set(now());
+#endif
+	settings.saveToEEPROM();
+	fallBackCounter = 0;
+	setMode(STD_MODE_NORMAL);
+}
+
+/******************************************************************************
 IR-signal received
 ******************************************************************************/
 
@@ -975,23 +1069,13 @@ void remoteAction(decode_results irDecodeResult) {
 		setDisplayToToggle();
 		break;
 	case IR_CODE_TIME:
-#ifdef RTC_BACKUP
-		RTC.set(now());
-#endif
-		if (alarmOn) {
-			alarmOn = false;
-			digitalWrite(PIN_BUZZER, LOW);
-		}
-		fallBackCounter = 0;
-		settings.saveToEEPROM();
-		setMode(STD_MODE_NORMAL);
+		buttonTimePressed();
 		break;
 	case IR_CODE_MODE:
-		modePressed();
+		buttonModePressed();
 		break;
 	case IR_CODE_EXTMODE:
-		if (mode < EXT_MODE_START) setMode(EXT_MODE_START);
-		else modePressed();
+		buttonSettingsPressed();
 		break;
 	case IR_CODE_PLUS:
 		buttonPlusPressed();
@@ -1084,27 +1168,43 @@ time_t getRtcTime() {
 }
 #endif
 
-int8_t getExtTemp(String yahooWeather) {
+/******************************************************************************
+weather
+******************************************************************************/
+
+// complete result for Zuerich
+// https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20weather.forecast%20where%20woeid%20in%20(select%20woeid%20from%20geo.places(1)%20where%20text%3D%22zurich%2C%20ch%22)%20and%20u=%27c%27&format=json
+
+void getYahooWeather(String yahooLocation) {
 	if (WiFi.status() != WL_CONNECTED) {
-		DEBUG_PRINTLN("Wifi not connected. :( Can not get temperature.");
-		return 0;
+		DEBUG_PRINTLN("WiFi not connected. :( Can not get weather.");
+		return;
 	}
-	yahooWeather.replace(" ", "%20");
-	yahooWeather.replace(",", "%2C");
-	DEBUG_PRINTLN("Sending HTTP-request for temperature...");
+	DEBUG_PRINTLN("Sending REST-request for weather.");
+	WiFiClient	wifiClient;
 	char server[] = "query.yahooapis.com";
-	IPAddress serverIP(0, 0, 0, 0);
-	WiFi.hostByName(server, serverIP);
-	HttpClient httpClient = HttpClient(wifiClient, serverIP, 80);
-	httpClient.get("query.yahooapis.com/v1/public/yql?q=select%20item.condition.temp%20from%20weather.forecast%20where%20woeid%20in%20(select%20woeid%20from%20geo.places(1)%20where%20text%3D%22" + yahooWeather + "%22)%20and%20u=%27c%27&format=json");
-	String response = httpClient.responseBody();
-	//DEBUG_PRINTLN("JSON-response: " + response);
+	RestClient restClient = RestClient(wifiClient, server, 80);
+	String sqlQuery = "select item.title, item.condition.temp, item.condition.code ";
+	sqlQuery += "from weather.forecast where woeid in (select woeid from geo.places(1) where text=%22" + yahooLocation + "%22) and u=%27c%27";
+	sqlQuery.replace(" ", "%20");
+	sqlQuery.replace(",", "%2C");
+	restClient.get("query.yahooapis.com/v1/public/yql?q=" + sqlQuery + "&format=json");
+	String response = restClient.readResponse();
+	response = response.substring(response.indexOf('{'), response.lastIndexOf('}' + 1));
+	//DEBUG_PRINTLN("REST-response: " + response);
 	DynamicJsonBuffer jsonBuffer;
-	JsonObject &response_json = jsonBuffer.parseObject(response);
-	if (!response_json.success()) Serial.println("Parsing JSON failed.");
-	int8_t extTemp = response_json["query"]["results"]["channel"]["item"]["condition"]["temp"];
-	DEBUG_PRINTLN("External temperature is: " + String(extTemp));
-	return extTemp;
+	JsonObject &responseJson = jsonBuffer.parseObject(response);
+	if (!responseJson.success()) {
+		DEBUG_PRINTLN("Parsing JSON failed.");
+		return;
+	}
+	else DEBUG_PRINTLN("Parsing JSON succeeded.");
+	String yahooTitle = responseJson["query"]["results"]["channel"]["item"]["title"];
+	DEBUG_PRINTLN(yahooTitle);
+	yahooTemp = responseJson["query"]["results"]["channel"]["item"]["condition"]["temp"];
+	DEBUG_PRINTLN("External temperature is: " + String(yahooTemp));
+	yahooCode = responseJson["query"]["results"]["channel"]["item"]["condition"]["code"];
+	DEBUG_PRINTLN("Condition code is: " + String(yahooCode));
 }
 
 /******************************************************************************
@@ -1112,54 +1212,55 @@ ntp
 ******************************************************************************/
 
 time_t getNtpTime() {
-	char server[] = NTP_SERVER;
-	IPAddress timeServerIP;
-	WiFi.hostByName(server, timeServerIP);
-	if (WiFi.status() == WL_CONNECTED) {
-		while (wifiUdp.parsePacket() > 0);
-		sendNTPpacket(timeServerIP);
-		uint32_t beginWait = millis();
-		while (millis() - beginWait < 1500) {
-			int size = wifiUdp.parsePacket();
-			if (size >= 48) {
-				wifiUdp.read(packetBuffer, 48);
-				unsigned long secsSince1900;
-				secsSince1900 = (unsigned long)packetBuffer[40] << 24;
-				secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
-				secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
-				secsSince1900 |= (unsigned long)packetBuffer[43];
-#ifdef RTC_BACKUP
-				DEBUG_PRINTLN("*** RTC set from NTP. ***");
-				RTC.set(timeZone.toLocal(secsSince1900 - 2208988800UL));
-#endif
-				DEBUG_PRINTLN("*** ESP set from NTP. ***");
-				return (timeZone.toLocal(secsSince1900 - 2208988800UL));
-			}
-		}
-		DEBUG_PRINTLN("No NTP response. :(");
+	if (WiFi.status() != WL_CONNECTED) {
+		DEBUG_PRINTLN("WiFi not connected. :( Can not get NTP time.");
 #ifdef RTC_BACKUP
 		return getRtcTime();
 #else
 		return now();
 #endif
 	}
-	DEBUG_PRINTLN("Wifi not connected. :(");
-	return now();
-}
-
-void sendNTPpacket(IPAddress &timeServerIP) {
-	memset(packetBuffer, 0, 48);
-	packetBuffer[0] = 0b11100011;
-	packetBuffer[1] = 0;
-	packetBuffer[2] = 6;
+	DEBUG_PRINTLN("Sending NTP-request for time.");
+	uint8_t packetBuffer[49] = { };
+	packetBuffer[0] = 0xE3;
+	packetBuffer[1] = 0x00;
+	packetBuffer[2] = 0x06;
 	packetBuffer[3] = 0xEC;
-	packetBuffer[12] = 49;
+	packetBuffer[12] = 0x31;
 	packetBuffer[13] = 0x4E;
-	packetBuffer[14] = 49;
-	packetBuffer[15] = 52;
+	packetBuffer[14] = 0x31;
+	packetBuffer[15] = 0x34;
+	WiFiUDP wifiUdp;
+	wifiUdp.begin(2390);
+	char server[] = NTP_SERVER;
+	IPAddress timeServerIP;
+	WiFi.hostByName(server, timeServerIP);
 	wifiUdp.beginPacket(timeServerIP, 123);
 	wifiUdp.write(packetBuffer, 48);
 	wifiUdp.endPacket();
+	uint32_t beginWait = millis();
+	while (millis() - beginWait < 1500) {
+		if (wifiUdp.parsePacket() >= 48) {
+			wifiUdp.read(packetBuffer, 48);
+			uint32_t ntpTime = (packetBuffer[40] << 24) + (packetBuffer[41] << 16) + (packetBuffer[42] << 8) + packetBuffer[43];
+			ntpTime -= 2208988800; // NTP time is seconds from 1900, we need from 1970
+#ifdef DEBUG
+			debug.debugTime("NTP-response: (GMT) ", ntpTime);
+#endif
+#ifdef RTC_BACKUP
+			DEBUG_PRINTLN("*** RTC set from NTP. ***");
+			RTC.set(timeZone.toLocal(ntpTime));
+#endif
+			DEBUG_PRINTLN("*** ESP set from NTP. ***");
+			return (timeZone.toLocal(ntpTime));
+		}
+	}
+	DEBUG_PRINTLN("No NTP response. :(");
+#ifdef RTC_BACKUP
+	return getRtcTime();
+#else
+	return now();
+#endif
 }
 
 /******************************************************************************
@@ -1172,7 +1273,7 @@ void setupWebServer() {
 	esp8266WebServer.on("/handle_TOGGLEBLANK", handle_TOGGLEBLANK);
 	esp8266WebServer.on("/handle_BUTTON_TIME", handle_BUTTON_TIME);
 	esp8266WebServer.on("/handle_BUTTON_MODE", handle_BUTTON_MODE);
-	esp8266WebServer.on("/handle_BUTTON_EXTMODE", handle_BUTTON_EXTMODE);
+	esp8266WebServer.on("/handle_BUTTON_SETTINGS", handle_BUTTON_SETTINGS);
 	esp8266WebServer.on("/handle_BUTTON_PLUS", handle_BUTTON_PLUS);
 	esp8266WebServer.on("/handle_BUTTON_MINUS", handle_BUTTON_MINUS);
 	esp8266WebServer.begin();
@@ -1201,21 +1302,21 @@ void handleRoot() {
 	message += "<h1>";
 	message += HOSTNAME;
 	message += "</h1>";
-	if (mode == STD_MODE_BLANK)	message += "<button onclick=\"window.location.href='/handle_TOGGLEBLANK'\">On</button>";
-	else message += "<button onclick=\"window.location.href='/handle_TOGGLEBLANK'\">Off</button>";
-	message += "<button onclick=\"window.location.href='/handle_BUTTON_TIME'\">Time</button>";
+	if (mode == STD_MODE_BLANK)	message += "<button onclick=\"window.location.href='/handle_TOGGLEBLANK'\">" + String(LANG_ON) + "</button>";
+	else message += "<button onclick=\"window.location.href='/handle_TOGGLEBLANK'\">" + String(LANG_OFF) + "</button>";
+	message += "<button onclick=\"window.location.href='/handle_BUTTON_TIME'\">" + String(LANG_TIME) + "</button>";
 	message += "<br><br>";
-	message += "<button onclick=\"window.location.href='/handle_BUTTON_MODE'\">Mode</button>";
-	message += "<button onclick=\"window.location.href='/handle_BUTTON_EXTMODE'\">Ext. Mode</button>";
+	message += "<button onclick=\"window.location.href='/handle_BUTTON_MODE'\">" + String(LANG_MODE) + "</button>";
+	message += "<button onclick=\"window.location.href='/handle_BUTTON_SETTINGS'\">" + String(LANG_SETTINGS) + "</button>";
 	message += "<br><br>";
-	message += "<button onclick=\"window.location.href='/handle_BUTTON_PLUS'\">+</button>";
-	message += "<button onclick=\"window.location.href='/handle_BUTTON_MINUS'\">-</button>";
+	message += "<button onclick=\"window.location.href='/handle_BUTTON_PLUS'\">" + String(LANG_PLUS) + "</button>";
+	message += "<button onclick=\"window.location.href='/handle_BUTTON_MINUS'\">" + String(LANG_MINUS) + "</button>";
 	message += "<br><br>";
 #ifdef RTC_BACKUP
-	message += "Temperature: " + String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) + "&#176;C / " + String((RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "&#176;F";
+	message += String(LANG_TEMPERATURE) + ": " + String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) + "&#176;C / " + String((RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "&#176;F";
 	message += "<br>";
 #endif
-	message += "Ext. Temperature: " + String(extTemp) + "&#176;C / " + String(extTemp * 9 / 5 + 32) + "&#176;F";
+	message += String(LANG_EXT_TEMPERATURE) + ": " + String(yahooTemp) + "&#176;C / " + String(yahooTemp * 9 / 5 + 32) + "&#176;F";
 	message += "<br>";
 	message += "<font size=2>";
 	message += "Firmware: " + String(FIRMWARE_VERSION);
@@ -1224,11 +1325,13 @@ void handleRoot() {
 	message += "LED-Driver: " + ledDriver.getSignature();
 	message += "<br>";
 	message += "Free RAM: " + String(system_get_free_heap_size()) + " bytes";
+#ifdef LDR
 	message += "<br>";
 	message += "Use LDR: ";
 	if (settings.getUseLdr()) message += "On"; else message += "Off";
 	message += "<br>";
 	message += "Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")";
+#endif
 #endif
 	message += "</font>";
 	message += "</body>";
@@ -1247,29 +1350,19 @@ void handle_TOGGLEBLANK() {
 void handle_BUTTON_TIME() {
 	String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
 	esp8266WebServer.send(200, "text/html", message);
-#ifdef RTC_BACKUP
-	RTC.set(now());
-#endif
-	if (alarmOn) {
-		alarmOn = false;
-		digitalWrite(PIN_BUZZER, LOW);
-	}
-	fallBackCounter = 0;
-	settings.saveToEEPROM();
-	setMode(STD_MODE_NORMAL);
+	buttonTimePressed();
 }
 
 void handle_BUTTON_MODE() {
 	String message = "<!doctype html><html><head><script>window.onload = function() {window.location.replace('/')};</script></head><body></body></html>";
 	esp8266WebServer.send(200, "text/html", message);
-	modePressed();
+	buttonModePressed();
 }
 
-void handle_BUTTON_EXTMODE() {
+void handle_BUTTON_SETTINGS() {
 	String message = "<!doctype html><html><head><script>window.onload = function() {window.location.replace('/')};</script></head><body></body></html>";
 	esp8266WebServer.send(200, "text/html", message);
-	if (mode < EXT_MODE_START) setMode(EXT_MODE_START);
-	else modePressed();
+	buttonSettingsPressed();
 }
 
 void handle_BUTTON_PLUS() {

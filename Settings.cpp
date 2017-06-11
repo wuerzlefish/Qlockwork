@@ -56,12 +56,12 @@ void Settings::setTimeout(uint8_t timeout) {
 	mySettings.timeout = timeout;
 }
 
-boolean Settings::getEsIst() {
-	return mySettings.esIst;
+boolean Settings::getItIs() {
+	return mySettings.itIs;
 }
 
-void Settings::toggleEsIst() {
-	mySettings.esIst = !mySettings.esIst;
+void Settings::toggleItIs() {
+	mySettings.itIs = !mySettings.itIs;
 }
 
 boolean Settings::getAlarm1() {
@@ -104,12 +104,12 @@ void Settings::setNightOffTime(time_t nightOffTime) {
 	mySettings.nightOffTime = nightOffTime;
 }
 
-time_t Settings::getNightOnTime() {
-	return mySettings.nightOnTime;
+time_t Settings::getDayOnTime() {
+	return mySettings.dayOnTime;
 }
 
-void Settings::setNightOnTime(time_t nightOnTime) {
-	mySettings.nightOnTime = nightOnTime;
+void Settings::setDayOnTime(time_t dayOnTime) {
+	mySettings.dayOnTime = dayOnTime;
 }
 
 
@@ -117,19 +117,19 @@ void Settings::setNightOnTime(time_t nightOnTime) {
 void Settings::resetToDefault() {
 	mySettings.magicNumber = SETTINGS_MAGIC_NUMBER;
 	mySettings.version = SETTINGS_VERSION;
-	mySettings.language = 0;
+	mySettings.language = LANGUAGE_EN;
 	mySettings.useLdr = false;
 	mySettings.brightness = 128;
-	mySettings.color = 0;
-	mySettings.transition = 1;
+	mySettings.color = WHITE;
+	mySettings.transition = TRANSITION_FADE;
 	mySettings.timeout = 5;
-	mySettings.esIst = true;
+	mySettings.itIs = true;
 	mySettings.alarm1 = false;
 	mySettings.alarmTime1 = 0;
 	mySettings.alarm2 = false;
 	mySettings.alarmTime2 = 0;
 	mySettings.nightOffTime = 0;
-	mySettings.nightOnTime = 0;
+	mySettings.dayOnTime = 0;
 	saveToEEPROM();
 }
 

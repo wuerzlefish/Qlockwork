@@ -6,15 +6,7 @@
 #define RENDERER_H
 
 #include <Arduino.h>
-#include "Words_DE.h"
-#include "Words_DE_MKF.h"
-#include "Words_D3.h"
-#include "Words_CH.h"
-#include "Words_EN.h"
-#include "Words_ES.h"
-#include "Words_FR.h"
-#include "Words_IT.h"
-#include "Words_NL.h"
+#include "Words.h"
 #include "Languages.h"
 #include "Letters.h"
 #include "Numbers.h"

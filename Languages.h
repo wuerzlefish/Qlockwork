@@ -5,23 +5,34 @@
 #ifndef LANGUAGES_H
 #define LANGUAGES_H
 
-const String sLanguage[] = {
-	"DE",   // 00
-	"DESW", // 01
-	"DEBA", // 02
-	"DESA", // 03
-	"MKDE", // 04
-	"MKSW", // 05
-	"MKBA", // 06
-	"MKSA", // 07
-	"D3",   // 08
-	"CH",   // 09
-	"CHGS", // 10
-	"EN",   // 11
-	"ES",   // 12
-	"FR",   // 13
-	"IT",   // 14
-	"NL"    // 15
+const char sWeekday[][2] = {
+	{ ' ', ' ' }, // 00
+	{ 'S', 'U' }, // 01
+	{ 'M', 'O' }, // 02
+	{ 'T', 'U' }, // 03
+	{ 'W', 'E' }, // 04
+	{ 'T', 'H' }, // 05
+	{ 'F', 'R' }, // 06
+	{ 'S', 'A' }  // 07
+};
+
+const char sLanguage[][4] = {
+	{ 'D', 'E', ' ', ' ' }, // 00
+	{ 'D', 'E', 'S', 'W' }, // 01
+	{ 'D', 'E', 'B', 'A' }, // 02
+	{ 'D', 'E', 'S', 'A' }, // 03
+	{ 'M', 'K', 'D', 'E' }, // 04
+	{ 'M', 'K', 'S', 'W' }, // 05
+	{ 'M', 'K', 'B', 'A' }, // 06
+	{ 'M', 'K', 'S', 'A' }, // 07
+	{ 'D', '3', ' ', ' ' }, // 08
+	{ 'C', 'H', ' ', ' ' }, // 09
+	{ 'C', 'H', 'G', 'S' }, // 10
+	{ 'E', 'N', ' ', ' ' }, // 11
+	{ 'E', 'S', ' ', ' ' }, // 12
+	{ 'F', 'R', ' ', ' ' }, // 13
+	{ 'I', 'T', ' ', ' ' }, // 14
+	{ 'N', 'L', ' ', ' ' }  // 15
 };
 
 enum eLanguage : uint8_t {
@@ -42,25 +53,6 @@ enum eLanguage : uint8_t {
 	LANGUAGE_IT,
 	LANGUAGE_NL,
 	LANGUAGE_COUNT
-};
-
-const String sWeekday[][8] = {
-	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DE
-	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DESW
-	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DEBA
-	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // DESA
-	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // MKDE
-	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // MKSW
-	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // MKBA
-	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // MKSA
-	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // D3
-	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // CH
-	{ "", "SO", "MO", "DI", "MI", "DO", "FR", "SA" }, // CHGS
-	{ "", "SU", "MO", "TU", "WE", "TH", "FR", "SA" }, // EN
-	{ "", "DO", "LU", "MA", "MI", "JU", "VI", "SA" }, // ES
-	{ "", "DI", "LU", "MA", "ME", "JE", "VE", "SA" }, // FR
-	{ "", "DO", "LU", "MA", "ME", "GI", "VE", "SA" }, // IT
-	{ "", "ZO", "MA", "DI", "WO", "DO", "VR", "ZA" }  // NL
 };
 
 #endif

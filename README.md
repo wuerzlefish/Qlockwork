@@ -64,7 +64,7 @@ https://github.com/ch570512/LPD8806RGBW
 https://github.com/PaulStoffregen/Time
 https://github.com/JChristensen/Timezone
 https://github.com/markszabo/IRremoteESP8266 (Version 2.0.0)
-https://github.com/arduino-libraries/ArduinoHttpClient
+https://github.com/arduino-libraries/RestClient
 https://github.com/bblanchon/ArduinoJson
 https://github.com/tzapu/WiFiManager
 https://github.com/adafruit/Adafruit_NeoPixel
@@ -87,15 +87,18 @@ Die Firmware gibt es hier: https://github.com/ch570512/Qlockwork
 ### Standard Modi
 ```
 Zeitanzeige:        Der Standardmodus der Uhr. Er zeigt die Zeit an. :)
+                    + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
 Anzeige AM/PM:      Zeigt an, ob es vormittags (AM) oder nachmittags (PM) ist.
 Sekunden:           Anzeige der Sekunden.
 Wochentag:          Zeigt den Wochentag in der eingestellten Sprache an.
 Datum:              Anzeige des aktuellen Tages und Monats.
+Titel TEMP:         + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
 Raumtemperatur:     Anzeige der gemessenen Temperatur (nur mit RTC).
 Externe Temperatur: Anzeige der Temperatur für einen Ort (Yahoo Weather).
-Timer Set (TI):     Setzt den Minuten-Timer. Null schaltet den Timer ab.
-                    Der Timer startet sofort mit dem Druck auf + oder -.
-Timer:              Anzeige der Restzeit wenn ein Timer gesetzt ist.
+Titel ALRM:         + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
+Timer (TI):         Setzt den Minuten-Timer. Null schaltet den Timer ab.
+                    Anzeige der Restzeit wenn ein Timer gesetzt ist.
+                    + oder - setzt den Timer und start ihn.
 Alarm1 (A1):        ein/aus
 Alarm1:             Setzt den ersten 24-Stunden-Alarm wenn Alarm1 "ein" ist.
 Alarm2 (A2):        ein/aus
@@ -103,39 +106,38 @@ Alarm2:             Setzt den zweiten 24-Stunden-Alarm wenn Alarm2 "ein" ist.
 ```
 ### Erweiterte Modi
 ```
-Titel MAIN: + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
-Automatische Helligkeitsregelung (LD): ein (EN) / aus (DA)
-Helligkeitsregelung: + oder - aendern die Helligkeit.
-Farbe: 0: Weiss, 1: Rot, 2: Gruen, 3: Blau usw. Wenn die Reihenfolge der Farben abweicht, ist die Anordnung der
-       RGB-LEDs im Streifen anders.
-Transition (TR): Normal (NO) / Fade (FD).
-Ruecksprungverzoegerung (FB nn): Wie lange soll es dauern, bis z.B. aus der Sekundenanzeige wieder zurueck in die
-                                 Zeitanzeige gewechselt wird. (0 = deaktiviert.)
-Sprache (DE/CH/EN/...): Die passende Sprache zur benutzten Front waehlen.
+Titel MAIN:                      + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu
+                                 wechseln.
+Autom. Helligkeitsregelung (LD): Ein (EN) / aus (DA)
+Helligkeitsregelung:             + oder - aendern die Helligkeit.
+Farbe (CO):                      0: Weiss, 1: Rot, 2: Gruen, 3: Blau usw. Wenn die Reihenfolge der Farben abweicht,
+                                 ist die Anordnung der RGB-LEDs im Streifen anders.
+Transition (TR):                 Normal (NO) / Fade (FD).
+Ruecksprungverzoegerung (FB nn): Wie lange soll es dauern, bis z.B. aus der Sekundenanzeige wieder zurueck in
+                                 die Zeitanzeige gewechselt wird. (0: deaktiviert, default: 5)
+Sprache (DE/CH/EN/...):          Die passende Sprache zur benutzten Front waehlen.
+Titel TIME:                      + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu
+                                 wechseln.
+Zeit einstellen:                 + fuer Stunden oder - fuer Minuten druecken um die Zeit zu stellen.
+                                 Die Sekunden springen mit jedem Druck auf Null.
+"Es ist" (IT):                   Anzeigen (EN) oder nicht (DA).
+Tag einstellen (DD nn):          + oder - druecken um den aktuellen Tag einzustellen.
+Monat einstellen (MM nn):        + oder - druecken um den aktuellen Monat einzustellen.
+Jahr einstellen (YY nn):         + oder - druecken um das aktuelle Jahr einzustellen.
+Nacht aus (NI OF):               + oder - druecken um die Ausschaltzeit des Displays einzustellen.
+Tag ein (DY ON):                 + oder - druecken um die Einschaltzeit des Displays einzustellen.
 
-Titel TIME: + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
-Zeit einstellen: + fuer Stunden oder - fuer Minuten druecken um die Zeit zu stellen. Die Sekunden springen mit
-                 jedem Druck auf Null.
-"Es ist" (IT): anzeigen (EN) oder nicht (DA).
-Tag einstellen   (DD nn): + oder - druecken um den aktuellen Tag einzustellen.
-Monat einstellen (MM nn): + oder - druecken um den aktuellen Monat einzustellen.
-Jahr einstellen  (YY nn): + oder - druecken um das aktuelle Jahr einzustellen.
-Nachtauschaltung        (NI OF): + oder - druecken um die Ausschaltzeit des Displays einzustellen.
-Nachtwiedereinschaltung (NI ON): + oder - druecken um die Einschaltzeit des Displays einzustellen.
-
-Titel IP:   + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
-IP-Adresse: Zeigt die lokale IP Adresse im WLAN an.
-
-Titel TEST: + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
-LED-Test:   Laesst einen waagerechten Streifen ueber das Display wandern.
+Titel IP:                        + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu
+                                 wechseln.
+IP-Adresse:                      Zeigt die lokale IP Adresse im WLAN an.
+Titel TEST:                      + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu
+                                 wechseln.
+LED-Test:                        Laesst einen waagerechten Streifen ueber das Display wandern.
 ```
 ### Configuration.h
 ```
 
-#define CONFIG_DEFAULT      Einfache Unterstuetzung verschiedener Konfigurationen in einem File.
-//#define CONFIG_QLOCKDEV
-//#define CONFIG_CLT2
-
+#define CONFIG_*            Einfache Unterstuetzung verschiedener Konfigurationen in einem File.
 #define HOSTNAME            Der Name der Uhr.
 #define WIFI_AP_TIMEOUT     Zeit in Sekunden fuer die der AP zum einrichten/suchen des WLANs aktiv ist.
 #define OTA_PASS            Kennwort fuer "Over the Air" Updates.
@@ -144,43 +146,28 @@ LED-Test:   Laesst einen waagerechten Streifen ueber das Display wandern.
 #define RTC_TEMP_OFFSET     Gibt an, um wieviel Grad die gemessene Temperatur (+ oder -) korrigiert werden soll.
 #define ESP_LED             Zeigt mit Hilfe der LED auf dem ESP die Funktion an. Sie blinkt einmal pro Sekunde.
 #define LDR                 Einen LDR fuer die Helligkeitsregelung verwenden.
-#define LDR_HYSTERESIS      Helligkeitsregelung ab einer Abweichung im Bereich von 0 bis 1023.
-#define MIN_BRIGHTNESS      Minimale Helligkeit der LEDs im Bereich von 0 bis 255.
-#define MAX_BRIGHTNESS      Maximale Helligkeit der LEDs im Bereich von 0 bis 255.
+#define LDR_HYSTERESIS      Helligkeitsregelung ab einer Abweichung im Bereich von 0 bis 1023. Default: 30.
+#define MIN_BRIGHTNESS      Minimale Helligkeit der LEDs im Bereich von 0 bis 255. Default: 10.
+#define MAX_BRIGHTNESS      Maximale Helligkeit der LEDs im Bereich von 0 bis 255. Default 255.
 #define NONE_TECHNICAL_ZERO Zeigt die Null ohne den diagonalen Strich.
-#define BUZZTIME_ALARM_1    Maximale Zeit in Sekunden, die Alarm 1 Laerm macht wenn er nicht manuell abgestellt wird.
-#define BUZZTIME_ALARM_2    Maximale Zeit in Sekunden, die Alarm 2 Laerm macht wenn er nicht manuell abgestellt wird.
-#define BUZZTIME_TIMER      Maximale Zeit in Sekunden, die der Timer Laerm macht wenn er nicht manuell abgestellt wird.
+#define BUZZER              Einen Buzzer verwenden.
+#define BUZZTIME_ALARM_1    Maximale Zeit in Sekunden, die Alarm 1 Laerm macht wenn nicht manuell abgestellt.
+#define BUZZTIME_ALARM_2    Maximale Zeit in Sekunden, die Alarm 2 Laerm macht wenn nicht manuell abgestellt.
+#define BUZZTIME_TIMER      Maximale Zeit in Sekunden, die der Timer Laerm macht wenn nicht manuell abgestellt.
 #define YAHOO_WEATHER       Ort fuer die Temperatur wie er auf der Yahoo-Wetter-Site eingegeben wird.
                             (Nur Buchstaben, ' ', und ',').
-
-Die Zeitzone in der sich die Uhr befindet. Wichtig fuer den UTC-Versatz und die Sommer-/Winterzeitumstellung:
-
-#define TIMEZONE_USMST      USMST Mountain Standard Time (USA) UTC-7
-#define TIMEZONE_USAZ       USAZ  Mountain Standard Time (USA) UTC-7 (no DST)
-#define TIMEZONE_USCST      USCST Central Standard Time (USA) UTC-6
-#define TIMEZONE_USEST      USEST Eastern Standard Time (USA) UTC-5
-#define TIMEZONE_GMT        GMT   Greenwich Mean Time UTC
-#define TIMEZONE_CET        CET   Central Europe Time UTC+1
-#define TIMEZONE_EST        EST   Eastern Europe Time UTC+2
-#define TIMEZONE_MSK        MSK   Moscow Time UTC+3 (no DST)
-
+#define LANG_*              Bezeichnung der Buttons auf der Web-Seite.
+#define TIMEZONE_*          Die Zeitzone in der sich die Uhr befindet. Wichtig fuer den UTC-Versatz und die
+                            Sommer-/Winterzeitumstellung.
 #define IR_REMOTE           Eine IR-Fernbedienung verwenden.
+#define IR_CODE_*           Jede Fernbedienung kann verwendet werden. Es werden 6 Tasten unterstuetzt.
+                            Um die Fernbedienung anzulernen "#define DEBUG" einschalten und einen Knopf auf der
+                            Fernbedienung druecken. Den in der seriellen Konsole angezeigten Code fuer die Taste
+                            dann in die Datei "Configuration.h" schreiben.
 #define IR_LETTER_OFF       Schaltet die LED hinter dem IR-Sensor dauerhaft ab. Das verbessert den IR-Empfang.
                             Hier das K vor Uhr.
 
-Jede Fernbedienung kann verwendet werden. Es werden 6 Tasten unterstuetzt.
-Um die Fernbedienung anzulernen "#define DEBUG" einschalten und einen Knopf auf der Fernbedienung druecken.
-Den in der seriellen Konsole angezeigten Code fuer die Taste dann in die Datei "Configuration.h" schreiben.
-
-#define IR_CODE_ONOFF   16769565
-#define IR_CODE_TIME    16753245
-#define IR_CODE_MODE    16736925
-#define IR_CODE_EXTMODE 16748655
-#define IR_CODE_PLUS    16754775
-#define IR_CODE_MINUS   16769055
-
-#define LED_LAYOUT_HORIZONTAL   Waagerecht und Eck-LEDs am Ende des Stripes. (Von vorne gesehen.)
+#define LED_LAYOUT_HORIZONTAL Waagerecht und Eck-LEDs am Ende des Stripes. (Von vorne gesehen.)
 
 111                 114                 112
 000 001 002 003 004 005 006 007 008 009 010
@@ -195,7 +182,7 @@ Den in der seriellen Konsole angezeigten Code fuer die Taste dann in die Datei "
 109 108 107 106 105 104 103 102 101 100 099
 110                                     113
 
-#define LED_LAYOUT_VERTICAL     Senkrecht und Eck-LEDs innerhalb des Stripes. (Von vorne gesehen.)
+#define LED_LAYOUT_VERTICAL   Senkrecht und Eck-LEDs innerhalb des Stripes. (Von vorne gesehen.)
 
 000                 114                 102
 001 021 022 041 042 061 062 081 082 101 103

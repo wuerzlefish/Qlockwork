@@ -8,6 +8,7 @@
 #define CONFIG_DEFAULT
 //#define CONFIG_QLOCKDEV
 //#define CONFIG_CLT2
+//#define CONFIG_QLOCKMIN
 
 #ifdef CONFIG_DEFAULT
 
@@ -24,13 +25,14 @@
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
 //#define NONE_TECHNICAL_ZERO
+#define BUZZER
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 60
 #define BUZZTIME_TIMER 30
 
-#define YAHOO_WEATHER "Berlin, BE, DE"
-//#define YAHOO_WEATHER "Zurich, ZH, CH"
-//#define YAHOO_WEATHER "Singapur, SG"
+#define YAHOO_LOCATION "Berlin, BE, DE"
+//#define YAHOO_LOCATION "Zurich, ZH, CH"
+//#define YAHOO_LOCATION "Singapur, SG"
 
 //#define TIMEZONE_IDLW  // IDLW  Internation Date Line West UTC-12
 //#define TIMEZONE_SST   // SST   Samoa Standard Time UTC-11
@@ -65,13 +67,13 @@
 //#define TIMEZONE_NZST  // NZST  New Zealand Standard Time UTC+12
 
 //#define IR_REMOTE
-//#define IR_LETTER_OFF
 #define IR_CODE_ONOFF   4001918335 // HX1838 Remote CH+
 #define IR_CODE_TIME    3810010651 // HX1838 Remote CH-
 #define IR_CODE_MODE    5316027    // HX1838 Remote CH
 #define IR_CODE_EXTMODE 3855596927 // HX1838 Remote EQ
 #define IR_CODE_PLUS    2747854299 // HX1838 Remote +
 #define IR_CODE_MINUS   4034314555 // HX1838 Remote -
+//#define IR_LETTER_OFF
 
 #define LED_LAYOUT_HORIZONTAL
 //#define LED_LAYOUT_VERTICAL
@@ -121,6 +123,25 @@
 //#define LED_DRIVER_FAST_WS2813
 //#define LED_DRIVER_FAST_WS2852
 
+#define LANG_ON "On"
+#define LANG_OFF "Off"
+#define LANG_TIME "Time"
+#define LANG_MODE "Mode"
+#define LANG_SETTINGS "Settings"
+#define LANG_PLUS "Plus"
+#define LANG_MINUS "Minus"
+#define LANG_TEMPERATURE "Temperature"
+#define LANG_EXT_TEMPERATURE "Ext. Temperature"
+//#define LANG_ON "Ein"
+//#define LANG_OFF "Aus"
+//#define LANG_TIME "Zeit"
+//#define LANG_MODE "Modus"
+//#define LANG_SETTINGS "Einstellungen"
+//#define LANG_PLUS "Plus"
+//#define LANG_MINUS "Minus"
+//#define LANG_TEMPERATURE "Temperatur"
+//#define LANG_EXT_TEMPERATURE "Aussentemperatur"
+
 //#define DEBUG
 //#define DEBUG_WEBSITE
 //#define DEBUG_MATRIX
@@ -139,11 +160,12 @@
 #define LDR
 #define LDR_HYSTERESIS 150
 #define MIN_BRIGHTNESS 10
-#define MAX_BRIGHTNESS 255
+#define MAX_BRIGHTNESS 25
+#define BUZZER
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 3
 #define BUZZTIME_TIMER 30
-#define YAHOO_WEATHER "Zurich, ZH, CH"
+#define YAHOO_LOCATION "Zurich, ZH, CH"
 #define TIMEZONE_CET
 #define IR_REMOTE
 #define IR_CODE_ONOFF   4001918335 // HX1838 Remote CH+
@@ -153,14 +175,23 @@
 #define IR_CODE_PLUS    2747854299 // HX1838 Remote +
 #define IR_CODE_MINUS   4034314555 // HX1838 Remote -
 #define LED_LAYOUT_HORIZONTAL
-#define LED_LIBRARY_FASTLED
-#define LED_DRIVER_FAST_NEOPIXEL
-//#define LED_LIBRARY_NEOPIXEL
-//#define LED_DRIVER_NEO_800KHZ_GRB
+//#define LED_LIBRARY_FASTLED
+//#define LED_DRIVER_FAST_NEOPIXEL
+#define LED_LIBRARY_NEOPIXEL
+#define LED_DRIVER_NEO_800KHZ_GRB
 //#define LED_LIBRARY_LPD8806RGBW
+#define LANG_ON "Ein"
+#define LANG_OFF "Aus"
+#define LANG_TIME "Zeit"
+#define LANG_MODE "Modus"
+#define LANG_SETTINGS "Einstellungen"
+#define LANG_PLUS "Plus"
+#define LANG_MINUS "Minus"
+#define LANG_TEMPERATURE "Temperatur"
+#define LANG_EXT_TEMPERATURE "Aussentemperatur"
 #define DEBUG
 #define DEBUG_WEBSITE
-//#define DEBUG_MATRIX
+#define DEBUG_MATRIX
 //#define DEBUG_FPS
 #endif // CONFIG_QLOCKDEV
 
@@ -175,25 +206,58 @@
 #define LDR_HYSTERESIS 30
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
+#define BUZZER
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 1
 #define BUZZTIME_TIMER 30
-#define YAHOO_WEATHER "Zurich, ZH, CH"
+#define YAHOO_LOCATION "Zurich, ZH, CH"
 #define TIMEZONE_CET
 #define IR_REMOTE
-#define IR_LETTER_OFF
 #define IR_CODE_ONOFF   4034314555 // CLT2 V1.1 Remote Power
 #define IR_CODE_TIME    2878444831 // CLT2 V1.1 Remote Time
 #define IR_CODE_MODE    1373912347 // CLT2 V1.1 Remote Region
 #define IR_CODE_EXTMODE 4287727287 // CLT2 V1.1 Remote Seconds
 #define IR_CODE_PLUS    3691091931 // CLT2 V1.1 Remote +
 #define IR_CODE_MINUS   4084712887 // CLT2 V1.1 Remote -
+#define IR_LETTER_OFF
 #define LED_LAYOUT_VERTICAL
 #define LED_LIBRARY_LPD8806RGBW
 #define DEBUG_WEBSITE
+#define LANG_ON "Ein"
+#define LANG_OFF "Aus"
+#define LANG_TIME "Zeit"
+#define LANG_MODE "Modus"
+#define LANG_SETTINGS "Einstellungen"
+#define LANG_PLUS "Plus"
+#define LANG_MINUS "Minus"
+#define LANG_TEMPERATURE "Temperatur"
+#define LANG_EXT_TEMPERATURE "Aussentemperatur"
 #endif // CONFIG_CLT2
 
-#define FIRMWARE_VERSION "qw20170606"
+#ifdef CONFIG_QLOCKMIN
+#define HOSTNAME "QLOCKMIN"
+#define WIFI_AP_TIMEOUT 180
+#define OTA_PASS "1234"
+#define NTP_SERVER "nostromo"
+#define MIN_BRIGHTNESS 10
+#define MAX_BRIGHTNESS 255
+#define YAHOO_LOCATION "Zurich, ZH, CH"
+#define TIMEZONE_CET
+#define LED_LAYOUT_HORIZONTAL
+#define LED_LIBRARY_NEOPIXEL
+#define LED_DRIVER_NEO_800KHZ_GRB
+#define LANG_ON "Ein"
+#define LANG_OFF "Aus"
+#define LANG_TIME "Zeit"
+#define LANG_MODE "Modus"
+#define LANG_SETTINGS "Einstellungen"
+#define LANG_PLUS "Plus"
+#define LANG_MINUS "Minus"
+#define LANG_TEMPERATURE "Temperatur"
+#define LANG_EXT_TEMPERATURE "Aussentemperatur"
+#endif // CONFIG_QLOCKMIN
+
+#define FIRMWARE_VERSION "qw20170611"
 #define SERIAL_SPEED 115200
 #define NUM_LEDS 115
 #define PIN_IR_RECEIVER D3
