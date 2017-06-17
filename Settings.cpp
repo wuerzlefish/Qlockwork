@@ -40,6 +40,14 @@ void Settings::setColor(uint8_t color) {
 	mySettings.color = color;
 }
 
+uint8_t Settings::getColorChange() {
+	return mySettings.colorChange;
+}
+
+void Settings::setColorChange(uint8_t colorChange) {
+	mySettings.colorChange = colorChange;
+}
+
 uint8_t Settings::getTransition() {
 	return mySettings.transition;
 }
@@ -112,15 +120,15 @@ void Settings::setDayOnTime(time_t dayOnTime) {
 	mySettings.dayOnTime = dayOnTime;
 }
 
-
 // set all defaults
 void Settings::resetToDefault() {
 	mySettings.magicNumber = SETTINGS_MAGIC_NUMBER;
 	mySettings.version = SETTINGS_VERSION;
 	mySettings.language = LANGUAGE_EN;
 	mySettings.useLdr = false;
-	mySettings.brightness = 128;
+	mySettings.brightness = MAX_BRIGHTNESS;
 	mySettings.color = WHITE;
+	mySettings.colorChange = COLORCHANGE_NO;
 	mySettings.transition = TRANSITION_FADE;
 	mySettings.timeout = 5;
 	mySettings.itIs = true;

@@ -51,45 +51,4 @@ const color_s defaultColors[] = {
 	{0xEE, 0x82, 0xEE}  // 36 violet
 };
 
-enum eColor : uint8_t {
-	WHITE,
-	RED,
-	GREEN,
-	BLUE,
-	CYAN,
-	MAGENTA,
-	YELLOW,
-	AMETHYST,
-	AQUA,
-	blueviolet,
-	brown,
-	burlywood,
-	cadetblue,
-	coral,
-	crimson,
-	forestgreen,
-	gold,
-	goldenrod,
-	greenyellow,
-	hotpink,
-	indianred,
-	indigo,
-	lawngreen,
-	maroon,
-	midnightblue,
-	orange,
-	orangered,
-	orchid,
-	palevioletred,
-	purple,
-	royalblue,
-	seagreen,
-	springgreen,
-	steelblue,
-	TEAL,
-	TURQUOISE,
-	VIOLET,
-	COLOR_COUNT
-};
-
 #endif

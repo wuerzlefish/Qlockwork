@@ -7,47 +7,57 @@
 
 #include <Arduino.h>
 #include <EEPROM.h>
-#include "Languages.h"
-#include "Colors.h"
+#include "Configuration.h"
+#include "Enums.h"
 
 #define SETTINGS_MAGIC_NUMBER 0x2A
-#define SETTINGS_VERSION 16
+#define SETTINGS_VERSION 18
 
 class Settings {
 
 public:
 	Settings();
-	enum eTransition : uint8_t {
-		TRANSITION_NORMAL,
-		TRANSITION_FADE,
-		TRANSITION_COUNT
-	};
+
 	uint8_t getLanguage();
 	void setLanguage(uint8_t language);
+
 	boolean getUseLdr();
 	void toggleUseLdr();
+
 	int16_t getBrightness();
 	void setBrightness(int16_t brightness);
+
 	uint8_t getColor();
 	void setColor(uint8_t color);
+
+	uint8_t getColorChange();
+	void setColorChange(uint8_t colorChange);
+
 	uint8_t getTransition();
-	void setTransition(uint8_t color);
+	void setTransition(uint8_t transition);
+
 	uint8_t getTimeout();
 	void setTimeout(uint8_t timeout);
+
 	boolean getItIs();
 	void toggleItIs();
+
 	boolean getAlarm1();
 	void toggleAlarm1();
 	time_t getAlarmTime1();
 	void setAlarmTime1(time_t alarmTime);
+
 	boolean getAlarm2();
 	void toggleAlarm2();
 	time_t getAlarmTime2();
 	void setAlarmTime2(time_t alarmTime);
+
 	time_t getNightOffTime();
 	void setNightOffTime(time_t nightOffTime);
+
 	time_t getDayOnTime();
 	void setDayOnTime(time_t dayOnTime);
+
 	void saveToEEPROM();
 
 private:
@@ -58,6 +68,7 @@ private:
 		boolean useLdr;
 		int16_t brightness;
 		uint8_t color;
+		uint8_t colorChange;
 		uint8_t transition;
 		uint8_t timeout;
 		boolean itIs;

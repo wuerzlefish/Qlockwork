@@ -1,5 +1,6 @@
 /******************************************************************************
    Configuration.h
+   See README.md for help.
 ******************************************************************************/
 
 #ifndef CONFIGURATION_H
@@ -155,7 +156,7 @@
 #define OTA_PASS "1234"
 #define NTP_SERVER "nostromo"
 #define RTC_BACKUP
-#define RTC_TEMP_OFFSET -0.25
+#define RTC_TEMP_OFFSET 0
 #define ESP_LED
 #define LDR
 #define LDR_HYSTERESIS 150
@@ -222,7 +223,6 @@
 #define IR_LETTER_OFF
 #define LED_LAYOUT_VERTICAL
 #define LED_LIBRARY_LPD8806RGBW
-#define DEBUG_WEBSITE
 #define LANG_ON "Ein"
 #define LANG_OFF "Aus"
 #define LANG_TIME "Zeit"
@@ -231,7 +231,7 @@
 #define LANG_PLUS "Plus"
 #define LANG_MINUS "Minus"
 #define LANG_TEMPERATURE "Temperatur"
-#define LANG_EXT_TEMPERATURE "Aussentemperatur"
+#define DEBUG_WEBSITE
 #endif // CONFIG_CLT2
 
 #ifdef CONFIG_QLOCKMIN
@@ -254,10 +254,10 @@
 #define LANG_PLUS "Plus"
 #define LANG_MINUS "Minus"
 #define LANG_TEMPERATURE "Temperatur"
-#define LANG_EXT_TEMPERATURE "Aussentemperatur"
+#define DEBUG_WEBSITE
 #endif // CONFIG_QLOCKMIN
 
-#define FIRMWARE_VERSION "qw20170611"
+#define FIRMWARE_VERSION "qw20170617"
 #define SERIAL_SPEED 115200
 #define NUM_LEDS 115
 #define PIN_IR_RECEIVER D3

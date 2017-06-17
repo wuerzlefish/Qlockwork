@@ -21,7 +21,7 @@ void Debug::debugScreenBuffer(uint16_t screenBuffer[]) {
 		{ 'S', 'I', 'E', 'B', 'E', 'N', 'Z', 'W', 'O', 'L', 'F', ' ' },
 		{ 'Z', 'E', 'H', 'N', 'E', 'U', 'N', 'K', 'U', 'H', 'R', ' ' }
 	};
-	Serial.println("\033[0;0H"); // set cursor to 0, 0 position
+	//Serial.println("\033[0;0H"); // set cursor to 0, 0 position
 	Serial.println(" -----------");
 	for (uint8_t y = 0; y <= 9; y++) {
 		Serial.print('|');

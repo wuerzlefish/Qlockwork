@@ -110,8 +110,8 @@ Titel MAIN:                      + oder - druecken um direkt in die naechste bzw
                                  wechseln.
 Autom. Helligkeitsregelung (LD): Ein (EN) / aus (DA)
 Helligkeitsregelung:             + oder - aendern die Helligkeit.
-Farbe (CO):                      0: Weiss, 1: Rot, 2: Gruen, 3: Blau usw. Wenn die Reihenfolge der Farben abweicht,
-                                 ist die Anordnung der RGB-LEDs im Streifen anders.
+Farbe (CO):                      0: Weiss, 1: Rot, 2: Gruen, 3: Blau usw. Wenn die Reihenfolge der Farben
+                                 abweicht, ist die Anordnung der RGB-LEDs im Streifen anders.
 Transition (TR):                 Normal (NO) / Fade (FD).
 Ruecksprungverzoegerung (FB nn): Wie lange soll es dauern, bis z.B. aus der Sekundenanzeige wieder zurueck in
                                  die Zeitanzeige gewechselt wird. (0: deaktiviert, default: 5)

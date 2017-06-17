@@ -6,7 +6,6 @@
 #define LEDDRIVER_LPD8806RGBW_H
 
 #include <LPD8806RGBW.h>
-#include <Arduino.h>
 #include "Colors.h"
 #include "Configuration.h"
 

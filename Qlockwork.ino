@@ -12,7 +12,6 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
-#include <IRremoteESP8266.h>
 #include <IRrecv.h>
 #include <RestClient.h>
 #include <TimeLib.h>
@@ -21,11 +20,11 @@ Eine Firmware der Selbstbau-QLOCKTWO.
 #include "Configuration.h"
 #include "Colors.h"
 #include "Debug.h"
+#include "Enums.h"
 #include "Languages.h"
 #include "LedDriver_FastLED.h"
 #include "LedDriver_NeoPixel.h"
 #include "LedDriver_LPD8806RGBW.h"
-#include "Modes.h"
 #include "Renderer.h"
 #include "Settings.h"
 #include "Timezones.h"
@@ -62,9 +61,9 @@ uint8_t lastFiveMinute = 0;
 time_t lastTime = 0;
 uint8_t testColumn = 0;
 uint8_t brightness = settings.getBrightness();
-uint8_t randomMinute;
-int8_t yahooTemp;
-uint8_t yahooCode;
+int8_t yahooTemp = 0;
+uint8_t yahooCode = 0;
+String yahooTitle = "";
 #ifdef BUZZER
 boolean timerSet = false;
 time_t timer = 0;
@@ -83,7 +82,6 @@ uint32_t lastBrightnessCheck = 0;
 #ifdef IR_REMOTE
 IRrecv irrecv(PIN_IR_RECEIVER);
 decode_results irDecodeResult;
-irparams_t irDecodeSave;
 #endif
 
 /******************************************************************************
@@ -96,16 +94,18 @@ void setup() {
 	while (!Serial);
 	DEBUG_PRINTLN();
 	DEBUG_PRINTLN("QLOCKWORK");
-	DEBUG_PRINTLN(String("Firmware: " + String(FIRMWARE_VERSION)));
-	DEBUG_PRINTLN(String("LED-Driver: " + ledDriver.getSignature()));
+	DEBUG_PRINTLN("Firmware: " + String(FIRMWARE_VERSION));
+	DEBUG_PRINTLN("LED-Driver: " + ledDriver.getSignature());
 	// init LDR, Buzzer and LED
 #ifdef BUZZER
 	DEBUG_PRINTLN("Setting up Buzzer.");
 	pinMode(PIN_BUZZER, OUTPUT);
 #endif
 #ifdef LDR
-	DEBUG_PRINTLN("Setting up LDR.");
+	DEBUG_PRINT("Setting up LDR. LDR is ");
+	if (settings.getUseLdr()) DEBUG_PRINTLN("enabled."); else DEBUG_PRINTLN("disabled.");
 	pinMode(PIN_LDR, INPUT);
+	randomSeed(analogRead(PIN_LDR));
 #endif
 #ifdef ESP_LED
 	DEBUG_PRINTLN("Setting up ESP LED.");
@@ -131,8 +131,8 @@ void setup() {
 	if (WiFi.status() != WL_CONNECTED) {
 		DEBUG_PRINTLN("Error connecting to WiFi. Shutting down WiFi.");
 		renderer.clearScreenBuffer(matrix);
-		renderer.setSmallText("ER", Renderer::TEXT_POS_TOP, matrix);
-		renderer.setSmallText("OR", Renderer::TEXT_POS_BOTTOM, matrix);
+		renderer.setSmallText("ER", TEXT_POS_TOP, matrix);
+		renderer.setSmallText("OR", TEXT_POS_BOTTOM, matrix);
 		writeScreenBuffer(matrix, RED, brightness);
 		WiFi.mode(WIFI_OFF);
 		digitalWrite(PIN_BUZZER, HIGH);
@@ -141,7 +141,7 @@ void setup() {
 	}
 	else {
 		renderer.clearScreenBuffer(matrix);
-		renderer.setSmallText("OK", Renderer::TEXT_POS_MIDDLE, matrix);
+		renderer.setSmallText("OK", TEXT_POS_MIDDLE, matrix);
 		writeScreenBuffer(matrix, GREEN, brightness);
 		for (uint8_t i = 0; i <= 2; i++) {
 			digitalWrite(PIN_BUZZER, HIGH);
@@ -163,11 +163,6 @@ void setup() {
 	DEBUG_PRINTLN("Starting IR-receiver.");
 	irrecv.enableIRIn();
 #endif
-	DEBUG_PRINT("Use LDR: ");
-	if (settings.getUseLdr()) DEBUG_PRINTLN("On"); else DEBUG_PRINTLN("Off");
-	randomSeed(analogRead(PIN_LDR));
-	randomMinute = random(1, 60);
-	DEBUG_PRINTLN("Random minute is: " + String(randomMinute));
 	// set timeprovider
 #ifdef RTC_BACKUP
 	if (WiFi.status() == WL_CONNECTED) {
@@ -212,44 +207,39 @@ void loop() {
 
 	if (day() != lastDay) {
 		lastDay = day();
+		screenBufferNeedsUpdate = true;
 		DEBUG_PRINTLN("Reached a new day.");
-		//if (settings.getColor() < maxColor) settings.setColor(settings.getColor() + 1);
-		//else settings.setColor(0);
+		if (settings.getColorChange() == COLORCHANGE_DAY) settings.setColor(random(0, COLORCHANGE_COUNT + 1));
 	}
 
 	// execute every hour
 
 	if (hour() != lastHour) {
 		lastHour = hour();
+		screenBufferNeedsUpdate = true;
 		DEBUG_PRINTLN("Reached a new hour.");
 		DEBUG_PRINT("Free RAM: ");
 		DEBUG_PRINTLN(system_get_free_heap_size());
+		if (settings.getColorChange() == COLORCHANGE_HOUR) settings.setColor(random(0, COLOR_COUNT + 1));
 	}
 
 	// execute every five minutes
 
 	if ((minute() / 5) != lastFiveMinute) {
 		lastFiveMinute = minute() / 5;
+		screenBufferNeedsUpdate = true;
 		DEBUG_PRINTLN("Reached new five minutes.");
+		if (settings.getColorChange() == COLORCHANGE_FIVE) settings.setColor(random(0, COLOR_COUNT + 1));
 	}
 
 	// execute every minute
 
 	if (minute() != lastMinute) {
 		lastMinute = minute();
+		screenBufferNeedsUpdate = true;
 #ifdef DEBUG
 		debug.debugTime("Time:", now());
 #endif
-		if ((minute() / float(randomMinute)) == 1.0) getYahooWeather(YAHOO_LOCATION);
-		// display needs update every minute
-		switch (mode) {
-		case STD_MODE_NORMAL:
-		case STD_MODE_EXT_TEMP:
-			screenBufferNeedsUpdate = true;
-			break;
-		default:
-			break;
-		}
 	}
 
 	// execute every second
@@ -265,9 +255,6 @@ void loop() {
 		// display needs update every second
 		switch (mode) {
 		case STD_MODE_SECONDS:
-#ifdef RTC_BACKUP
-		case STD_MODE_TEMP:
-#endif
 #ifdef BUZZER
 		case STD_MODE_SET_TIMER:
 		case STD_MODE_TIMER:
@@ -280,6 +267,7 @@ void loop() {
 		case EXT_MODE_LDR:
 #endif
 		case EXT_MODE_COLOR:
+		case EXT_MODE_COLORCHANGE:
 		case EXT_MODE_TRANSITION:
 		case EXT_MODE_TIMEOUT:
 		case EXT_MODE_LANGUAGE:
@@ -356,7 +344,7 @@ void loop() {
 	}
 #endif
 #ifdef IR_REMOTE
-	if (irrecv.decode(&irDecodeResult, &irDecodeSave)) {
+	if (irrecv.decode(&irDecodeResult)) {
 		DEBUG_PRINTLN("IR signal: " + String(uint32_t(irDecodeResult.value)));
 		remoteAction(irDecodeResult);
 		irrecv.resume();
@@ -376,8 +364,8 @@ void loop() {
 			break;
 		case STD_MODE_AMPM:
 			renderer.clearScreenBuffer(matrix);
-			if (isAM()) renderer.setSmallText("AM", Renderer::TEXT_POS_MIDDLE, matrix);
-			else renderer.setSmallText("PM", Renderer::TEXT_POS_MIDDLE, matrix);
+			if (isAM()) renderer.setSmallText("AM", TEXT_POS_MIDDLE, matrix);
+			else renderer.setSmallText("PM", TEXT_POS_MIDDLE, matrix);
 			break;
 		case STD_MODE_SECONDS:
 			renderer.clearScreenBuffer(matrix);
@@ -389,21 +377,21 @@ void loop() {
 			break;
 		case STD_MODE_WEEKDAY:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText(String(sWeekday[weekday()][0]) + String(sWeekday[weekday()][1]), Renderer::TEXT_POS_MIDDLE, matrix);
+			renderer.setSmallText(String(sWeekday[weekday()][0]) + String(sWeekday[weekday()][1]), TEXT_POS_MIDDLE, matrix);
 			break;
 		case STD_MODE_DATE:
 			renderer.clearScreenBuffer(matrix);
-			if (day() < 10) renderer.setSmallText(("0" + String(day())), Renderer::TEXT_POS_TOP, matrix);
-			else renderer.setSmallText(String(day()), Renderer::TEXT_POS_TOP, matrix);
-			if (month() < 10) renderer.setSmallText(("0" + String(month())), Renderer::TEXT_POS_BOTTOM, matrix);
-			else renderer.setSmallText(String(month()), Renderer::TEXT_POS_BOTTOM, matrix);
+			if (day() < 10) renderer.setSmallText(("0" + String(day())), TEXT_POS_TOP, matrix);
+			else renderer.setSmallText(String(day()), TEXT_POS_TOP, matrix);
+			if (month() < 10) renderer.setSmallText(("0" + String(month())), TEXT_POS_BOTTOM, matrix);
+			else renderer.setSmallText(String(month()), TEXT_POS_BOTTOM, matrix);
 			renderer.setPixelInScreenBuffer(5, 4, matrix);
 			renderer.setPixelInScreenBuffer(5, 9, matrix);
 			break;
 		case STD_MODE_TITLE_TEMP:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("TE", Renderer::TEXT_POS_TOP, matrix);
-			renderer.setSmallText("MP", Renderer::TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText("TE", TEXT_POS_TOP, matrix);
+			renderer.setSmallText("MP", TEXT_POS_BOTTOM, matrix);
 			break;
 #ifdef RTC_BACKUP
 		case STD_MODE_TEMP:
@@ -426,7 +414,7 @@ void loop() {
 				matrix[2] = 0b1110000010100000;
 				matrix[3] = 0b0000000011100000;
 			}
-			renderer.setSmallText(String(RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)), Renderer::TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText(String(RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)), TEXT_POS_BOTTOM, matrix);
 			DEBUG_PRINTLN(String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET)); // .0 to get float values for temp
 			break;
 #endif
@@ -440,37 +428,36 @@ void loop() {
 			if (yahooTemp < 0) {
 				matrix[2] = 0b1110000000000000;
 			}
-			renderer.setSmallText(String(yahooTemp), Renderer::TEXT_POS_BOTTOM, matrix);
-			DEBUG_PRINTLN(String(yahooTemp));
+			renderer.setSmallText(String(yahooTemp), TEXT_POS_BOTTOM, matrix);
 			break;
 #ifdef BUZZER
 		case STD_MODE_TITLE_ALARM:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("AL", Renderer::TEXT_POS_TOP, matrix);
-			renderer.setSmallText("RM", Renderer::TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText("AL", TEXT_POS_TOP, matrix);
+			renderer.setSmallText("RM", TEXT_POS_BOTTOM, matrix);
 			break;
 		case STD_MODE_SET_TIMER:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("TI", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("TI", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
-			else renderer.setSmallText(String(timerMinutes), Renderer::TEXT_POS_BOTTOM, matrix);
+			else renderer.setSmallText(String(timerMinutes), TEXT_POS_BOTTOM, matrix);
 			break;
 		case STD_MODE_TIMER:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("TI", Renderer::TEXT_POS_TOP, matrix);
-			renderer.setSmallText(String((timer - now() + 60) / 60), Renderer::TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText("TI", TEXT_POS_TOP, matrix);
+			renderer.setSmallText(String((timer - now() + 60) / 60), TEXT_POS_BOTTOM, matrix);
 			DEBUG_PRINTLN(String(timer - now()));
 			break;
 		case STD_MODE_ALARM_1:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("A1", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("A1", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else {
 				if (settings.getAlarm1()) {
-					renderer.setSmallText("EN", Renderer::TEXT_POS_BOTTOM, matrix);
+					renderer.setSmallText("EN", TEXT_POS_BOTTOM, matrix);
 					renderer.setAlarmLed(matrix);
 				}
-				else renderer.setSmallText("DA", Renderer::TEXT_POS_BOTTOM, matrix);
+				else renderer.setSmallText("DA", TEXT_POS_BOTTOM, matrix);
 			}
 			break;
 		case STD_MODE_SET_ALARM_1:
@@ -484,14 +471,14 @@ void loop() {
 			break;
 		case STD_MODE_ALARM_2:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("A2", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("A2", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else {
 				if (settings.getAlarm2()) {
-					renderer.setSmallText("EN", Renderer::TEXT_POS_BOTTOM, matrix);
+					renderer.setSmallText("EN", TEXT_POS_BOTTOM, matrix);
 					renderer.setAlarmLed(matrix);
 				}
-				else renderer.setSmallText("DA", Renderer::TEXT_POS_BOTTOM, matrix);
+				else renderer.setSmallText("DA", TEXT_POS_BOTTOM, matrix);
 			}
 			break;
 		case STD_MODE_SET_ALARM_2:
@@ -506,17 +493,17 @@ void loop() {
 #endif
 		case EXT_MODE_TITLE_MAIN:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("MA", Renderer::TEXT_POS_TOP, matrix);
-			renderer.setSmallText("IN", Renderer::TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText("MA", TEXT_POS_TOP, matrix);
+			renderer.setSmallText("IN", TEXT_POS_BOTTOM, matrix);
 			break;
 #ifdef LDR
 		case EXT_MODE_LDR:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("LD", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("LD", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else {
-				if (settings.getUseLdr()) renderer.setSmallText("EN", Renderer::TEXT_POS_BOTTOM, matrix);
-				else renderer.setSmallText("DA", Renderer::TEXT_POS_BOTTOM, matrix);
+				if (settings.getUseLdr()) renderer.setSmallText("EN", TEXT_POS_BOTTOM, matrix);
+				else renderer.setSmallText("DA", TEXT_POS_BOTTOM, matrix);
 			}
 			break;
 #endif
@@ -526,6 +513,17 @@ void loop() {
 				for (uint8_t y = 0; y <= x; y++) matrix[9 - y] |= 1 << (14 - x);
 			}
 			break;
+		case EXT_MODE_COLORCHANGE:
+			renderer.clearScreenBuffer(matrix);
+			renderer.setSmallText("CC", TEXT_POS_TOP, matrix);
+			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
+			else {
+				if (settings.getColorChange() == COLORCHANGE_NO) renderer.setSmallText("NO", TEXT_POS_BOTTOM, matrix);
+				if (settings.getColorChange() == COLORCHANGE_FIVE) renderer.setSmallText("FI", TEXT_POS_BOTTOM, matrix);
+				if (settings.getColorChange() == COLORCHANGE_HOUR) renderer.setSmallText("HR", TEXT_POS_BOTTOM, matrix);
+				if (settings.getColorChange() == COLORCHANGE_DAY) renderer.setSmallText("DY", TEXT_POS_BOTTOM, matrix);
+			}
+			break;
 		case EXT_MODE_COLOR:
 			renderer.clearScreenBuffer(matrix);
 			matrix[0] = 0b0000000000010000;
@@ -533,39 +531,39 @@ void loop() {
 			matrix[2] = 0b0000000000010000;
 			matrix[3] = 0b0000000000010000;
 			matrix[4] = 0b0000000000010000;
-			renderer.setSmallText("CO", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("CO", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
-			else renderer.setSmallText(String(settings.getColor()), Renderer::TEXT_POS_BOTTOM, matrix);
+			else renderer.setSmallText(String(settings.getColor()), TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_TRANSITION:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("TR", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("TR", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else {
-				if (settings.getTransition() == Settings::TRANSITION_NORMAL) renderer.setSmallText("NO", Renderer::TEXT_POS_BOTTOM, matrix);
-				if (settings.getTransition() == Settings::TRANSITION_FADE) renderer.setSmallText("FD", Renderer::TEXT_POS_BOTTOM, matrix);
+				if (settings.getTransition() == TRANSITION_NORMAL) renderer.setSmallText("NO",TEXT_POS_BOTTOM, matrix);
+				if (settings.getTransition() == TRANSITION_FADE) renderer.setSmallText("FD", TEXT_POS_BOTTOM, matrix);
 			}
 			break;
 		case EXT_MODE_TIMEOUT:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("FB", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("FB", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
-			else renderer.setSmallText(String(settings.getTimeout()), Renderer::TEXT_POS_BOTTOM, matrix);
+			else renderer.setSmallText(String(settings.getTimeout()), TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_LANGUAGE:
 			renderer.clearScreenBuffer(matrix);
 			if (second() % 2 == 0) {
-				if (sLanguage[settings.getLanguage()][3] == ' ') renderer.setSmallText(String(sLanguage[settings.getLanguage()][0]) + String(sLanguage[settings.getLanguage()][1]), Renderer::TEXT_POS_MIDDLE, matrix);
+				if (sLanguage[settings.getLanguage()][3] == ' ') renderer.setSmallText(String(sLanguage[settings.getLanguage()][0]) + String(sLanguage[settings.getLanguage()][1]), TEXT_POS_MIDDLE, matrix);
 				else {
-					renderer.setSmallText(String(sLanguage[settings.getLanguage()][0]) + String(sLanguage[settings.getLanguage()][1]), Renderer::TEXT_POS_TOP, matrix);
-					renderer.setSmallText(String(sLanguage[settings.getLanguage()][2]) + String(sLanguage[settings.getLanguage()][3]), Renderer::TEXT_POS_BOTTOM, matrix);
+					renderer.setSmallText(String(sLanguage[settings.getLanguage()][0]) + String(sLanguage[settings.getLanguage()][1]), TEXT_POS_TOP, matrix);
+					renderer.setSmallText(String(sLanguage[settings.getLanguage()][2]) + String(sLanguage[settings.getLanguage()][3]), TEXT_POS_BOTTOM, matrix);
 				}
 			}
 			break;
 		case EXT_MODE_TITLE_TIME:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("TI", Renderer::TEXT_POS_TOP, matrix);
-			renderer.setSmallText("ME", Renderer::TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText("TI", TEXT_POS_TOP, matrix);
+			renderer.setSmallText("ME", TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_TIMESET:
 			renderer.clearScreenBuffer(matrix);
@@ -578,35 +576,35 @@ void loop() {
 			break;
 		case EXT_MODE_IT_IS:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("IT", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("IT", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else {
-				if (settings.getItIs()) renderer.setSmallText("EN", Renderer::TEXT_POS_BOTTOM, matrix);
-				else renderer.setSmallText("DA", Renderer::TEXT_POS_BOTTOM, matrix);
+				if (settings.getItIs()) renderer.setSmallText("EN", TEXT_POS_BOTTOM, matrix);
+				else renderer.setSmallText("DA", TEXT_POS_BOTTOM, matrix);
 			}
 			break;
 		case EXT_MODE_DAYSET:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("DD", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("DD", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
-			else renderer.setSmallText(String(day()), Renderer::TEXT_POS_BOTTOM, matrix);
+			else renderer.setSmallText(String(day()), TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_MONTHSET:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("MM", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("MM", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
-			else renderer.setSmallText(String(month()), Renderer::TEXT_POS_BOTTOM, matrix);
+			else renderer.setSmallText(String(month()), TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_YEARSET:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("YY", Renderer::TEXT_POS_TOP, matrix);
+			renderer.setSmallText("YY", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
-			else renderer.setSmallText(String(year() % 100), Renderer::TEXT_POS_BOTTOM, matrix);
+			else renderer.setSmallText(String(year() % 100), TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_TEXT_NIGHTOFF:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("NT", Renderer::TEXT_POS_TOP, matrix);
-			renderer.setSmallText("OF", Renderer::TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText("NT", TEXT_POS_TOP, matrix);
+			renderer.setSmallText("OF", TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_NIGHTOFF:
 			renderer.clearScreenBuffer(matrix);
@@ -618,8 +616,8 @@ void loop() {
 			break;
 		case EXT_MODE_TEXT_DAYON:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("DY", Renderer::TEXT_POS_TOP, matrix);
-			renderer.setSmallText("ON", Renderer::TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText("DY", TEXT_POS_TOP, matrix);
+			renderer.setSmallText("ON", TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_DAYON:
 			renderer.clearScreenBuffer(matrix);
@@ -631,44 +629,44 @@ void loop() {
 			break;
 		case EXT_MODE_TITLE_IP:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("IP", Renderer::TEXT_POS_MIDDLE, matrix);
+			renderer.setSmallText("IP", TEXT_POS_MIDDLE, matrix);
 			break;
 		case EXT_MODE_IP_0:
 			renderer.clearScreenBuffer(matrix);
-			if (WiFi.localIP()[0] / 10 == 0) renderer.setSmallText(String(WiFi.localIP()[0] % 10), Renderer::TEXT_POS_MIDDLE, matrix);
+			if (WiFi.localIP()[0] / 10 == 0) renderer.setSmallText(String(WiFi.localIP()[0] % 10), TEXT_POS_MIDDLE, matrix);
 			else {
-				renderer.setSmallText(String(WiFi.localIP()[0] / 10), Renderer::TEXT_POS_TOP, matrix);
-				renderer.setSmallText(String(WiFi.localIP()[0] % 10), Renderer::TEXT_POS_BOTTOM, matrix);
+				renderer.setSmallText(String(WiFi.localIP()[0] / 10), TEXT_POS_TOP, matrix);
+				renderer.setSmallText(String(WiFi.localIP()[0] % 10), TEXT_POS_BOTTOM, matrix);
 			}
 			break;
 		case EXT_MODE_IP_1:
 			renderer.clearScreenBuffer(matrix);
-			if (WiFi.localIP()[1] / 10 == 0) renderer.setSmallText(String(WiFi.localIP()[1] % 10), Renderer::TEXT_POS_MIDDLE, matrix);
+			if (WiFi.localIP()[1] / 10 == 0) renderer.setSmallText(String(WiFi.localIP()[1] % 10), TEXT_POS_MIDDLE, matrix);
 			else {
-				renderer.setSmallText(String(WiFi.localIP()[1] / 10), Renderer::TEXT_POS_TOP, matrix);
-				renderer.setSmallText(String(WiFi.localIP()[1] % 10), Renderer::TEXT_POS_BOTTOM, matrix);
+				renderer.setSmallText(String(WiFi.localIP()[1] / 10), TEXT_POS_TOP, matrix);
+				renderer.setSmallText(String(WiFi.localIP()[1] % 10), TEXT_POS_BOTTOM, matrix);
 			}
 			break;
 		case EXT_MODE_IP_2:
 			renderer.clearScreenBuffer(matrix);
-			if (WiFi.localIP()[2] / 10 == 0) renderer.setSmallText(String(WiFi.localIP()[2] % 10), Renderer::TEXT_POS_MIDDLE, matrix);
+			if (WiFi.localIP()[2] / 10 == 0) renderer.setSmallText(String(WiFi.localIP()[2] % 10), TEXT_POS_MIDDLE, matrix);
 			else {
-				renderer.setSmallText(String(WiFi.localIP()[2] / 10), Renderer::TEXT_POS_TOP, matrix);
-				renderer.setSmallText(String(WiFi.localIP()[2] % 10), Renderer::TEXT_POS_BOTTOM, matrix);
+				renderer.setSmallText(String(WiFi.localIP()[2] / 10), TEXT_POS_TOP, matrix);
+				renderer.setSmallText(String(WiFi.localIP()[2] % 10), TEXT_POS_BOTTOM, matrix);
 			}
 			break;
 		case EXT_MODE_IP_3:
 			renderer.clearScreenBuffer(matrix);
-			if (WiFi.localIP()[3] / 10 == 0) renderer.setSmallText(String(WiFi.localIP()[3] % 10), Renderer::TEXT_POS_MIDDLE, matrix);
+			if (WiFi.localIP()[3] / 10 == 0) renderer.setSmallText(String(WiFi.localIP()[3] % 10), TEXT_POS_MIDDLE, matrix);
 			else {
-				renderer.setSmallText(String(WiFi.localIP()[3] / 10), Renderer::TEXT_POS_TOP, matrix);
-				renderer.setSmallText(String(WiFi.localIP()[3] % 10), Renderer::TEXT_POS_BOTTOM, matrix);
+				renderer.setSmallText(String(WiFi.localIP()[3] / 10), TEXT_POS_TOP, matrix);
+				renderer.setSmallText(String(WiFi.localIP()[3] % 10), TEXT_POS_BOTTOM, matrix);
 			}
 			break;
 		case EXT_MODE_TITLE_TEST:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText("TE", Renderer::TEXT_POS_TOP, matrix);
-			renderer.setSmallText("ST", Renderer::TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText("TE", TEXT_POS_TOP, matrix);
+			renderer.setSmallText("ST", TEXT_POS_BOTTOM, matrix);
 			break;
 		case EXT_MODE_TEST:
 			renderer.clearScreenBuffer(matrix);
@@ -693,8 +691,8 @@ void loop() {
 		switch (mode) {
 		case STD_MODE_NORMAL:
 		case STD_MODE_BLANK:
-			if (settings.getTransition() == Settings::TRANSITION_NORMAL) writeScreenBuffer(matrix, settings.getColor(), brightness);
-			if (settings.getTransition() == Settings::TRANSITION_FADE) writeScreenBufferFade(matrixOld, matrix, settings.getColor(), brightness);
+			if (settings.getTransition() == TRANSITION_NORMAL) writeScreenBuffer(matrix, settings.getColor(), brightness);
+			if (settings.getTransition() == TRANSITION_FADE) writeScreenBufferFade(matrixOld, matrix, settings.getColor(), brightness);
 			break;
 		default:
 			writeScreenBuffer(matrix, settings.getColor(), brightness);
@@ -728,6 +726,13 @@ void buttonModePressed() {
 	case EXT_MODE_COUNT:
 		setMode(STD_MODE_NORMAL);
 		break;
+	case STD_MODE_EXT_TEMP:
+		getYahooWeather(YAHOO_LOCATION);
+		fallBackCounter = settings.getTimeout();
+		break;
+	case EXT_MODE_COLOR:
+		if (settings.getColorChange()) setMode(mode++);
+		break;
 #ifdef BUZZER
 	case STD_MODE_SET_TIMER:
 		if (timerSet) setMode(mode++);
@@ -738,7 +743,7 @@ void buttonModePressed() {
 		fallBackCounter = 0;
 		break;
 	case STD_MODE_SET_ALARM_1:
-		if (!settings.getAlarm1()) setMode(STD_MODE_ALARM_2);
+		if (!settings.getAlarm1()) setMode(mode++);
 		break;
 	case STD_MODE_SET_ALARM_2:
 		if (!settings.getAlarm2()) setMode(STD_MODE_NORMAL);
@@ -759,7 +764,6 @@ void buttonModePressed() {
 #ifdef RTC_BACKUP
 	case STD_MODE_TEMP:
 #endif
-	case STD_MODE_EXT_TEMP:
 		fallBackCounter = settings.getTimeout();
 		break;
 	default:
@@ -783,21 +787,16 @@ void buttonSettingsPressed() {
 }
 
 /******************************************************************************
-"+" pressed
+"plus" pressed
 ******************************************************************************/
 
 void buttonPlusPressed() {
-	DEBUG_PRINTLN("+ pressed.");
+	DEBUG_PRINTLN("Plus pressed.");
 	screenBufferNeedsUpdate = true;
 	switch (mode) {
 	case STD_MODE_NORMAL:
 		setMode(STD_MODE_TITLE_TEMP);
 		break;
-#ifndef BUZZER
-	case STD_MODE_TITLE_TEMP:
-		setMode(STD_MODE_NORMAL);
-		break;
-#endif
 #ifdef BUZZER
 	case STD_MODE_TITLE_TEMP:
 		setMode(STD_MODE_TITLE_ALARM);
@@ -839,7 +838,8 @@ void buttonPlusPressed() {
 #ifdef LDR
 	case EXT_MODE_LDR:
 		settings.toggleUseLdr();
-		lastLdrValue = 0;
+		if (settings.getUseLdr()) lastLdrValue = 0;
+		else brightness = constrain(settings.getBrightness(), MIN_BRIGHTNESS, MAX_BRIGHTNESS);
 		break;
 #endif
 	case EXT_MODE_BRIGHTNESS:
@@ -848,19 +848,23 @@ void buttonPlusPressed() {
 		writeScreenBuffer(matrix, settings.getColor(), brightness);
 		DEBUG_PRINTLN(settings.getBrightness());
 		break;
+	case EXT_MODE_COLORCHANGE:
+		if (settings.getColorChange() < COLORCHANGE_COUNT) settings.setColorChange(settings.getColorChange() + 1);
+		else settings.setColorChange(0);
+		break;
 	case EXT_MODE_COLOR:
-		if (settings.getColor() < COLOR_COUNT - 1) settings.setColor(settings.getColor() + 1);
+		if (settings.getColor() < COLOR_COUNT) settings.setColor(settings.getColor() + 1);
 		else settings.setColor(0);
 		break;
 	case EXT_MODE_TRANSITION:
-		if (settings.getTransition() < Settings::TRANSITION_COUNT - 1) settings.setTransition(settings.getTransition() + 1);
+		if (settings.getTransition() < TRANSITION_COUNT) settings.setTransition(settings.getTransition() + 1);
 		else settings.setTransition(0);
 		break;
 	case EXT_MODE_TIMEOUT:
 		if (settings.getTimeout() < 99) settings.setTimeout(settings.getTimeout() + 1);
 		break;
 	case EXT_MODE_LANGUAGE:
-		if (settings.getLanguage() < LANGUAGE_COUNT - 1) settings.setLanguage(settings.getLanguage() + 1);
+		if (settings.getLanguage() < LANGUAGE_COUNT) settings.setLanguage(settings.getLanguage() + 1);
 		else settings.setLanguage(0);
 		break;
 	case EXT_MODE_TITLE_TIME:
@@ -908,21 +912,16 @@ void buttonPlusPressed() {
 }
 
 /******************************************************************************
-"-" pressed
+"minus" pressed
 ******************************************************************************/
 
 void buttonMinusPressed() {
-	DEBUG_PRINTLN("- pressed.");
+	DEBUG_PRINTLN("Minus pressed.");
 	screenBufferNeedsUpdate = true;
 	switch (mode) {
 	case STD_MODE_TITLE_TEMP:
 		setMode(STD_MODE_NORMAL);
 		break;
-#ifndef BUZZER
-	case STD_MODE_NORMAL:
-		setMode(STD_MODE_TITLE_TEMP);
-		break;
-#endif
 #ifdef BUZZER
 	case STD_MODE_TITLE_ALARM:
 		setMode(STD_MODE_TITLE_TEMP);
@@ -969,7 +968,8 @@ void buttonMinusPressed() {
 #ifdef LDR
 	case EXT_MODE_LDR:
 		settings.toggleUseLdr();
-		lastLdrValue = 0;
+		if (settings.getUseLdr()) lastLdrValue = 0;
+		else brightness = constrain(settings.getBrightness(), MIN_BRIGHTNESS, MAX_BRIGHTNESS);
 		break;
 #endif
 	case EXT_MODE_BRIGHTNESS:
@@ -978,20 +978,24 @@ void buttonMinusPressed() {
 		writeScreenBuffer(matrix, settings.getColor(), brightness);
 		DEBUG_PRINTLN(settings.getBrightness());
 		break;
+	case EXT_MODE_COLORCHANGE:
+		if (settings.getColorChange() > 0) settings.setColorChange(settings.getColorChange() - 1);
+		else settings.setColorChange(COLORCHANGE_COUNT);
+		break;
 	case EXT_MODE_COLOR:
 		if (settings.getColor() > 0) settings.setColor(settings.getColor() - 1);
-		else settings.setColor(COLOR_COUNT - 1);
+		else settings.setColor(COLOR_COUNT);
 		break;
 	case EXT_MODE_TRANSITION:
 		if (settings.getTransition() > 0) settings.setTransition(settings.getTransition() - 1);
-		else settings.setTransition(Settings::TRANSITION_COUNT - 1);
+		else settings.setTransition(TRANSITION_COUNT);
 		break;
 	case EXT_MODE_TIMEOUT:
 		if (settings.getTimeout() > 0) settings.setTimeout(settings.getTimeout() - 1);
 		break;
 	case EXT_MODE_LANGUAGE:
 		if (settings.getLanguage() > 0) settings.setLanguage(settings.getLanguage() - 1);
-		else settings.setLanguage(LANGUAGE_COUNT - 1);
+		else settings.setLanguage(LANGUAGE_COUNT);
 		break;
 	case EXT_MODE_TITLE_TIME:
 		setMode(EXT_MODE_TITLE_MAIN);
@@ -1045,11 +1049,18 @@ void buttonTimePressed() {
 	DEBUG_PRINTLN("Time pressed.");
 	screenBufferNeedsUpdate = true;
 #ifdef BUZZER
+	// turn off alarm
 	if (alarmOn) {
 		alarmOn = false;
 		digitalWrite(PIN_BUZZER, LOW);
+		return;
 	}
 #endif
+	// turn off nightmode
+	if (mode == STD_MODE_BLANK) {
+		setMode(STD_MODE_NORMAL);
+		return;
+	}
 #ifdef RTC_BACKUP
 	RTC.set(now());
 #endif
@@ -1114,6 +1125,8 @@ void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[
 			if (bitRead(screenBufferOld[y], 15 - x)) brightnessBuffer[y][x] = brightness;
 		}
 	}
+	//uint32_t beginFade = millis();
+	//while (millis() - beginFade < 500) {
 	for (uint8_t i = 0; i < brightness; i++) {
 		for (uint8_t y = 0; y <= 9; y++) {
 			for (uint8_t x = 0; x <= 11; x++) {
@@ -1125,7 +1138,7 @@ void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[
 		for (uint8_t y = 0; y <= 4; y++) ledDriver.setPixel(110 + y, color, brightnessBuffer[y][11]);
 		esp8266WebServer.handleClient();
 		ledDriver.show();
-		//delay(3);
+		delay((255 - brightness) / 7);
 	}
 }
 
@@ -1138,7 +1151,7 @@ void setMode(Mode newMode) {
 	DEBUG_PRINT("Mode: ");
 	DEBUG_PRINTLN(newMode);
 	screenBufferNeedsUpdate = true;
-	lastMode = mode;
+	if (newMode != mode) lastMode = mode;
 	mode = newMode;
 }
 
@@ -1172,38 +1185,43 @@ time_t getRtcTime() {
 weather
 ******************************************************************************/
 
-// complete result for Zuerich
-// https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20weather.forecast%20where%20woeid%20in%20(select%20woeid%20from%20geo.places(1)%20where%20text%3D%22zurich%2C%20ch%22)%20and%20u=%27c%27&format=json
-
 void getYahooWeather(String yahooLocation) {
 	if (WiFi.status() != WL_CONNECTED) {
 		DEBUG_PRINTLN("WiFi not connected. :( Can not get weather.");
 		return;
 	}
+	esp8266WebServer.handleClient();
 	DEBUG_PRINTLN("Sending REST-request for weather.");
 	WiFiClient	wifiClient;
 	char server[] = "query.yahooapis.com";
 	RestClient restClient = RestClient(wifiClient, server, 80);
 	String sqlQuery = "select item.title, item.condition.temp, item.condition.code ";
-	sqlQuery += "from weather.forecast where woeid in (select woeid from geo.places(1) where text=%22" + yahooLocation + "%22) and u=%27c%27";
+	sqlQuery += "from weather.forecast where woeid in ";
+	sqlQuery += "(select woeid from geo.places(1) where text=%22" + yahooLocation + "%22) ";
+	sqlQuery += "and u=%27c%27";
 	sqlQuery.replace(" ", "%20");
 	sqlQuery.replace(",", "%2C");
 	restClient.get("query.yahooapis.com/v1/public/yql?q=" + sqlQuery + "&format=json");
 	String response = restClient.readResponse();
+	if (response.length() >= 2048) {
+		DEBUG_PRINTLN("Getting weather failed.");
+		return;
+	}
 	response = response.substring(response.indexOf('{'), response.lastIndexOf('}' + 1));
 	//DEBUG_PRINTLN("REST-response: " + response);
-	DynamicJsonBuffer jsonBuffer;
+	//DynamicJsonBuffer jsonBuffer;
+	StaticJsonBuffer<2048> jsonBuffer;
 	JsonObject &responseJson = jsonBuffer.parseObject(response);
 	if (!responseJson.success()) {
 		DEBUG_PRINTLN("Parsing JSON failed.");
 		return;
 	}
 	else DEBUG_PRINTLN("Parsing JSON succeeded.");
-	String yahooTitle = responseJson["query"]["results"]["channel"]["item"]["title"];
+	yahooTitle = responseJson["query"]["results"]["channel"]["item"]["title"].as<String>();
 	DEBUG_PRINTLN(yahooTitle);
-	yahooTemp = responseJson["query"]["results"]["channel"]["item"]["condition"]["temp"];
+	yahooTemp = responseJson["query"]["results"]["channel"]["item"]["condition"]["temp"].as<int8_t>();
 	DEBUG_PRINTLN("External temperature is: " + String(yahooTemp));
-	yahooCode = responseJson["query"]["results"]["channel"]["item"]["condition"]["code"];
+	yahooCode = responseJson["query"]["results"]["channel"]["item"]["condition"]["code"].as<uint8_t>();
 	DEBUG_PRINTLN("Condition code is: " + String(yahooCode));
 }
 
@@ -1220,6 +1238,7 @@ time_t getNtpTime() {
 		return now();
 #endif
 	}
+	esp8266WebServer.handleClient();
 	DEBUG_PRINTLN("Sending NTP-request for time.");
 	uint8_t packetBuffer[49] = { };
 	packetBuffer[0] = 0xE3;
@@ -1245,7 +1264,7 @@ time_t getNtpTime() {
 			uint32_t ntpTime = (packetBuffer[40] << 24) + (packetBuffer[41] << 16) + (packetBuffer[42] << 8) + packetBuffer[43];
 			ntpTime -= 2208988800; // NTP time is seconds from 1900, we need from 1970
 #ifdef DEBUG
-			debug.debugTime("NTP-response: (GMT) ", ntpTime);
+			debug.debugTime("NTP-response: (UTC)", ntpTime);
 #endif
 #ifdef RTC_BACKUP
 			DEBUG_PRINTLN("*** RTC set from NTP. ***");
@@ -1316,8 +1335,6 @@ void handleRoot() {
 	message += String(LANG_TEMPERATURE) + ": " + String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) + "&#176;C / " + String((RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "&#176;F";
 	message += "<br>";
 #endif
-	message += String(LANG_EXT_TEMPERATURE) + ": " + String(yahooTemp) + "&#176;C / " + String(yahooTemp * 9 / 5 + 32) + "&#176;F";
-	message += "<br>";
 	message += "<font size=2>";
 	message += "Firmware: " + String(FIRMWARE_VERSION);
 #ifdef DEBUG_WEBSITE
@@ -1325,12 +1342,14 @@ void handleRoot() {
 	message += "LED-Driver: " + ledDriver.getSignature();
 	message += "<br>";
 	message += "Free RAM: " + String(system_get_free_heap_size()) + " bytes";
+	message += "<br>";
+	message += "Weather for: " + yahooTitle.substring(yahooTitle.indexOf(" for ") + 5, yahooTitle.indexOf(" at "));
 #ifdef LDR
 	message += "<br>";
-	message += "Use LDR: ";
-	if (settings.getUseLdr()) message += "On"; else message += "Off";
-	message += "<br>";
 	message += "Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")";
+	message += "<br>";
+	message += "LDR: ";
+	if (settings.getUseLdr()) message += "enabled"; else message += "disabled";
 #endif
 #endif
 	message += "</font>";

@@ -7,7 +7,6 @@
 
 #define FASTLED_ESP8266_RAW_PIN_ORDER
 #include <FastLED.h>
-#include <Arduino.h>
 #include "Colors.h"
 #include "Configuration.h"
 

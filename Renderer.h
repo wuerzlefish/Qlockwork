@@ -6,19 +6,15 @@
 #define RENDERER_H
 
 #include <Arduino.h>
-#include "Words.h"
+#include "Enums.h"
 #include "Languages.h"
 #include "Letters.h"
 #include "Numbers.h"
+#include "Words.h"
 
 class Renderer {
 
 public:
-	enum eTextPos : uint8_t {
-		TEXT_POS_TOP,
-		TEXT_POS_MIDDLE = 2,
-		TEXT_POS_BOTTOM = 5
-	};
 	Renderer();
 	void setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t matrix[]);
 	void setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_t matrix[]);

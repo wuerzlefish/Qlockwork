@@ -6,7 +6,6 @@
 #define LEDDRIVER_NEOPIXEL_H
 
 #include <Adafruit_NeoPixel.h>
-#include <Arduino.h>
 #include "Colors.h"
 #include "Configuration.h"
 
