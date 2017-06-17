@@ -39,6 +39,7 @@ Alarm 2.
 ### Extended modes
 ```
 Brightnesscontrol.
+Colorchange.
 Color.
 Transition.
 Fallbacktime.
@@ -110,6 +111,8 @@ Titel MAIN:                      + oder - druecken um direkt in die naechste bzw
                                  wechseln.
 Autom. Helligkeitsregelung (LD): Ein (EN) / aus (DA)
 Helligkeitsregelung:             + oder - aendern die Helligkeit.
+Farbwechsel (CC):                Setzt eine zufaellige Farbe je nach Intervall.
+                                 Keiner (NO), alle 5 Minuten (FI), jede Stunde (HR), jeden Tag (DY).
 Farbe (CO):                      0: Weiss, 1: Rot, 2: Gruen, 3: Blau usw. Wenn die Reihenfolge der Farben
                                  abweicht, ist die Anordnung der RGB-LEDs im Streifen anders.
 Transition (TR):                 Normal (NO) / Fade (FD).
