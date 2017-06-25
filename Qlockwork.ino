@@ -59,11 +59,13 @@ uint8_t lastHour = 0;
 uint8_t lastMinute = 0;
 uint8_t lastFiveMinute = 0;
 time_t lastTime = 0;
+uint8_t randomHour;
 uint8_t testColumn = 0;
 uint8_t brightness = settings.getBrightness();
-int8_t yahooTemp = 0;
-uint8_t yahooCode = 0;
 String yahooTitle = "";
+int8_t yahooTemp = 0;
+uint8_t yahooHumidity = 0;
+uint8_t yahooCode = 0;
 #ifdef BUZZER
 boolean timerSet = false;
 time_t timer = 0;
@@ -112,36 +114,36 @@ void setup() {
 	pinMode(PIN_LED, OUTPUT);
 	digitalWrite(PIN_LED, HIGH);
 #endif
+#ifdef SELFTEST
+	renderer.setAllScreenBuffer(matrix);
+	writeScreenBuffer(matrix, WHITE, constrain(120, 0, MAX_BRIGHTNESS)); // to many amps at 100% brightness
+	delay(2000);
+	writeScreenBuffer(matrix, RED, MAX_BRIGHTNESS);
+	delay(2000);
+	writeScreenBuffer(matrix, GREEN, MAX_BRIGHTNESS);
+	delay(2000);
+	writeScreenBuffer(matrix, BLUE, MAX_BRIGHTNESS);
+	delay(2000);
+#endif
 	// init WiFi and services
-	matrix[0] = 0b0000000000010000;
-	matrix[1] = 0b0000111000010000;
-	matrix[2] = 0b0011111110010000;
-	matrix[3] = 0b1111111111110000;
-	matrix[4] = 0b0111111111000000;
-	matrix[5] = 0b0011111110000000;
-	matrix[6] = 0b0001111100000000;
-	matrix[7] = 0b0000111000000000;
-	matrix[8] = 0b0000010000000000;
-	matrix[9] = 0b0000000000000000;
+	renderer.clearScreenBuffer(matrix);
+	renderer.setSmallText("WI", TEXT_POS_TOP, matrix);
+	renderer.setSmallText("FI", TEXT_POS_BOTTOM, matrix);
 	writeScreenBuffer(matrix, WHITE, brightness);
 	WiFiManager wifiManager;
 	//wifiManager.resetSettings();
 	wifiManager.setTimeout(WIFI_AP_TIMEOUT);
 	wifiManager.autoConnect(HOSTNAME);
 	if (WiFi.status() != WL_CONNECTED) {
-		DEBUG_PRINTLN("Error connecting to WiFi. Shutting down WiFi.");
-		renderer.clearScreenBuffer(matrix);
-		renderer.setSmallText("ER", TEXT_POS_TOP, matrix);
-		renderer.setSmallText("OR", TEXT_POS_BOTTOM, matrix);
-		writeScreenBuffer(matrix, RED, brightness);
+		DEBUG_PRINTLN("WiFi not connected. Shutting down WiFi.");
 		WiFi.mode(WIFI_OFF);
+		writeScreenBuffer(matrix, RED, brightness);
 		digitalWrite(PIN_BUZZER, HIGH);
 		delay(1500);
 		digitalWrite(PIN_BUZZER, LOW);
+		delay(2000);
 	}
 	else {
-		renderer.clearScreenBuffer(matrix);
-		renderer.setSmallText("OK", TEXT_POS_MIDDLE, matrix);
 		writeScreenBuffer(matrix, GREEN, brightness);
 		for (uint8_t i = 0; i <= 2; i++) {
 			digitalWrite(PIN_BUZZER, HIGH);
@@ -149,6 +151,7 @@ void setup() {
 			digitalWrite(PIN_BUZZER, LOW);
 			delay(100);
 		}
+		delay(1000);
 	}
 	renderer.clearScreenBuffer(matrix);
 	DEBUG_PRINTLN("Starting mDNS responder.");
@@ -166,31 +169,32 @@ void setup() {
 	// set timeprovider
 #ifdef RTC_BACKUP
 	if (WiFi.status() == WL_CONNECTED) {
-		DEBUG_PRINTLN("Setting ESP from NTP with RTC backup.");
+		DEBUG_PRINTLN("ESP is set from NTP with RTC backup.");
 		setSyncProvider(getNtpTime);
 		setSyncInterval(3600);
 	}
 	else {
-		DEBUG_PRINTLN("Setting ESP from RTC.");
+		DEBUG_PRINTLN("ESP is set from RTC.");
 		setSyncProvider(getRtcTime);
 		setSyncInterval(3600);
 	}
 #else
 	if (WiFi.status() == WL_CONNECTED) {
-		DEBUG_PRINTLN("Setting ESP from NTP.");
+		DEBUG_PRINTLN("ESP is set from NTP.");
 		setSyncProvider(getNtpTime);
 		setSyncInterval(3600);
 	}
-	else DEBUG_PRINTLN("No provider for setting the time found.");
+	else DEBUG_PRINTLN("Setting time failed. No provider found.");
 #endif
 	lastDay = day();
 	lastHour = hour();
 	lastFiveMinute = minute() / 5;
 	lastMinute = minute();
 	lastTime = now();
+	randomHour = random(0, 24);
+	DEBUG_PRINTLN("Random hour is: " + String(randomHour));
 	getYahooWeather(YAHOO_LOCATION);
-	DEBUG_PRINT("Free RAM: ");
-	DEBUG_PRINTLN(system_get_free_heap_size());
+	DEBUG_PRINTLN("Free RAM: " + String(system_get_free_heap_size()));
 }
 
 /******************************************************************************
@@ -218,9 +222,11 @@ void loop() {
 		lastHour = hour();
 		screenBufferNeedsUpdate = true;
 		DEBUG_PRINTLN("Reached a new hour.");
-		DEBUG_PRINT("Free RAM: ");
-		DEBUG_PRINTLN(system_get_free_heap_size());
+		DEBUG_PRINTLN("Free RAM: " + String(system_get_free_heap_size()));
 		if (settings.getColorChange() == COLORCHANGE_HOUR) settings.setColor(random(0, COLOR_COUNT + 1));
+#ifdef POPULARITY_CONTEST
+		if ((hour() / float(randomHour)) == 1.0) popularityContest();
+#endif
 	}
 
 	// execute every five minutes
@@ -278,7 +284,7 @@ void loop() {
 		case EXT_MODE_YEARSET:
 		case EXT_MODE_NIGHTOFF:
 		case EXT_MODE_DAYON:
-		case EXT_MODE_TEST:
+		case EXT_MODE_TEST_BAR:
 			screenBufferNeedsUpdate = true;
 			break;
 		default:
@@ -540,7 +546,7 @@ void loop() {
 			renderer.setSmallText("TR", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0) for (uint8_t i = 5; i <= 9; i++) matrix[i] = 0;
 			else {
-				if (settings.getTransition() == TRANSITION_NORMAL) renderer.setSmallText("NO",TEXT_POS_BOTTOM, matrix);
+				if (settings.getTransition() == TRANSITION_NORMAL) renderer.setSmallText("NO", TEXT_POS_BOTTOM, matrix);
 				if (settings.getTransition() == TRANSITION_FADE) renderer.setSmallText("FD", TEXT_POS_BOTTOM, matrix);
 			}
 			break;
@@ -668,12 +674,15 @@ void loop() {
 			renderer.setSmallText("TE", TEXT_POS_TOP, matrix);
 			renderer.setSmallText("ST", TEXT_POS_BOTTOM, matrix);
 			break;
-		case EXT_MODE_TEST:
+		case EXT_MODE_TEST_BAR:
 			renderer.clearScreenBuffer(matrix);
 			if (testColumn == 10) testColumn = 0;
 			matrix[testColumn] = 0b1111111111110000;
 			testColumn++;
 			break;
+		//case EXT_MODE_TEST_ALL:
+		//	renderer.setAllScreenBuffer(matrix);
+		//	break;
 		case STD_MODE_BLANK:
 			renderer.clearScreenBuffer(matrix);
 			break;
@@ -754,7 +763,7 @@ void buttonModePressed() {
 		if (settings.getUseLdr()) setMode(mode++);
 		break;
 #endif
-	case EXT_MODE_TEST:
+	case EXT_MODE_TEST_BAR:
 		testColumn = 0;
 		return;
 	case STD_MODE_AMPM:
@@ -1151,7 +1160,7 @@ void setMode(Mode newMode) {
 	DEBUG_PRINT("Mode: ");
 	DEBUG_PRINTLN(newMode);
 	screenBufferNeedsUpdate = true;
-	if (newMode != mode) lastMode = mode;
+	lastMode = mode;
 	mode = newMode;
 }
 
@@ -1182,20 +1191,33 @@ time_t getRtcTime() {
 #endif
 
 /******************************************************************************
+popularity-contest
+******************************************************************************/
+
+void popularityContest() {
+	if (WiFi.status() != WL_CONNECTED) return;
+	char server[] = "tmw-it.ch";
+	WiFiClient wifiClient;
+	RestClient restClient = RestClient(wifiClient, server, 80);
+	restClient.get("/qlockwork/popularity_contest.html");
+	DEBUG_PRINTLN("Popularity-contest: " + restClient.readResponse());
+}
+
+/******************************************************************************
 weather
 ******************************************************************************/
 
 void getYahooWeather(String yahooLocation) {
 	if (WiFi.status() != WL_CONNECTED) {
-		DEBUG_PRINTLN("WiFi not connected. :( Can not get weather.");
+		DEBUG_PRINTLN("Sending REST-request for weather failed. No WiFi.");
 		return;
 	}
 	esp8266WebServer.handleClient();
 	DEBUG_PRINTLN("Sending REST-request for weather.");
-	WiFiClient	wifiClient;
 	char server[] = "query.yahooapis.com";
+	WiFiClient wifiClient;
 	RestClient restClient = RestClient(wifiClient, server, 80);
-	String sqlQuery = "select item.title, item.condition.temp, item.condition.code ";
+	String sqlQuery = "select atmosphere.humidity, item.title, item.condition.temp, item.condition.code ";
 	sqlQuery += "from weather.forecast where woeid in ";
 	sqlQuery += "(select woeid from geo.places(1) where text=%22" + yahooLocation + "%22) ";
 	sqlQuery += "and u=%27c%27";
@@ -1203,14 +1225,13 @@ void getYahooWeather(String yahooLocation) {
 	sqlQuery.replace(",", "%2C");
 	restClient.get("query.yahooapis.com/v1/public/yql?q=" + sqlQuery + "&format=json");
 	String response = restClient.readResponse();
-	if (response.length() >= 2048) {
+	if (response.length() > 1024) {
 		DEBUG_PRINTLN("Getting weather failed.");
 		return;
 	}
 	response = response.substring(response.indexOf('{'), response.lastIndexOf('}' + 1));
 	//DEBUG_PRINTLN("REST-response: " + response);
-	//DynamicJsonBuffer jsonBuffer;
-	StaticJsonBuffer<2048> jsonBuffer;
+	DynamicJsonBuffer jsonBuffer;
 	JsonObject &responseJson = jsonBuffer.parseObject(response);
 	if (!responseJson.success()) {
 		DEBUG_PRINTLN("Parsing JSON failed.");
@@ -1220,7 +1241,9 @@ void getYahooWeather(String yahooLocation) {
 	yahooTitle = responseJson["query"]["results"]["channel"]["item"]["title"].as<String>();
 	DEBUG_PRINTLN(yahooTitle);
 	yahooTemp = responseJson["query"]["results"]["channel"]["item"]["condition"]["temp"].as<int8_t>();
-	DEBUG_PRINTLN("External temperature is: " + String(yahooTemp));
+	DEBUG_PRINTLN("Temperature is: " + String(yahooTemp));
+	yahooHumidity = responseJson["query"]["results"]["channel"]["atmosphere"]["humidity"].as<uint8_t>();
+	DEBUG_PRINTLN("Humidity is: " + String(yahooHumidity));
 	yahooCode = responseJson["query"]["results"]["channel"]["item"]["condition"]["code"].as<uint8_t>();
 	DEBUG_PRINTLN("Condition code is: " + String(yahooCode));
 }
@@ -1231,7 +1254,7 @@ ntp
 
 time_t getNtpTime() {
 	if (WiFi.status() != WL_CONNECTED) {
-		DEBUG_PRINTLN("WiFi not connected. :( Can not get NTP time.");
+		DEBUG_PRINTLN("Sending NTP-request failed. No WiFi.");
 #ifdef RTC_BACKUP
 		return getRtcTime();
 #else
@@ -1239,7 +1262,7 @@ time_t getNtpTime() {
 #endif
 	}
 	esp8266WebServer.handleClient();
-	DEBUG_PRINTLN("Sending NTP-request for time.");
+	DEBUG_PRINTLN("Sending NTP-request to \"" + String(NTP_SERVER) + "\".");
 	uint8_t packetBuffer[49] = { };
 	packetBuffer[0] = 0xE3;
 	packetBuffer[1] = 0x00;
@@ -1274,7 +1297,7 @@ time_t getNtpTime() {
 			return (timeZone.toLocal(ntpTime));
 		}
 	}
-	DEBUG_PRINTLN("No NTP response. :(");
+	DEBUG_PRINTLN("No NTP response.");
 #ifdef RTC_BACKUP
 	return getRtcTime();
 #else
@@ -1289,7 +1312,7 @@ webserver
 void setupWebServer() {
 	esp8266WebServer.onNotFound(handleNotFound);
 	esp8266WebServer.on("/", handleRoot);
-	esp8266WebServer.on("/handle_TOGGLEBLANK", handle_TOGGLEBLANK);
+	esp8266WebServer.on("/handle_BUTTON_ONOFF", handle_BUTTON_ONOFF);
 	esp8266WebServer.on("/handle_BUTTON_TIME", handle_BUTTON_TIME);
 	esp8266WebServer.on("/handle_BUTTON_MODE", handle_BUTTON_MODE);
 	esp8266WebServer.on("/handle_BUTTON_SETTINGS", handle_BUTTON_SETTINGS);
@@ -1313,16 +1336,20 @@ void handleRoot() {
 	message += HOSTNAME;
 	message += "</title>";
 	message += "<style>";
-	message += "body {background-color:#FFFFFF; text-align:center; font-family:verdana; color:#333333;}";
-	message += "button {background-color:#1FA3EC; border: 5px solid #FFFFFF; color:#FFFFFF; width: 200px; padding:15px 32px; text-align:center; display:inline-block; font-size:16px;}";
+	message += "body {background-color:#FFFFFF; text-align:center; color:#333333; font-family:Sans-serif; font-size:16px;}";
+	message += "button {background-color:#1FA3EC; text-align:center; color:#FFFFFF; font-family:Sans-serif; font-size:16px; border: 5px solid #FFFFFF; width: 200px; padding:15px 32px; display:inline-block;}";
 	message += "</style>";
 	message += "</head>";
 	message += "<body>";
 	message += "<h1>";
 	message += HOSTNAME;
 	message += "</h1>";
-	if (mode == STD_MODE_BLANK)	message += "<button onclick=\"window.location.href='/handle_TOGGLEBLANK'\">" + String(LANG_ON) + "</button>";
-	else message += "<button onclick=\"window.location.href='/handle_TOGGLEBLANK'\">" + String(LANG_OFF) + "</button>";
+#ifdef DEDICATION
+	message += DEDICATION;
+	message += "<br><br>";
+#endif
+	if (mode == STD_MODE_BLANK)	message += "<button onclick=\"window.location.href='/handle_BUTTON_ONOFF'\">" + String(LANG_ON) + "</button>";
+	else message += "<button onclick=\"window.location.href='/handle_BUTTON_ONOFF'\">" + String(LANG_OFF) + "</button>";
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_TIME'\">" + String(LANG_TIME) + "</button>";
 	message += "<br><br>";
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_MODE'\">" + String(LANG_MODE) + "</button>";
@@ -1335,6 +1362,8 @@ void handleRoot() {
 	message += String(LANG_TEMPERATURE) + ": " + String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) + "&#176;C / " + String((RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "&#176;F";
 	message += "<br>";
 #endif
+	message += String(LANG_EXT_TEMPERATURE) + ": " + String(yahooTemp) + "&#176;C / " + String(yahooTemp * 9 / 5 + 32) + "&#176;F";
+	message += "<br>";
 	message += "<font size=2>";
 	message += "Firmware: " + String(FIRMWARE_VERSION);
 #ifdef DEBUG_WEBSITE
@@ -1360,7 +1389,7 @@ void handleRoot() {
 
 // site buttons
 
-void handle_TOGGLEBLANK() {
+void handle_BUTTON_ONOFF() {
 	String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
 	esp8266WebServer.send(200, "text/html", message);
 	setDisplayToToggle();

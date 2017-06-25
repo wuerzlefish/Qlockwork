@@ -49,7 +49,8 @@ Set Time.
 Set Date.
 Nightmode on/off.
 Show local IP.
-Testmode.
+Testmode bar.
+Testmode all.
 ```
 ### Needed libraries:
 ```
@@ -80,7 +81,13 @@ There is a warning from FastLED about SPI when compiling. Just ignore it.
 Sie gleicht die Zeit jede Stunde per NTP mit einem Zeitserver im Internet ab. Auf der Web-Seite kann man die Uhr steuern.
 Updates sind OTA moeglich. Dazu im Arduino IDE den ESP als Port auswaehlen.
 
-WiFi Manager: Wenn die Uhr sich beim Start mit keinem WLAN verbinden kann, schaltet sie einen AccessPoint ein. Dann ein Handy oder Tablet mit diesem verbinden und die WLAN Daten eingeben. WiFi wird nicht zwingend benoetigt. Nach dem WiFi-Timeout funktioniert die Uhr auch ohne NTP. Dazu benutzt sie die optionale RTC oder muss von Hand gestellt werden.
+Nach dem Einschalten macht die Uhr einen kurzen Selbsttest. Die Reihenfolge der Farben ist: weiss, rot, gruen und blau bei maximaler Helligkeit (MAX_BRIGHTNESS).
+Wenn die Reihenfolge der Farben anders ist, ist der LED-Treiber falsch eingestellt. Sollte weiss nicht sauber sein, reicht evtl. der Strom nicht aus.
+In diesem Fall kann eine zusaetzliche Stromversorgung in der Mitte des Streifens helfen.
+
+Einmal kurz ueber den LDR wischen startet das Einmessen der Helligkeit an die Umgebung.
+
+WiFi Manager: Wenn die Uhr sich beim Start mit keinem WLAN verbinden kann (WiFi Schriftzug rot), schaltet sie einen AccessPoint ein. Dann ein Handy oder Tablet mit diesem verbinden und die WLAN Daten eingeben. WiFi wird nicht zwingend benoetigt. Nach dem WiFi-Timeout funktioniert die Uhr auch ohne NTP. Dazu benutzt sie die optionale RTC oder muss von Hand gestellt werden.
 
 Ein Schaltplan und eine Stueckliste liegen im Verzeichnis.
 Die Firmware gibt es hier: https://github.com/ch570512/Qlockwork
@@ -135,34 +142,38 @@ Titel IP:                        + oder - druecken um direkt in die naechste bzw
 IP-Adresse:                      Zeigt die lokale IP Adresse im WLAN an.
 Titel TEST:                      + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu
                                  wechseln.
-LED-Test:                        Laesst einen waagerechten Streifen ueber das Display wandern.
+LED-Test-Balken:                 Laesst einen waagerechten Balken ueber das Display wandern.
+LED-Test-Alle:                   Laesst alle LEDs in der eingestellten Farbe leuchten.
 ```
 ### Configuration.h
 ```
 
-#define CONFIG_*            Einfache Unterstuetzung verschiedener Konfigurationen in einem File.
-#define HOSTNAME            Der Name der Uhr.
-#define WIFI_AP_TIMEOUT     Zeit in Sekunden fuer die der AP zum einrichten/suchen des WLANs aktiv ist.
-#define OTA_PASS            Kennwort fuer "Over the Air" Updates.
-#define NTP_SERVER          Abzufragender NTP-Server.
-#define RTC_BACKUP          Eine RTC als Backup verwenden.
-#define RTC_TEMP_OFFSET     Gibt an, um wieviel Grad die gemessene Temperatur (+ oder -) korrigiert werden soll.
-#define ESP_LED             Zeigt mit Hilfe der LED auf dem ESP die Funktion an. Sie blinkt einmal pro Sekunde.
-#define LDR                 Einen LDR fuer die Helligkeitsregelung verwenden.
-#define LDR_HYSTERESIS      Helligkeitsregelung ab einer Abweichung im Bereich von 0 bis 1023. Default: 30.
-#define MIN_BRIGHTNESS      Minimale Helligkeit der LEDs im Bereich von 0 bis 255. Default: 10.
-#define MAX_BRIGHTNESS      Maximale Helligkeit der LEDs im Bereich von 0 bis 255. Default 255.
-#define NONE_TECHNICAL_ZERO Zeigt die Null ohne den diagonalen Strich.
-#define BUZZER              Einen Buzzer verwenden.
-#define BUZZTIME_ALARM_1    Maximale Zeit in Sekunden, die Alarm 1 Laerm macht wenn nicht manuell abgestellt.
-#define BUZZTIME_ALARM_2    Maximale Zeit in Sekunden, die Alarm 2 Laerm macht wenn nicht manuell abgestellt.
-#define BUZZTIME_TIMER      Maximale Zeit in Sekunden, die der Timer Laerm macht wenn nicht manuell abgestellt.
-#define YAHOO_WEATHER       Ort fuer die Temperatur wie er auf der Yahoo-Wetter-Site eingegeben wird.
-                            (Nur Buchstaben, ' ', und ',').
-#define LANG_*              Bezeichnung der Buttons auf der Web-Seite.
-#define TIMEZONE_*          Die Zeitzone in der sich die Uhr befindet. Wichtig fuer den UTC-Versatz und die
-                            Sommer-/Winterzeitumstellung.
-#define IR_REMOTE           Eine IR-Fernbedienung verwenden.
+#define CONFIG_*            Simple support of different configurations in one file.
+#define HOSTNAME            The name of the watch.
+#define WIFI_AP_TIMEOUT     Time in seconds for the WiFiManager to set-up/search the WLAN.
+#define OTA_PASS            Password for "Over the Air" updates.
+#define NTP_SERVER          NTP server to be queried.
+#define RTC_BACKUP          Use an RTC as backup.
+#define RTC_TEMP_OFFSET     Sets how many degrees the measured temperature (+ or -) should be corrected.
+#define ESP_LED             Displays the function using the LED on the ESP. It flashes once per second.
+#define LDR                 Use an LDR for brightness control.
+#define LDR_HYSTERESIS      Brightness control from a deviation in the range from 0 to 1023. Default: 30.
+#define MIN_BRIGHTNESS      Minimum brightness of LEDs ranging from 0 to 255. Default: 10.
+#define MAX_BRIGHTNESS      Maximum brightness of LEDs ranging from 0 to 255. Default 255.
+#define NONE_TECHNICAL_ZERO Displays the zero without the diagonal line.
+#define BUZZER              Use a buzzer.
+#define BUZZTIME_ALARM_1    Maximum time in seconds that turns alarm 1 on when not turned off manually.
+#define BUZZTIME_ALARM_2    Maximum time in seconds that turns alarm 2 on when not turned off manually.
+#define BUZZTIME_TIMER      Maximum time in seconds that turns the timer alarm on when not turned off manually..
+#define YAHOO_WEATHER       Place for the temperature as entered on the Yahoo weather site.
+                            (Only letters, ' ', and ',' are allowed).
+#define POPULARITY_CONTEST  The popularity-contest periodically anonymously tells me, the developer, that you
+                            use this firmware. This helps me to determine how much time I should spend on this
+                            project. No data is send.
+#define LANG_*              Caption of the site-buttons.
+#define TIMEZONE_*          The time zone in which the clock is located. Important for the UTC offset and the
+                            summer / winter time changeover.
+#define IR_REMOTE           Use an IR remote control.
 #define IR_CODE_*           Jede Fernbedienung kann verwendet werden. Es werden 6 Tasten unterstuetzt.
                             Um die Fernbedienung anzulernen "#define DEBUG" einschalten und einen Knopf auf der
                             Fernbedienung druecken. Den in der seriellen Konsole angezeigten Code fuer die Taste

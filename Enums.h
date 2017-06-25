@@ -54,7 +54,8 @@ typedef enum eMode : uint8_t {
 	EXT_MODE_IP_2,
 	EXT_MODE_IP_3,
 	EXT_MODE_TITLE_TEST,
-	EXT_MODE_TEST,
+	EXT_MODE_TEST_BAR,
+	//EXT_MODE_TEST_ALL,
 	EXT_MODE_COUNT
 } Mode;
 
