@@ -31,7 +31,8 @@ Seconds.
 Weekday.
 Date.
 Room Temperature (with RTC only).
-External Temperature (Yahoo weather).
+Temperature (ext.) (Yahoo weather).
+Humidity (ext.) (Yahoo weather).
 Timer.
 Alarm 1.
 Alarm 2.
@@ -49,8 +50,7 @@ Set Time.
 Set Date.
 Nightmode on/off.
 Show local IP.
-Testmode bar.
-Testmode all.
+Testmode.
 ```
 ### Needed libraries:
 ```
@@ -87,7 +87,7 @@ In diesem Fall kann eine zusaetzliche Stromversorgung in der Mitte des Streifens
 
 Einmal kurz ueber den LDR wischen startet das Einmessen der Helligkeit an die Umgebung.
 
-WiFi Manager: Wenn die Uhr sich beim Start mit keinem WLAN verbinden kann (WiFi Schriftzug rot), schaltet sie einen AccessPoint ein. Dann ein Handy oder Tablet mit diesem verbinden und die WLAN Daten eingeben. WiFi wird nicht zwingend benoetigt. Nach dem WiFi-Timeout funktioniert die Uhr auch ohne NTP. Dazu benutzt sie die optionale RTC oder muss von Hand gestellt werden.
+WLAN Manager: Wenn die Uhr sich beim Start mit keinem WLAN verbinden kann schaltet sie einen AccessPoint ein. Dann ein Handy oder Tablet mit diesem verbinden und die WLAN Daten eingeben. WiFi leuchtet in dieser Zeit weiss auf dem Display. Wenn kein WLAN verbunden wird oder der Timeout abgelaufen ist, gibt es einen langern Ton und WiFi wird rot. Bei Erfolg gibt es drei kurze Toene und WiFi wird gruen. WLAN wird nicht zwingend benoetigt. Nach dem WLAN-Timeout funktioniert die Uhr auch ohne NTP. Dazu benutzt sie die optionale RTC oder muss von Hand gestellt werden.
 
 Ein Schaltplan und eine Stueckliste liegen im Verzeichnis.
 Die Firmware gibt es hier: https://github.com/ch570512/Qlockwork
@@ -142,8 +142,7 @@ Titel IP:                        + oder - druecken um direkt in die naechste bzw
 IP-Adresse:                      Zeigt die lokale IP Adresse im WLAN an.
 Titel TEST:                      + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu
                                  wechseln.
-LED-Test-Balken:                 Laesst einen waagerechten Balken ueber das Display wandern.
-LED-Test-Alle:                   Laesst alle LEDs in der eingestellten Farbe leuchten.
+LED-Test:                        Moves a horizontal bar across the display.
 ```
 ### Configuration.h
 ```
@@ -154,7 +153,7 @@ LED-Test-Alle:                   Laesst alle LEDs in der eingestellten Farbe leu
 #define OTA_PASS            Password for "Over the Air" updates.
 #define NTP_SERVER          NTP server to be queried.
 #define RTC_BACKUP          Use an RTC as backup.
-#define RTC_TEMP_OFFSET     Sets how many degrees the measured temperature (+ or -) should be corrected.
+#define RTC_TEMP_OFFSET     Sets how many degrees the measured room temperature (+ or -) should be corrected.
 #define ESP_LED             Displays the function using the LED on the ESP. It flashes once per second.
 #define LDR                 Use an LDR for brightness control.
 #define LDR_HYSTERESIS      Brightness control from a deviation in the range from 0 to 1023. Default: 30.
@@ -167,9 +166,8 @@ LED-Test-Alle:                   Laesst alle LEDs in der eingestellten Farbe leu
 #define BUZZTIME_TIMER      Maximum time in seconds that turns the timer alarm on when not turned off manually..
 #define YAHOO_WEATHER       Place for the temperature as entered on the Yahoo weather site.
                             (Only letters, ' ', and ',' are allowed).
-#define POPULARITY_CONTEST  The popularity-contest periodically anonymously tells me, the developer, that you
-                            use this firmware. This helps me to determine how much time I should spend on this
-                            project. No data is send.
+#define UPDATE_INFO         The update info periodically anonymously checks if there is a firmwareupdate
+                            available. No user data is send to the host.
 #define LANG_*              Caption of the site-buttons.
 #define TIMEZONE_*          The time zone in which the clock is located. Important for the UTC offset and the
                             summer / winter time changeover.
@@ -181,7 +179,7 @@ LED-Test-Alle:                   Laesst alle LEDs in der eingestellten Farbe leu
 #define IR_LETTER_OFF       Schaltet die LED hinter dem IR-Sensor dauerhaft ab. Das verbessert den IR-Empfang.
                             Hier das K vor Uhr.
 
-#define LED_LAYOUT_HORIZONTAL Waagerecht und Eck-LEDs am Ende des Stripes. (Von vorne gesehen.)
+#define LED_LAYOUT_HORIZONTAL Horizontal and corner LEDs at the end of the strip. (Seen from the front.)
 
 111                 114                 112
 000 001 002 003 004 005 006 007 008 009 010
@@ -196,7 +194,7 @@ LED-Test-Alle:                   Laesst alle LEDs in der eingestellten Farbe leu
 109 108 107 106 105 104 103 102 101 100 099
 110                                     113
 
-#define LED_LAYOUT_VERTICAL   Senkrecht und Eck-LEDs innerhalb des Stripes. (Von vorne gesehen.)
+#define LED_LAYOUT_VERTICAL   Vertical and corner LEDs within the strip. (Seen from the front.)
 
 000                 114                 102
 001 021 022 041 042 061 062 081 082 101 103
@@ -211,13 +209,13 @@ LED-Test-Alle:                   Laesst alle LEDs in der eingestellten Farbe leu
 010 012 031 032 051 052 071 072 091 092 112
 011                                     113
 
-#define LED_LIBRARY_LPD8806RGBW LED Driver fuer LPD8806 RGBW LEDs.
+#define LED_LIBRARY_LPD8806RGBW LED Driver for LPD8806 RGBW LEDs.
 
-#define LED_LIBRARY_NEOPIXEL    LED Driver fuer NeoPixel LEDs.
+#define LED_LIBRARY_NEOPIXEL    LED Driver for NeoPixel LEDs.
 #define LED_DRIVER_NEO_*        Gibt in Verbindung mit LED_LIBRARAY_NEOPIXEL den Typ der NeoPixel an.
                                 400kHz, 800kHz, GRB, RGB und RGBW.
 
-#define LED_LIBRARY_FASTLED     FastLED Driver fuer LEDs.
+#define LED_LIBRARY_FASTLED     FastLED Driver for LEDs.
 #define LED_DRIVER_FAST_*       Gibt in Verbindung mit LED_LIBRARAY_FASTLED den Typ der LEDs an.
                                 Alle von FAST-LED unterstuetzten LED-Treiber (nur RGB) koennen verwendet
                                 werden:
@@ -227,13 +225,13 @@ LED-Test-Alle:                   Laesst alle LEDs in der eingestellten Farbe leu
                                 UCS1904, UCS2903, WS2801, WS2803, WS2811, WS2811_400, WS2812, WS2812B,
                                 WS2813, WS2852.
 
-#define SERIAL_SPEED  Geschwindigkeit der seriellen Schnittstelle fuer die serielle Konsole.
-#define DEBUG         Gibt technische Informationen in der seriellen Konsole aus.
-#define DEBUG_WEBSITE Gibt technische Informationen auf der Web-Seite aus.
-#define DEBUG_MATRIX  Rendert die Ausgabe der Matrix fuer die deutsche Front in der seriellen Konsole.
-#define DEBUG_FPS     Durchlaeufe der loop() pro Sekunde.
+#define SERIAL_SPEED  Serial port speed for the console.
+#define DEBUG         Outputs technical information in the serial console
+#define DEBUG_WEBSITE Provides technical information on the web page.
+#define DEBUG_MATRIX  Renders the output of the matrix for the German front in the serial console.
+#define DEBUG_FPS     Number of loops per second.
 
-Hardwarebelegung des ESP:
+Hardware setup of the ESP:
 
 D0 = GPIO16 = NodeMCU_LED
 D1 = GPIO05 = PIN_WIRE_SCL
@@ -241,7 +239,7 @@ D2 = GPIO04 = PIN_WIRE_SDA
 D3 = GPIO00 = PIN_IR_RECEIVER
 D4 = GPIO02 = ESP8266_LED
 D5 = GPIO14 = PIN_BUZZER
-D6 = GPIO12 = nc
+D6 = GPIO12 = reserved
 D7 = GPIO13 = PIN_LEDS_CLOCK
 D8 = GPIO15 = PIN_LEDS_DATA
 A0 = ADC0   = PIN_LDR

@@ -36,7 +36,7 @@
 //#define YAHOO_LOCATION "Zurich, ZH, CH"
 //#define YAHOO_LOCATION "Singapur, SG"
 
-#define POPULARITY_CONTEST
+#define UPDATE_INFO
 
 //#define TIMEZONE_IDLW  // IDLW  Internation Date Line West UTC-12
 //#define TIMEZONE_SST   // SST   Samoa Standard Time UTC-11
@@ -179,7 +179,7 @@
 #define BUZZTIME_ALARM_2 3
 #define BUZZTIME_TIMER 30
 #define YAHOO_LOCATION "Zurich, ZH, CH"
-#define POPULARITY_CONTEST
+#define UPDATE_INFO
 #define TIMEZONE_CET
 #define IR_REMOTE
 #define IR_CODE_ONOFF   4001918335 // HX1838 Remote CH+
@@ -219,7 +219,7 @@
 #define MAX_BRIGHTNESS 255
 #define NONE_TECHNICAL_ZERO
 #define YAHOO_LOCATION "Zurich, ZH, CH"
-#define POPULARITY_CONTEST
+#define UPDATE_INFO
 #define TIMEZONE_CET
 #define LED_LAYOUT_HORIZONTAL
 #define LED_LIBRARY_NEOPIXEL
@@ -253,7 +253,7 @@
 #define BUZZTIME_ALARM_2 60
 #define BUZZTIME_TIMER 30
 #define YAHOO_LOCATION "Berlin, BE, DE"
-#define POPULARITY_CONTEST
+#define UPDATE_INFO
 #define TIMEZONE_CET
 //#define IR_REMOTE
 //#define IR_CODE_ONOFF   4034314555 // CLT2 V1.1 Remote Power
@@ -277,7 +277,7 @@
 #define DEDICATION "von Thorsten fuer die vielen tollen Essen in der Schweiz."
 #endif // CONFIG_CLT2
 
-#define FIRMWARE_VERSION "qw20170625"
+#define FIRMWARE_VERSION "qw20170627"
 #define SERIAL_SPEED 115200
 #define NUM_LEDS 115
 #define PIN_IR_RECEIVER D3

@@ -66,6 +66,7 @@ String yahooTitle = "";
 int8_t yahooTemp = 0;
 uint8_t yahooHumidity = 0;
 uint8_t yahooCode = 0;
+String updateInfo = "";
 #ifdef BUZZER
 boolean timerSet = false;
 time_t timer = 0;
@@ -194,6 +195,7 @@ void setup() {
 	randomHour = random(0, 24);
 	DEBUG_PRINTLN("Random hour is: " + String(randomHour));
 	getYahooWeather(YAHOO_LOCATION);
+	getUpdateInfo();
 	DEBUG_PRINTLN("Free RAM: " + String(system_get_free_heap_size()));
 }
 
@@ -224,8 +226,8 @@ void loop() {
 		DEBUG_PRINTLN("Reached a new hour.");
 		DEBUG_PRINTLN("Free RAM: " + String(system_get_free_heap_size()));
 		if (settings.getColorChange() == COLORCHANGE_HOUR) settings.setColor(random(0, COLOR_COUNT + 1));
-#ifdef POPULARITY_CONTEST
-		if ((hour() / float(randomHour)) == 1.0) popularityContest();
+#ifdef UPDATE_INFO
+		if ((hour() / float(randomHour)) == 1.0) getUpdateInfo();
 #endif
 	}
 
@@ -284,7 +286,7 @@ void loop() {
 		case EXT_MODE_YEARSET:
 		case EXT_MODE_NIGHTOFF:
 		case EXT_MODE_DAYON:
-		case EXT_MODE_TEST_BAR:
+		case EXT_MODE_TEST:
 			screenBufferNeedsUpdate = true;
 			break;
 		default:
@@ -399,7 +401,7 @@ void loop() {
 			renderer.setSmallText("TE", TEXT_POS_TOP, matrix);
 			renderer.setSmallText("MP", TEXT_POS_BOTTOM, matrix);
 			break;
-#ifdef RTC_BACKUP
+#if defined(RTC_BACKUP) && !defined(DHT22)
 		case STD_MODE_TEMP:
 			renderer.clearScreenBuffer(matrix);
 			if ((RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) == 0) {
@@ -424,6 +426,38 @@ void loop() {
 			DEBUG_PRINTLN(String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET)); // .0 to get float values for temp
 			break;
 #endif
+#ifdef DHT22
+		case STD_MODE_TEMP:
+			renderer.clearScreenBuffer(matrix);
+			if (dht22.temperature == 0) {
+				matrix[0] = 0b0000000001000000;
+				matrix[1] = 0b0000000010100000;
+				matrix[2] = 0b0000000010100000;
+				matrix[3] = 0b0000000011100000;
+			}
+			if (dht22.temperature > 0) {
+				matrix[0] = 0b0000000001000000;
+				matrix[1] = 0b0100000010100000;
+				matrix[2] = 0b1110000010100000;
+				matrix[3] = 0b0100000011100000;
+			}
+			if (dht22.temperature < 0) {
+				matrix[0] = 0b0000000001000000;
+				matrix[1] = 0b0000000010100000;
+				matrix[2] = 0b1110000010100000;
+				matrix[3] = 0b0000000011100000;
+			}
+			renderer.setSmallText(String(dht22.temperature), TEXT_POS_BOTTOM, matrix);
+			break;
+		case STD_MODE_HUMIDITY:
+			renderer.clearScreenBuffer(matrix);
+			renderer.setSmallText(String(dht22.Humidity), TEXT_POS_TOP, matrix);
+			matrix[6] = 0b0100100001000000;
+			matrix[7] = 0b0001000010100000;
+			matrix[8] = 0b0010000010100000;
+			matrix[9] = 0b0101000011100000;
+			break;
+#endif
 		case STD_MODE_EXT_TEMP:
 			renderer.clearScreenBuffer(matrix);
 			if (yahooTemp > 0) {
@@ -435,6 +469,14 @@ void loop() {
 				matrix[2] = 0b1110000000000000;
 			}
 			renderer.setSmallText(String(yahooTemp), TEXT_POS_BOTTOM, matrix);
+			break;
+		case STD_MODE_EXT_HUMIDITY:
+			renderer.clearScreenBuffer(matrix);
+			renderer.setSmallText(String(yahooHumidity), TEXT_POS_TOP, matrix);
+			matrix[6] = 0b0100100000000000;
+			matrix[7] = 0b0001000000000000;
+			matrix[8] = 0b0010000000000000;
+			matrix[9] = 0b0100100000000000;
 			break;
 #ifdef BUZZER
 		case STD_MODE_TITLE_ALARM:
@@ -674,15 +716,15 @@ void loop() {
 			renderer.setSmallText("TE", TEXT_POS_TOP, matrix);
 			renderer.setSmallText("ST", TEXT_POS_BOTTOM, matrix);
 			break;
-		case EXT_MODE_TEST_BAR:
+		case EXT_MODE_TEST:
 			renderer.clearScreenBuffer(matrix);
 			if (testColumn == 10) testColumn = 0;
 			matrix[testColumn] = 0b1111111111110000;
 			testColumn++;
 			break;
-		//case EXT_MODE_TEST_ALL:
-		//	renderer.setAllScreenBuffer(matrix);
-		//	break;
+			//case EXT_MODE_TEST_ALL:
+			//	renderer.setAllScreenBuffer(matrix);
+			//	break;
 		case STD_MODE_BLANK:
 			renderer.clearScreenBuffer(matrix);
 			break;
@@ -763,7 +805,7 @@ void buttonModePressed() {
 		if (settings.getUseLdr()) setMode(mode++);
 		break;
 #endif
-	case EXT_MODE_TEST_BAR:
+	case EXT_MODE_TEST:
 		testColumn = 0;
 		return;
 	case STD_MODE_AMPM:
@@ -1182,26 +1224,23 @@ void setDisplayToToggle() {
 	else setLedsOn();
 }
 
-#ifdef RTC_BACKUP
-// get time from RTC
-time_t getRtcTime() {
-	DEBUG_PRINTLN("*** ESP set from RTC. ***");
-	return RTC.get();
-}
-#endif
-
+#ifdef UPDATE_INFO
 /******************************************************************************
-popularity-contest
+update-info
 ******************************************************************************/
 
-void popularityContest() {
+void getUpdateInfo() {
 	if (WiFi.status() != WL_CONNECTED) return;
+	DEBUG_PRINTLN("Sending REST-request for update info.");
 	char server[] = "tmw-it.ch";
 	WiFiClient wifiClient;
 	RestClient restClient = RestClient(wifiClient, server, 80);
-	restClient.get("/qlockwork/popularity_contest.html");
-	DEBUG_PRINTLN("Popularity-contest: " + restClient.readResponse());
+	restClient.get("/qlockwork/updateInfo.html");
+	updateInfo = restClient.readResponse();
+	updateInfo.trim();
+	DEBUG_PRINTLN("Update info response: qw" + updateInfo);
 }
+#endif
 
 /******************************************************************************
 weather
@@ -1247,6 +1286,17 @@ void getYahooWeather(String yahooLocation) {
 	yahooCode = responseJson["query"]["results"]["channel"]["item"]["condition"]["code"].as<uint8_t>();
 	DEBUG_PRINTLN("Condition code is: " + String(yahooCode));
 }
+
+#ifdef RTC_BACKUP
+/******************************************************************************
+rtc
+******************************************************************************/
+time_t getRtcTime() {
+	DEBUG_PRINTLN("*** ESP set from RTC. ***");
+	//DEBUG_PRINTLN("Drift was: " + String(now() - RTC.get()) + " seconds.");  // now() is not working when timeprovider itself calls this function
+	return RTC.get();
+}
+#endif
 
 /******************************************************************************
 ntp
@@ -1294,6 +1344,7 @@ time_t getNtpTime() {
 			RTC.set(timeZone.toLocal(ntpTime));
 #endif
 			DEBUG_PRINTLN("*** ESP set from NTP. ***");
+			//DEBUG_PRINTLN("Drift was: " + String(now() - timeZone.toLocal(ntpTime)) + " seconds."); // now() is not working when timeprovider itself calls this function
 			return (timeZone.toLocal(ntpTime));
 		}
 	}
@@ -1366,20 +1417,25 @@ void handleRoot() {
 	message += "<br>";
 	message += "<font size=2>";
 	message += "Firmware: " + String(FIRMWARE_VERSION);
+#ifdef UPDATE_INFO
+	if (updateInfo.toInt() > String(FIRMWARE_VERSION).substring(2, 10).toInt()) {
+		message += "<br>";
+		message += "Firmwareupdate available! (qw" + updateInfo + ")";
+	}
+#endif
 #ifdef DEBUG_WEBSITE
-	message += "<br>";
-	message += "LED-Driver: " + ledDriver.getSignature();
 	message += "<br>";
 	message += "Free RAM: " + String(system_get_free_heap_size()) + " bytes";
 	message += "<br>";
-	message += "Weather for: " + yahooTitle.substring(yahooTitle.indexOf(" for ") + 5, yahooTitle.indexOf(" at "));
+	message += "LED-Driver: " + ledDriver.getSignature();
 #ifdef LDR
 	message += "<br>";
-	message += "Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")";
-	message += "<br>";
-	message += "LDR: ";
+	message += "Brightness: " + String(ratedBrightness) + " (LDR: ";
 	if (settings.getUseLdr()) message += "enabled"; else message += "disabled";
+	message += ", value: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max : " + String(maxLdrValue) + ")";
 #endif
+	message += "<br>";
+	message += "Weather for: " + yahooTitle.substring(yahooTitle.indexOf(" for ") + 5, yahooTitle.indexOf(" at "));
 #endif
 	message += "</font>";
 	message += "</body>";

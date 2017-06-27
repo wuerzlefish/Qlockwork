@@ -20,7 +20,7 @@ class Debug {
 
 public:
 	Debug();
-	void debugScreenBuffer(uint16_t ScreenBuffer[]);
+	void debugScreenBuffer(uint16_t screenBuffer[]);
 	void debugTime(String label, time_t time);
 	void debugFps();
 

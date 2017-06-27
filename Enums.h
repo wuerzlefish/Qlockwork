@@ -12,10 +12,15 @@ typedef enum eMode : uint8_t {
 	STD_MODE_WEEKDAY,
 	STD_MODE_DATE,
 	STD_MODE_TITLE_TEMP,
-#ifdef RTC_BACKUP
+#if defined(RTC_BACKUP) && !defined(DHT22)
 	STD_MODE_TEMP,
 #endif
+#ifdef DHT22
+	//STD_MODE_TEMP,
+	//STD_MODE_HUMIDITY,
+#endif
 	STD_MODE_EXT_TEMP,
+	STD_MODE_EXT_HUMIDITY,
 #ifdef BUZZER
 	STD_MODE_TITLE_ALARM,
 	STD_MODE_SET_TIMER,
@@ -54,8 +59,7 @@ typedef enum eMode : uint8_t {
 	EXT_MODE_IP_2,
 	EXT_MODE_IP_3,
 	EXT_MODE_TITLE_TEST,
-	EXT_MODE_TEST_BAR,
-	//EXT_MODE_TEST_ALL,
+	EXT_MODE_TEST,
 	EXT_MODE_COUNT
 } Mode;
 
