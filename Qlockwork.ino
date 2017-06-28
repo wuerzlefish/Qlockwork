@@ -722,9 +722,6 @@ void loop() {
 			matrix[testColumn] = 0b1111111111110000;
 			testColumn++;
 			break;
-			//case EXT_MODE_TEST_ALL:
-			//	renderer.setAllScreenBuffer(matrix);
-			//	break;
 		case STD_MODE_BLANK:
 			renderer.clearScreenBuffer(matrix);
 			break;
@@ -1238,7 +1235,8 @@ void getUpdateInfo() {
 	restClient.get("/qlockwork/updateInfo.html");
 	updateInfo = restClient.readResponse();
 	updateInfo.trim();
-	DEBUG_PRINTLN("Update info response: qw" + updateInfo);
+	DEBUG_PRINTLN("Update info response: " + updateInfo);
+	return;
 }
 #endif
 
@@ -1274,6 +1272,7 @@ void getYahooWeather(String yahooLocation) {
 	JsonObject &responseJson = jsonBuffer.parseObject(response);
 	if (!responseJson.success()) {
 		DEBUG_PRINTLN("Parsing JSON failed.");
+		yahooTitle = "Request failed.";
 		return;
 	}
 	else DEBUG_PRINTLN("Parsing JSON succeeded.");
@@ -1348,7 +1347,7 @@ time_t getNtpTime() {
 			return (timeZone.toLocal(ntpTime));
 		}
 	}
-	DEBUG_PRINTLN("No NTP response.");
+	DEBUG_PRINTLN("NTP request failed.");
 #ifdef RTC_BACKUP
 	return getRtcTime();
 #else
@@ -1418,9 +1417,11 @@ void handleRoot() {
 	message += "<font size=2>";
 	message += "Firmware: " + String(FIRMWARE_VERSION);
 #ifdef UPDATE_INFO
-	if (updateInfo.toInt() > String(FIRMWARE_VERSION).substring(2, 10).toInt()) {
+	if (updateInfo > String(FIRMWARE_VERSION)) {
 		message += "<br>";
-		message += "Firmwareupdate available! (qw" + updateInfo + ")";
+		message += "<span style=\"color: red;\">";
+		message += "Firmwareupdate available! (" + updateInfo + ")";
+		message += "</span>";
 	}
 #endif
 #ifdef DEBUG_WEBSITE

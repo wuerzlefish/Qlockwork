@@ -93,6 +93,7 @@
 #define LED_LIBRARY_NEOPIXEL
 #define LED_DRIVER_NEO_800KHZ_GRB
 //#define LED_DRIVER_NEO_800KHZ_RGB
+//#define LED_DRIVER_NEO_800KHZ_GRBW
 //#define LED_DRIVER_NEO_800KHZ_RGBW
 //#define LED_DRIVER_NEO_400KHZ_GRB
 //#define LED_DRIVER_NEO_400KHZ_RGB
@@ -142,7 +143,7 @@
 #define LANG_MINUS "Minus"
 #define LANG_TEMPERATURE "Temperature"
 #define LANG_EXT_TEMPERATURE "Ext. Temperature"
-//#define DEDICATION "by ch570512"
+#define DEDICATION "designed and coded with love by ch570512."
 //#define LANG_ON "Ein"
 //#define LANG_OFF "Aus"
 //#define LANG_TIME "Zeit"
@@ -189,8 +190,6 @@
 #define IR_CODE_PLUS    2747854299 // HX1838 Remote +
 #define IR_CODE_MINUS   4034314555 // HX1838 Remote -
 #define LED_LAYOUT_VERTICAL
-//#define LED_LIBRARY_FASTLED
-//#define LED_DRIVER_FAST_NEOPIXEL
 #define LED_LIBRARY_NEOPIXEL
 #define LED_DRIVER_NEO_800KHZ_GRB
 #define LANG_ON "Ein"
@@ -202,7 +201,7 @@
 #define LANG_MINUS "Minus"
 #define LANG_TEMPERATURE "Temperatur (innen)"
 #define LANG_EXT_TEMPERATURE "Temperatur (aussen)"
-#define DEDICATION "von Thorsten fuer die vielen tollen Essen in der Schweiz."
+#define DEDICATION "designed and coded with love by ch570512."
 #define DEBUG
 #define DEBUG_WEBSITE
 //#define DEBUG_MATRIX
@@ -277,7 +276,7 @@
 #define DEDICATION "von Thorsten fuer die vielen tollen Essen in der Schweiz."
 #endif // CONFIG_CLT2
 
-#define FIRMWARE_VERSION "qw20170627"
+#define FIRMWARE_VERSION 20170628
 #define SERIAL_SPEED 115200
 #define NUM_LEDS 115
 #define PIN_IR_RECEIVER D3

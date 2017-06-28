@@ -11,6 +11,9 @@ LedDriver_NeoPixel::LedDriver_NeoPixel() {
 #ifdef LED_DRIVER_NEO_800KHZ_RGB
 	strip = new Adafruit_NeoPixel(NUM_LEDS, PIN_LEDS_DATA, NEO_RGB + NEO_KHZ800);
 #endif
+#ifdef LED_DRIVER_NEO_800KHZ_GRBW
+	strip = new Adafruit_NeoPixel(NUM_LEDS, PIN_LEDS_DATA, NEO_GRBW + NEO_KHZ800);
+#endif
 #ifdef LED_DRIVER_NEO_800KHZ_RGBW
 	strip = new Adafruit_NeoPixel(NUM_LEDS, PIN_LEDS_DATA, NEO_RGBW + NEO_KHZ800);
 #endif
