@@ -5,7 +5,8 @@
 #ifndef ENUMS_H
 #define ENUMS_H
 
-typedef enum eMode : uint8_t {
+typedef enum eMode : uint8_t
+{
 	STD_MODE_NORMAL,
 	STD_MODE_AMPM,
 	STD_MODE_SECONDS,
@@ -53,24 +54,26 @@ typedef enum eMode : uint8_t {
 	EXT_MODE_NIGHTOFF,
 	EXT_MODE_TEXT_DAYON,
 	EXT_MODE_DAYON,
-	EXT_MODE_TITLE_IP,
-	EXT_MODE_IP_0,
-	EXT_MODE_IP_1,
-	EXT_MODE_IP_2,
-	EXT_MODE_IP_3,
+	//EXT_MODE_TITLE_IP,
+	//EXT_MODE_IP_0,
+	//EXT_MODE_IP_1,
+	//EXT_MODE_IP_2,
+	//EXT_MODE_IP_3,
 	EXT_MODE_TITLE_TEST,
 	EXT_MODE_TEST,
 	EXT_MODE_COUNT
 } Mode;
 
-// Overload the ControlType++ operator
-inline Mode& operator++(Mode& eDOW, int) {
+// Overload the ControlType++ operator.
+inline Mode& operator++(Mode& eDOW, int)
+{
 	const uint8_t i = static_cast<uint8_t>(eDOW) + 1;
 	eDOW = static_cast<Mode>((i) % EXT_MODE_COUNT);
 	return eDOW;
 }
 
-enum eColor : uint8_t {
+enum eColor : uint8_t
+{
 	WHITE,
 	RED,
 	GREEN,
@@ -111,7 +114,8 @@ enum eColor : uint8_t {
 	COLOR_COUNT = VIOLET
 };
 
-enum eColorChange : uint8_t {
+enum eColorChange : uint8_t
+{
 	COLORCHANGE_NO,
 	COLORCHANGE_FIVE,
 	COLORCHANGE_HOUR,
@@ -119,19 +123,22 @@ enum eColorChange : uint8_t {
 	COLORCHANGE_COUNT = COLORCHANGE_DAY
 };
 
-enum eTransition : uint8_t {
+enum eTransition : uint8_t
+{
 	TRANSITION_NORMAL,
 	TRANSITION_FADE,
 	TRANSITION_COUNT = TRANSITION_FADE
 };
 
-enum eTextPos : uint8_t {
+enum eTextPos : uint8_t
+{
 	TEXT_POS_TOP,
 	TEXT_POS_MIDDLE = 2,
 	TEXT_POS_BOTTOM = 5
 };
 
-enum eLanguage : uint8_t {
+enum eLanguage : uint8_t
+{
 	LANGUAGE_DE_DE,
 	LANGUAGE_DE_SW,
 	LANGUAGE_DE_BA,

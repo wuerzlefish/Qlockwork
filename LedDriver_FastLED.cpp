@@ -109,19 +109,23 @@ LedDriver_FastLED::LedDriver_FastLED() {
 #endif
 }
 
-String LedDriver_FastLED::getSignature() {
+String LedDriver_FastLED::getSignature()
+{
 	return "FastLED";
 }
 
-void LedDriver_FastLED::clear() {
+void LedDriver_FastLED::clear()
+{
 	FastLED.clear();
 }
 
-void LedDriver_FastLED::show() {
+void LedDriver_FastLED::show()
+{
 	FastLED.show();
 }
 
-void LedDriver_FastLED::setPixel(uint8_t x, uint8_t y, uint8_t color, uint8_t brightness) {
+void LedDriver_FastLED::setPixel(uint8_t x, uint8_t y, uint8_t color, uint8_t brightness)
+{
 #ifdef LED_LAYOUT_HORIZONTAL
 	setPixel(x + (y * 11), color, brightness);
 #endif
@@ -130,18 +134,24 @@ void LedDriver_FastLED::setPixel(uint8_t x, uint8_t y, uint8_t color, uint8_t br
 #endif
 }
 
-void LedDriver_FastLED::setPixel(uint8_t num, uint8_t color, uint8_t brightness) {
+void LedDriver_FastLED::setPixel(uint8_t num, uint8_t color, uint8_t brightness)
+{
 	uint8_t red = map(brightness, 0, 255, 0, defaultColors[color].red);
 	uint8_t green = map(brightness, 0, 255, 0, defaultColors[color].green);
 	uint8_t blue = map(brightness, 0, 255, 0, defaultColors[color].blue);
 	uint32_t ledColor = (red << 16) + (green << 8) + blue;
 #ifdef LED_LAYOUT_HORIZONTAL
-	if (num < 110) {
-		if (num / 11 % 2 == 0) leds[num] = ledColor;
-		else leds[num / 11 * 11 + 10 - (num % 11)] = ledColor;
+	if (num < 110)
+	{
+		if (num / 11 % 2 == 0)
+			leds[num] = ledColor;
+		else
+			leds[num / 11 * 11 + 10 - (num % 11)] = ledColor;
 	}
-	else {
-		switch (num) {
+	else
+	{
+		switch (num)
+		{
 		case 110: // upper-left
 			leds[111] = ledColor;
 			break;
@@ -164,15 +174,24 @@ void LedDriver_FastLED::setPixel(uint8_t num, uint8_t color, uint8_t brightness)
 #endif // LED_LAYOUT_HORIZONTAL
 #ifdef LED_LAYOUT_VERTICAL
 	uint8_t ledNum;
-	if (num < 110) {
-		if (num / 10 % 2 == 0) ledNum = num;
-		else ledNum = num / 10 * 10 + 9 - (num % 10);
-		if (ledNum < 10) leds[ledNum + 1] = ledColor;
-		else if (ledNum < 100) leds[ledNum + 2] = ledColor;
-		else leds[ledNum + 3] = ledColor;
+	if (num < 110)
+	{
+		if (num / 10 % 2 == 0)
+			ledNum = num;
+		else
+			ledNum = num / 10 * 10 + 9 - (num % 10);
+		if (ledNum < 10)
+			leds[ledNum + 1] = ledColor;
+		else
+			if (ledNum < 100)
+				leds[ledNum + 2] = ledColor;
+			else
+				leds[ledNum + 3] = ledColor;
 	}
-	else {
-		switch (num) {
+	else
+	{
+		switch (num)
+		{
 		case 110: // upper-left
 			leds[0] = ledColor;
 			break;

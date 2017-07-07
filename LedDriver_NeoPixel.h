@@ -9,8 +9,8 @@
 #include "Colors.h"
 #include "Configuration.h"
 
-class LedDriver_NeoPixel {
-
+class LedDriver_NeoPixel
+{
 public:
 	LedDriver_NeoPixel();
 	String getSignature();

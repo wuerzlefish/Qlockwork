@@ -5,7 +5,8 @@
 #ifndef LANGUAGES_H
 #define LANGUAGES_H
 
-const char sWeekday[][2] = {
+const char sWeekday[][2] =
+{
 	{ ' ', ' ' }, // 00
 	{ 'S', 'U' }, // 01
 	{ 'M', 'O' }, // 02
@@ -16,7 +17,8 @@ const char sWeekday[][2] = {
 	{ 'S', 'A' }  // 07
 };
 
-const char sLanguage[][4] = {
+const char sLanguage[][4] =
+{
 	{ 'D', 'E', ' ', ' ' }, // 00
 	{ 'D', 'E', 'S', 'W' }, // 01
 	{ 'D', 'E', 'B', 'A' }, // 02

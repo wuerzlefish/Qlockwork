@@ -10,8 +10,8 @@
 #include "Colors.h"
 #include "Configuration.h"
 
-class LedDriver_FastLED {
-
+class LedDriver_FastLED
+{
 public:
 	LedDriver_FastLED();
 	String getSignature();

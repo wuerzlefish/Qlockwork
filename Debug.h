@@ -16,8 +16,8 @@
 #define DEBUG_PRINTLN(x)
 #endif
 
-class Debug {
-
+class Debug
+{
 public:
 	Debug();
 	void debugScreenBuffer(uint16_t screenBuffer[]);

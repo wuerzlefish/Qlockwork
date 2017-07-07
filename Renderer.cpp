@@ -7,15 +7,17 @@
 Renderer::Renderer() {
 }
 
-// write time to screenbuffer
-void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_t matrix[]) {
+// Write time to screenbuffer.
+void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_t matrix[])
+{
 	switch (language) {
 	case LANGUAGE_DE_DE:
 	case LANGUAGE_DE_SW:
 	case LANGUAGE_DE_BA:
 	case LANGUAGE_DE_SA:
 		DE_ESIST;
-		switch (minutes / 5) {
+		switch (minutes / 5)
+		{
 		case 0:
 			// full hour
 			setHours(hours, true, language, matrix);
@@ -34,11 +36,13 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 			break;
 		case 3:
 			// viertel nach
-			if ((language == LANGUAGE_DE_SW) || (language == LANGUAGE_DE_SA)) {
+			if ((language == LANGUAGE_DE_SW) || (language == LANGUAGE_DE_SA))
+			{
 				DE_VIERTEL;
 				setHours(hours + 1, false, language, matrix);
 			}
-			else {
+			else
+			{
 				DE_VIERTEL;
 				DE_NACH;
 				setHours(hours, false, language, matrix);
@@ -46,13 +50,15 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 			break;
 		case 4:
 			// 20 nach
-			if (language == LANGUAGE_DE_SA) {
+			if (language == LANGUAGE_DE_SA)
+			{
 				DE_ZEHN;
 				DE_VOR;
 				DE_HALB;
 				setHours(hours + 1, false, language, matrix);
 			}
-			else {
+			else
+			{
 				DE_ZWANZIG;
 				DE_NACH;
 				setHours(hours, false, language, matrix);
@@ -79,13 +85,15 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 			break;
 		case 8:
 			// 20 vor
-			if (language == LANGUAGE_DE_SA) {
+			if (language == LANGUAGE_DE_SA)
+			{
 				DE_ZEHN;
 				DE_NACH;
 				DE_HALB;
 				setHours(hours + 1, false, language, matrix);
 			}
-			else {
+			else
+			{
 				DE_ZWANZIG;
 				DE_VOR;
 				setHours(hours + 1, false, language, matrix);
@@ -93,11 +101,13 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 			break;
 		case 9:
 			// viertel vor
-			if ((language == LANGUAGE_DE_SW) || (language == LANGUAGE_DE_BA) || (language == LANGUAGE_DE_SA)) {
+			if ((language == LANGUAGE_DE_SW) || (language == LANGUAGE_DE_BA) || (language == LANGUAGE_DE_SA))
+			{
 				DE_DREIVIERTEL;
 				setHours(hours + 1, false, language, matrix);
 			}
-			else {
+			else
+			{
 				DE_VIERTEL;
 				DE_VOR;
 				setHours(hours + 1, false, language, matrix);
@@ -124,7 +134,8 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 	case LANGUAGE_DE_MKF_BA:
 	case LANGUAGE_DE_MKF_SA:
 		DE_MKF_ESIST;
-		switch (minutes / 5) {
+		switch (minutes / 5)
+		{
 		case 0:
 			// glatte Stunde
 			setHours(hours, true, language, matrix);
@@ -143,11 +154,13 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 			break;
 		case 3:
 			// viertel nach
-			if ((language == LANGUAGE_DE_MKF_SW) || (language == LANGUAGE_DE_MKF_SA)) {
+			if ((language == LANGUAGE_DE_MKF_SW) || (language == LANGUAGE_DE_MKF_SA))
+			{
 				DE_MKF_VIERTEL;
 				setHours(hours + 1, false, language, matrix);
 			}
-			else {
+			else
+			{
 				DE_MKF_VIERTEL;
 				DE_MKF_NACH;
 				setHours(hours, false, language, matrix);
@@ -155,13 +168,15 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 			break;
 		case 4:
 			// 20 nach
-			if (language == LANGUAGE_DE_MKF_SA) {
+			if (language == LANGUAGE_DE_MKF_SA)
+			{
 				DE_MKF_ZEHN;
 				DE_MKF_VOR;
 				DE_MKF_HALB;
 				setHours(hours + 1, false, language, matrix);
 			}
-			else {
+			else
+			{
 				DE_MKF_ZWANZIG;
 				DE_MKF_NACH;
 				setHours(hours, false, language, matrix);
@@ -188,13 +203,15 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 			break;
 		case 8:
 			// 20 vor
-			if (language == LANGUAGE_DE_MKF_SA) {
+			if (language == LANGUAGE_DE_MKF_SA)
+			{
 				DE_MKF_ZEHN;
 				DE_MKF_NACH;
 				DE_MKF_HALB;
 				setHours(hours + 1, false, language, matrix);
 			}
-			else {
+			else
+			{
 				DE_MKF_ZWANZIG;
 				DE_MKF_VOR;
 				setHours(hours + 1, false, language, matrix);
@@ -202,11 +219,13 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 			break;
 		case 9:
 			// viertel vor
-			if ((language == LANGUAGE_DE_MKF_SW) || (language == LANGUAGE_DE_MKF_BA) || (language == LANGUAGE_DE_MKF_SA)) {
+			if ((language == LANGUAGE_DE_MKF_SW) || (language == LANGUAGE_DE_MKF_BA) || (language == LANGUAGE_DE_MKF_SA))
+			{
 				DE_MKF_DREIVIERTEL;
 				setHours(hours + 1, false, language, matrix);
 			}
-			else {
+			else
+			{
 				DE_MKF_VIERTEL;
 				DE_MKF_VOR;
 				setHours(hours + 1, false, language, matrix);
@@ -230,7 +249,8 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 		break;
 	case LANGUAGE_D3:
 		D3_ESISCH;
-		switch (minutes / 5) {
+		switch (minutes / 5)
+		{
 		case 0:
 			// glatte Stunde
 			setHours(hours, true, language, matrix);
@@ -308,7 +328,8 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 		if (minutes % 5) CH_GSI;
 	case LANGUAGE_CH:
 		CH_ESISCH;
-		switch (minutes / 5) {
+		switch (minutes / 5)
+		{
 		case 0:
 			// glatte Stunde
 			setHours(hours, true, language, matrix);
@@ -386,7 +407,8 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 		break;
 	case LANGUAGE_EN:
 		EN_ITIS;
-		switch (minutes / 5) {
+		switch (minutes / 5)
+		{
 		case 0:
 			// glatte Stunde
 			setHours(hours, true, language, matrix);
@@ -464,7 +486,8 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 		}
 		break;
 	case LANGUAGE_ES:
-		switch (minutes / 5) {
+		switch (minutes / 5)
+		{
 		case 0:
 			// glatte Stunde
 			ES_hours(hours, matrix);
@@ -551,7 +574,8 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 		break;
 	case LANGUAGE_FR:
 		FR_ILEST;
-		switch (minutes / 5) {
+		switch (minutes / 5)
+		{
 		case 0:
 			// glatte Stunde
 			setHours(hours, true, language, matrix);
@@ -638,7 +662,8 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 		}
 		break;
 	case LANGUAGE_IT:
-		switch (minutes / 5) {
+		switch (minutes / 5)
+		{
 		case 0:
 			// glatte Stunde
 			setHours(hours, true, language, matrix);
@@ -729,7 +754,8 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 		break;
 	case LANGUAGE_NL:
 		NL_HETIS;
-		switch (minutes / 5) {
+		switch (minutes / 5)
+		{
 		case 0:
 			// glatte Stunde
 			setHours(hours, true, language, matrix);
@@ -810,17 +836,19 @@ void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_
 	}
 }
 
-// write hours to screenbuffer
-void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t matrix[]) {
-	switch (language) {
+// Write hours to screenbuffer.
+void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t matrix[])
+{
+	switch (language)
+	{
 	case LANGUAGE_DE_DE:
 	case LANGUAGE_DE_SW:
 	case LANGUAGE_DE_BA:
 	case LANGUAGE_DE_SA:
-		if (glatt) {
+		if (glatt)
 			DE_UHR;
-		}
-		switch (hours) {
+		switch (hours)
+		{
 		case 0:
 		case 12:
 		case 24:
@@ -828,12 +856,10 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 			break;
 		case 1:
 		case 13:
-			if (glatt) {
+			if (glatt)
 				DE_H_EIN;
-			}
-			else {
+			else
 				DE_H_EINS;
-			}
 			break;
 		case 2:
 		case 14:
@@ -886,7 +912,8 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 		if (glatt) {
 			DE_MKF_UHR;
 		}
-		switch (hours) {
+		switch (hours)
+		{
 		case 0:
 		case 12:
 		case 24:
@@ -894,12 +921,10 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 			break;
 		case 1:
 		case 13:
-			if (glatt) {
+			if (glatt)
 				DE_MKF_H_EIN;
-			}
-			else {
+			else
 				DE_MKF_H_EINS;
-			}
 			break;
 		case 2:
 		case 14:
@@ -946,7 +971,8 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 		}
 		break;
 	case LANGUAGE_D3:
-		switch (hours) {
+		switch (hours)
+		{
 		case 0:
 		case 12:
 		case 24:
@@ -1000,7 +1026,8 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 		break;
 	case LANGUAGE_CH:
 	case LANGUAGE_CH_GS:
-		switch (hours) {
+		switch (hours)
+		{
 		case 0:
 		case 12:
 		case 24:
@@ -1056,7 +1083,8 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 		break;
 	case LANGUAGE_EN:
 		if (glatt) EN_OCLOCK;
-		switch (hours) {
+		switch (hours)
+		{
 		case 0:
 		case 12:
 		case 24:
@@ -1109,7 +1137,8 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 		}
 		break;
 	case LANGUAGE_ES:
-		switch (hours) {
+		switch (hours)
+		{
 		case 0:
 		case 12:
 		case 24:
@@ -1162,7 +1191,8 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 		}
 		break;
 	case LANGUAGE_FR:
-		switch (hours) {
+		switch (hours)
+		{
 		case 0:
 		case 24:
 			FR_H_MINUIT;
@@ -1217,7 +1247,8 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 		}
 		break;
 	case LANGUAGE_IT:
-		switch (hours) {
+		switch (hours)
+		{
 		case 0:
 		case 12:
 		case 24:
@@ -1271,7 +1302,8 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 		break;
 	case LANGUAGE_NL:
 		if (glatt) NL_UUR;
-		switch (hours) {
+		switch (hours)
+		{
 		case 0:
 		case 12:
 		case 24:
@@ -1328,9 +1360,11 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 	}
 }
 
-// clear entry words
-void Renderer::clearEntryWords(uint8_t language, uint16_t matrix[]) {
-	switch (language) {
+// Clear entry words.
+void Renderer::clearEntryWords(uint8_t language, uint16_t matrix[])
+{
+	switch (language)
+	{
 	case LANGUAGE_DE_DE:
 	case LANGUAGE_DE_SW:
 	case LANGUAGE_DE_BA:
@@ -1372,9 +1406,11 @@ void Renderer::clearEntryWords(uint8_t language, uint16_t matrix[]) {
 	}
 }
 
-// turn on AM or PM
-void Renderer::setAMPM(uint8_t hours, uint8_t language, uint16_t matrix[]) {
-	switch (language) {
+// Turn on AM or PM.
+void Renderer::setAMPM(uint8_t hours, uint8_t language, uint16_t matrix[])
+{
+	switch (language)
+	{
 	case LANGUAGE_DE_DE:
 	case LANGUAGE_DE_SW:
 	case LANGUAGE_DE_BA:
@@ -1423,81 +1459,115 @@ void Renderer::setAMPM(uint8_t hours, uint8_t language, uint16_t matrix[]) {
 	}
 }
 
-// special case ES
-void Renderer::ES_hours(uint8_t hours, uint16_t matrix[]) {
-	if ((hours == 1) || (hours == 13)) ES_ESLA;
-	else ES_SONLAS;
+// Special case ES.
+void Renderer::ES_hours(uint8_t hours, uint16_t matrix[])
+{
+	if ((hours == 1) || (hours == 13))
+		ES_ESLA;
+	else
+		ES_SONLAS;
 }
 
-// special case FR
-void Renderer::FR_hours(uint8_t hours, uint16_t matrix[]) {
-	if ((hours == 1) || (hours == 13)) FR_HEURE;
-	else if ((hours == 0) || (hours == 12) || (hours == 24));
-	else FR_HEURES;
+// Special case FR.
+void Renderer::FR_hours(uint8_t hours, uint16_t matrix[])
+{
+	if ((hours == 1) || (hours == 13))
+		FR_HEURE;
+	else
+		if ((hours == 0) || (hours == 12) || (hours == 24))
+			;
+		else
+			FR_HEURES;
 }
 
-// special case IT
-void Renderer::IT_hours(uint8_t hours, uint16_t matrix[]) {
-	if ((hours != 1) && (hours != 13)) IT_SONOLE;
-	else IT_E;
+// Special case IT.
+void Renderer::IT_hours(uint8_t hours, uint16_t matrix[])
+{
+	if ((hours != 1) && (hours != 13))
+		IT_SONOLE;
+	else
+		IT_E;
 }
 
-// write minutes to screenbuffer
-void Renderer::setCorners(uint8_t minutes, uint16_t matrix[]) {
+// Write minutes to screenbuffer.
+void Renderer::setCorners(uint8_t minutes, uint16_t matrix[])
+{
 	uint8_t b_minutes = minutes % 5;
-	for (uint8_t i = 0; i < b_minutes; i++) bitSet(matrix[i], 4);
+	for (uint8_t i = 0; i < b_minutes; i++)
+		bitSet(matrix[i], 4);
 }
 
-// turn on alarm-LED
-void Renderer::setAlarmLed(uint16_t matrix[]) {
+// Turn alarm-LED on.
+void Renderer::setAlarmLed(uint16_t matrix[])
+{
 	bitSet(matrix[4], 4);
 }
 
-// turn off alarm-LED
-void Renderer::deactivateAlarmLed(uint16_t matrix[]) {
+// Turn alarm-LED off.
+void Renderer::deactivateAlarmLed(uint16_t matrix[])
+{
 	bitClear(matrix[4], 4);
 }
 
-// write text to screenbuffer
-void Renderer::setSmallText(String menuText, eTextPos textPos, uint16_t matrix[]) {
-	if (menuText.length() == 2) {
-		for (uint8_t i = 0; i <= 4; i++) {
-			for (uint8_t j = 0; j < menuText.length(); j++) {
-				if (!isNumber(menuText[j])) matrix[textPos + i] |= (staben[menuText[j] - 'A'][i]) << (5 + ((j + 1) % 2) * 6);
-				else matrix[textPos + i] |= (zahlenKlein[menuText[j] - '0'][i]) << (5 + ((j + 1) % 2) * 5);
+// Write text to screenbuffer.
+void Renderer::setSmallText(String menuText, eTextPos textPos, uint16_t matrix[])
+{
+	if (menuText.length() == 2)
+	{
+		for (uint8_t i = 0; i <= 4; i++)
+		{
+			for (uint8_t j = 0; j < menuText.length(); j++)
+			{
+				if (!isNumber(menuText[j]))
+					matrix[textPos + i] |= (staben[menuText[j] - 'A'][i]) << (5 + ((j + 1) % 2) * 6);
+				else
+					matrix[textPos + i] |= (zahlenKlein[menuText[j] - '0'][i]) << (5 + ((j + 1) % 2) * 5);
 			}
 		}
 	}
-	else if (menuText.length() == 1) {
-		for (uint8_t i = 0; i <= 4; i++) {
-			if (!isNumber(menuText[0])) matrix[textPos + i] |= (staben[menuText[0] - 'A'][i]) << 8;
-			else matrix[textPos + i] |= (zahlenKlein[menuText[0] - '0'][i]) << 8;
+	else if (menuText.length() == 1)
+	{
+		for (uint8_t i = 0; i <= 4; i++)
+		{
+			if (!isNumber(menuText[0]))
+				matrix[textPos + i] |= (staben[menuText[0] - 'A'][i]) << 8;
+			else
+				matrix[textPos + i] |= (zahlenKlein[menuText[0] - '0'][i]) << 8;
 		}
 	}
 }
 
-// test for number
-boolean Renderer::isNumber(char symbol) {
-	if ((symbol >= '0') && (symbol <= '9')) return true;
-	else return false;
+// Test for number.
+boolean Renderer::isNumber(char symbol)
+{
+	if ((symbol >= '0') && (symbol <= '9'))
+		return true;
+	else
+		return false;
 }
 
-// write pixel to screenbuffer
-void Renderer::setPixelInScreenBuffer(uint8_t x, uint8_t y, uint16_t matrix[]) {
+// Write pixel to screenbuffer.
+void Renderer::setPixelInScreenBuffer(uint8_t x, uint8_t y, uint16_t matrix[])
+{
 	bitSet(matrix[y], x);
 }
 
-// remove pixel from screenbuffer
-void Renderer::unsetPixelInScreenBuffer(uint8_t x, uint8_t y, uint16_t matrix[]) {
+// Remove pixel from screenbuffer.
+void Renderer::unsetPixelInScreenBuffer(uint8_t x, uint8_t y, uint16_t matrix[])
+{
 	bitClear(matrix[y], x);
 }
 
-// clear screenbuffer
-void Renderer::clearScreenBuffer(uint16_t matrix[]) {
-	for (uint8_t i = 0; i <= 9; i++) matrix[i] = 0b0000000000000000;
+// Clear screenbuffer.
+void Renderer::clearScreenBuffer(uint16_t matrix[])
+{
+	for (uint8_t i = 0; i <= 9; i++)
+		matrix[i] = 0b0000000000000000;
 }
 
-// turn on all LEDs in screenbuffer
-void Renderer::setAllScreenBuffer(uint16_t matrix[]) {
-	for (uint8_t i = 0; i <= 9; i++) matrix[i] = 0b1111111111111111;
+// Turn all LEDs in screenbuffer on.
+void Renderer::setAllScreenBuffer(uint16_t matrix[])
+{
+	for (uint8_t i = 0; i <= 9; i++)
+		matrix[i] = 0b1111111111111111;
 }

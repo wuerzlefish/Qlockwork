@@ -10,7 +10,7 @@ Supports more than 30 types of LED stripes.
 FastLED (RGB), LPD8806 (RGBW), NeoPixel (RGB and RGBW).
 Horizontal and vertial LED layout.
 Webserver to control the clock.
-2 Transitions for timechange (Normal, Fade).
+2 Transitions for timechange.
 Room and external Temperature.
 16 Languages.
 37 Colors.
@@ -213,7 +213,7 @@ LED-Test:                        Moves a horizontal bar across the display.
 
 #define LED_LIBRARY_NEOPIXEL    LED Driver for NeoPixel LEDs.
 #define LED_DRIVER_NEO_*        Gibt in Verbindung mit LED_LIBRARAY_NEOPIXEL den Typ der NeoPixel an.
-                                400kHz, 800kHz, GRB, RGB und RGBW.
+                                400kHz, 800kHz, GRB, RGB, GRBW und RGBW.
 
 #define LED_LIBRARY_FASTLED     FastLED Driver for LEDs.
 #define LED_DRIVER_FAST_*       Gibt in Verbindung mit LED_LIBRARAY_FASTLED den Typ der LEDs an.
@@ -226,7 +226,7 @@ LED-Test:                        Moves a horizontal bar across the display.
                                 WS2813, WS2852.
 
 #define SERIAL_SPEED  Serial port speed for the console.
-#define DEBUG         Outputs technical information in the serial console
+#define DEBUG         Outputs technical information in the serial console.
 #define DEBUG_WEBSITE Provides technical information on the web page.
 #define DEBUG_MATRIX  Renders the output of the matrix for the German front in the serial console.
 #define DEBUG_FPS     Number of loops per second.

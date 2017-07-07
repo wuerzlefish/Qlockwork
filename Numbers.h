@@ -5,7 +5,8 @@
 #ifndef NUMBERS_H
 #define NUMBERS_H
 
-const char zahlenKlein[][5] = {
+const char zahlenKlein[][5] =
+{
 	{ // 0
 		0b00011110,
 		0b00010010,
@@ -78,7 +79,8 @@ const char zahlenKlein[][5] = {
 	}
 };
 
-const char zahlenGross[][7] = {
+const char zahlenGross[][7] =
+{
 	{ // 0
 #ifdef NONE_TECHNICAL_ZERO
 		0b00001110,

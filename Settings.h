@@ -13,8 +13,8 @@
 #define SETTINGS_MAGIC_NUMBER 0x2A
 #define SETTINGS_VERSION 18
 
-class Settings {
-
+class Settings
+{
 public:
 	Settings();
 
@@ -61,7 +61,8 @@ public:
 	void saveToEEPROM();
 
 private:
-	struct MySettings {
+	struct MySettings
+	{
 		uint8_t magicNumber;
 		uint8_t version;
 		uint8_t language;

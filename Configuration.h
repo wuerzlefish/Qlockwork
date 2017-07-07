@@ -26,17 +26,18 @@
 #define LDR_HYSTERESIS 30
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
-//#define NONE_TECHNICAL_ZERO
 #define BUZZER
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 60
 #define BUZZTIME_TIMER 30
+//#define NONE_TECHNICAL_ZERO
 
 #define YAHOO_LOCATION "Berlin, BE, DE"
 //#define YAHOO_LOCATION "Zurich, ZH, CH"
 //#define YAHOO_LOCATION "Singapur, SG"
 
-#define UPDATE_INFO
+#define UPDATE_INFO_UNSTABLE
+//#define UPDATE_INFO_STABLE
 
 //#define TIMEZONE_IDLW  // IDLW  Internation Date Line West UTC-12
 //#define TIMEZONE_SST   // SST   Samoa Standard Time UTC-11
@@ -71,19 +72,21 @@
 //#define TIMEZONE_NZST  // NZST  New Zealand Standard Time UTC+12
 
 //#define IR_REMOTE
-#define IR_CODE_ONOFF   4001918335 // HX1838 Remote CH+
-#define IR_CODE_TIME    3810010651 // HX1838 Remote CH-
-#define IR_CODE_MODE    5316027    // HX1838 Remote CH
-#define IR_CODE_EXTMODE 3855596927 // HX1838 Remote EQ
-#define IR_CODE_PLUS    2747854299 // HX1838 Remote +
-#define IR_CODE_MINUS   4034314555 // HX1838 Remote -
-//#define IR_CODE_ONOFF   4034314555 // CLT2 V1.1 Remote Power
-//#define IR_CODE_TIME    2878444831 // CLT2 V1.1 Remote Time
-//#define IR_CODE_MODE    1373912347 // CLT2 V1.1 Remote Region
-//#define IR_CODE_EXTMODE 4287727287 // CLT2 V1.1 Remote Seconds
-//#define IR_CODE_PLUS    3691091931 // CLT2 V1.1 Remote +
-//#define IR_CODE_MINUS   4084712887 // CLT2 V1.1 Remote -
 //#define IR_LETTER_OFF
+
+//#define IR_CODE_ONOFF   16769565 // HX1838 Remote CH+
+//#define IR_CODE_TIME    16753245 // HX1838 Remote CH-
+//#define IR_CODE_MODE    16736925 // HX1838 Remote CH
+//#define IR_CODE_EXTMODE 16748655 // HX1838 Remote EQ
+//#define IR_CODE_PLUS    16754775 // HX1838 Remote +
+//#define IR_CODE_MINUS   16769055 // HX1838 Remote -
+
+//#define IR_CODE_ONOFF   16769055 // CLT2 V1.1 Remote Power
+//#define IR_CODE_TIME    16752735 // CLT2 V1.1 Remote Time
+//#define IR_CODE_MODE    16720095 // CLT2 V1.1 Remote Region
+//#define IR_CODE_EXTMODE 16736415 // CLT2 V1.1 Remote Seconds
+//#define IR_CODE_PLUS    16734375 // CLT2 V1.1 Remote +
+//#define IR_CODE_MINUS   16730295 // CLT2 V1.1 Remote -
 
 #define LED_LAYOUT_HORIZONTAL
 //#define LED_LAYOUT_VERTICAL
@@ -134,31 +137,25 @@
 //#define LED_DRIVER_FAST_WS2813
 //#define LED_DRIVER_FAST_WS2852
 
-#define LANG_ON "On"
-#define LANG_OFF "Off"
-#define LANG_TIME "Time"
-#define LANG_MODE "Mode"
-#define LANG_SETTINGS "Settings"
-#define LANG_PLUS "Plus"
-#define LANG_MINUS "Minus"
 #define LANG_TEMPERATURE "Temperature"
-#define LANG_EXT_TEMPERATURE "Ext. Temperature"
-#define DEDICATION "designed and coded with love by ch570512."
-//#define LANG_ON "Ein"
-//#define LANG_OFF "Aus"
-//#define LANG_TIME "Zeit"
-//#define LANG_MODE "Modus"
-//#define LANG_SETTINGS "Einstellungen"
-//#define LANG_PLUS "Plus"
-//#define LANG_MINUS "Minus"
 //#define LANG_TEMPERATURE "Temperatur (innen)"
+#define LANG_EXT_TEMPERATURE "Ext. Temperature"
 //#define LANG_EXT_TEMPERATURE "Temperatur (aussen)"
-//#define DEDICATION "von ch570512"
+//#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
 
 //#define DEBUG
 //#define DEBUG_WEBSITE
 //#define DEBUG_MATRIX
 //#define DEBUG_FPS
+
+#define SERIAL_SPEED    115200
+#define NUM_LEDS        115
+#define PIN_IR_RECEIVER D3
+#define PIN_LED         D4
+#define PIN_BUZZER      D5
+#define PIN_LEDS_CLOCK  D7
+#define PIN_LEDS_DATA   D8
+#define PIN_LDR         A0
 
 #endif // CONFIG_DEFAULT
 
@@ -177,35 +174,36 @@
 #define MAX_BRIGHTNESS 255
 #define BUZZER
 #define BUZZTIME_ALARM_1 60
-#define BUZZTIME_ALARM_2 3
+#define BUZZTIME_ALARM_2 60
 #define BUZZTIME_TIMER 30
 #define YAHOO_LOCATION "Zurich, ZH, CH"
-#define UPDATE_INFO
+#define UPDATE_INFO_UNSTABLE
 #define TIMEZONE_CET
 #define IR_REMOTE
-#define IR_CODE_ONOFF   4001918335 // HX1838 Remote CH+
-#define IR_CODE_TIME    3810010651 // HX1838 Remote CH-
-#define IR_CODE_MODE    5316027    // HX1838 Remote CH
-#define IR_CODE_EXTMODE 3855596927 // HX1838 Remote EQ
-#define IR_CODE_PLUS    2747854299 // HX1838 Remote +
-#define IR_CODE_MINUS   4034314555 // HX1838 Remote -
+#define IR_CODE_ONOFF   16769565 // HX1838 Remote CH+
+#define IR_CODE_TIME    16753245 // HX1838 Remote CH-
+#define IR_CODE_MODE    16736925 // HX1838 Remote CH
+#define IR_CODE_EXTMODE 16748655 // HX1838 Remote EQ
+#define IR_CODE_PLUS    16754775 // HX1838 Remote +
+#define IR_CODE_MINUS   16769055 // HX1838 Remote -
 #define LED_LAYOUT_VERTICAL
 #define LED_LIBRARY_NEOPIXEL
 #define LED_DRIVER_NEO_800KHZ_GRB
-#define LANG_ON "Ein"
-#define LANG_OFF "Aus"
-#define LANG_TIME "Zeit"
-#define LANG_MODE "Modus"
-#define LANG_SETTINGS "Einstellungen"
-#define LANG_PLUS "Plus"
-#define LANG_MINUS "Minus"
 #define LANG_TEMPERATURE "Temperatur (innen)"
 #define LANG_EXT_TEMPERATURE "Temperatur (aussen)"
-#define DEDICATION "designed and coded with love by ch570512."
+#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
 #define DEBUG
 #define DEBUG_WEBSITE
 //#define DEBUG_MATRIX
 //#define DEBUG_FPS
+#define SERIAL_SPEED    115200
+#define NUM_LEDS        115
+#define PIN_IR_RECEIVER D3
+#define PIN_LED         D4
+#define PIN_BUZZER      D5
+#define PIN_LEDS_CLOCK  D7
+#define PIN_LEDS_DATA   D8
+#define PIN_LDR         A0
 #endif // CONFIG_QLOCKDEV
 
 #ifdef CONFIG_QLOCKMIN
@@ -216,29 +214,32 @@
 #define SELFTEST
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
-#define NONE_TECHNICAL_ZERO
+#define BUZZER
+#define BUZZTIME_ALARM_1 60
+#define BUZZTIME_ALARM_2 2
+#define BUZZTIME_TIMER 30
 #define YAHOO_LOCATION "Zurich, ZH, CH"
-#define UPDATE_INFO
+#define UPDATE_INFO_UNSTABLE
 #define TIMEZONE_CET
 #define LED_LAYOUT_HORIZONTAL
 #define LED_LIBRARY_NEOPIXEL
 #define LED_DRIVER_NEO_800KHZ_GRB
-#define LANG_ON "Ein"
-#define LANG_OFF "Aus"
-#define LANG_TIME "Zeit"
-#define LANG_MODE "Modus"
-#define LANG_SETTINGS "Einstellungen"
-#define LANG_PLUS "Plus"
-#define LANG_MINUS "Minus"
 #define LANG_TEMPERATURE "Temperatur (innen)"
 #define LANG_EXT_TEMPERATURE "Temperatur (aussen)"
-#define DEBUG_WEBSITE
+#define SERIAL_SPEED    115200
+#define NUM_LEDS        115
+#define PIN_IR_RECEIVER D3
+#define PIN_LED         D4
+#define PIN_BUZZER      D5
+#define PIN_LEDS_CLOCK  D7
+#define PIN_LEDS_DATA   D8
+#define PIN_LDR         A0
 #endif // CONFIG_QLOCKMIN
 
 #ifdef CONFIG_CLT2
 #define HOSTNAME "QLOCKWORK"
 #define WIFI_AP_TIMEOUT 300
-#define OTA_PASS "ch570512"
+#define OTA_PASS "1234"
 #define NTP_SERVER "pool.ntp.org"
 #define RTC_BACKUP
 #define RTC_TEMP_OFFSET -4.25
@@ -252,38 +253,21 @@
 #define BUZZTIME_ALARM_2 60
 #define BUZZTIME_TIMER 30
 #define YAHOO_LOCATION "Berlin, BE, DE"
-#define UPDATE_INFO
+#define UPDATE_INFO_STABLE
 #define TIMEZONE_CET
-//#define IR_REMOTE
-//#define IR_CODE_ONOFF   4034314555 // CLT2 V1.1 Remote Power
-//#define IR_CODE_TIME    2878444831 // CLT2 V1.1 Remote Time
-//#define IR_CODE_MODE    1373912347 // CLT2 V1.1 Remote Region
-//#define IR_CODE_EXTMODE 4287727287 // CLT2 V1.1 Remote Seconds
-//#define IR_CODE_PLUS    3691091931 // CLT2 V1.1 Remote +
-//#define IR_CODE_MINUS   4084712887 // CLT2 V1.1 Remote -
-//#define IR_LETTER_OFF
 #define LED_LAYOUT_VERTICAL
 #define LED_LIBRARY_LPD8806RGBW
-#define LANG_ON "Ein"
-#define LANG_OFF "Aus"
-#define LANG_TIME "Zeit"
-#define LANG_MODE "Modus"
-#define LANG_SETTINGS "Einstellungen"
-#define LANG_PLUS "Plus"
-#define LANG_MINUS "Minus"
 #define LANG_TEMPERATURE "Temperatur (innen)"
 #define LANG_EXT_TEMPERATURE "Temperatur (aussen)"
-#define DEDICATION "von Thorsten fuer die vielen tollen Essen in der Schweiz."
-#endif // CONFIG_CLT2
-
-#define FIRMWARE_VERSION 20170628
-#define SERIAL_SPEED 115200
-#define NUM_LEDS 115
+#define DEDICATION "von Thorsten f&uuml;r die vielen tollen Essen in der Schweiz."
+#define SERIAL_SPEED    115200
+#define NUM_LEDS        115
 #define PIN_IR_RECEIVER D3
 #define PIN_LED         D4
 #define PIN_BUZZER      D5
 #define PIN_LEDS_CLOCK  D7
 #define PIN_LEDS_DATA   D8
 #define PIN_LDR         A0
+#endif // CONFIG_CLT2
 
 #endif

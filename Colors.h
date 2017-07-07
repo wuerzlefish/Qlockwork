@@ -5,13 +5,15 @@
 #ifndef COLORS_H
 #define COLORS_H
 
-struct color_s {
+struct color_s
+{
 	uint8_t red;
 	uint8_t green;
 	uint8_t blue;
 };
 
-const color_s defaultColors[] = {
+const color_s defaultColors[] =
+{
 	{0xFF, 0xFF, 0xFF}, // 00 white
 	{0xFF, 0x00, 0x00}, // 01 red
 	{0x00, 0xFF, 0x00}, // 02 green

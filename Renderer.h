@@ -12,8 +12,8 @@
 #include "Numbers.h"
 #include "Words.h"
 
-class Renderer {
-
+class Renderer
+{
 public:
 	Renderer();
 	void setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t matrix[]);

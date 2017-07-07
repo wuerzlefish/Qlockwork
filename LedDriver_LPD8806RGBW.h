@@ -9,8 +9,8 @@
 #include "Colors.h"
 #include "Configuration.h"
 
-class LedDriver_LPD8806RGBW {
-
+class LedDriver_LPD8806RGBW
+{
 public:
 	LedDriver_LPD8806RGBW();
 	String getSignature();
