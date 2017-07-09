@@ -29,7 +29,7 @@ A firmware for the DIY-QLOCKTWO.
 #include "Settings.h"
 #include "Timezones.h"
 
-#define FIRMWARE_VERSION 20170707
+#define FIRMWARE_VERSION 20170709
 
 /******************************************************************************
 Init.
@@ -104,7 +104,7 @@ void setup()
 	DEBUG_PRINTLN("LED-Driver: " + ledDriver.getSignature());
 	// Init LED, Buzzer and LDR.
 #ifdef ESP_LED
-	DEBUG_PRINTLN("Setting up ESP LED.");
+	DEBUG_PRINTLN("Setting up ESP-LED.");
 	pinMode(PIN_LED, OUTPUT);
 	digitalWrite(PIN_LED, HIGH);
 #endif
@@ -123,6 +123,13 @@ void setup()
 #endif
 	randomHour = random(0, 24);
 	DEBUG_PRINTLN("Random hour is: " + String(randomHour));
+#ifdef RTC_BACKUP
+#ifdef DEBUG
+	debug.debugTime("Time (RTC):", RTC.get());
+#endif
+	DEBUG_PRINTLN("*** ESP set from RTC. ***");
+	setTime(RTC.get());
+#endif
 #ifdef SELFTEST
 	renderer.setAllScreenBuffer(matrix);
 	DEBUG_PRINTLN("Set all LEDs to white.");
@@ -168,6 +175,7 @@ void setup()
 			delay(100);
 		}
 		delay(500);
+#ifdef SHOW_IP
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("IP", TEXT_POS_MIDDLE, matrix);
 		writeScreenBuffer(matrix, WHITE, brightness);
@@ -185,6 +193,7 @@ void setup()
 			writeScreenBuffer(matrix, WHITE, brightness);
 			delay(2000);
 		}
+#endif
 	}
 	renderer.clearScreenBuffer(matrix);
 	DEBUG_PRINTLN("Starting mDNS responder.");
@@ -199,13 +208,14 @@ void setup()
 	DEBUG_PRINTLN("Starting IR-receiver.");
 	irrecv.enableIRIn();
 #endif
-	getYahooWeather(YAHOO_LOCATION);
-	setTime(getTime());
+	getWeather(LOCATION);
+	getNtpTime();
 	lastDay = day();
 	lastHour = hour();
 	lastFiveMinute = minute() / 5;
 	lastMinute = minute();
 	lastTime = now();
+	//getUpdateInfo();
 	DEBUG_PRINTLN("Free RAM: " + String(system_get_free_heap_size()));
 }
 
@@ -221,7 +231,6 @@ void loop()
 	{
 		lastDay = day();
 		screenBufferNeedsUpdate = true;
-		DEBUG_PRINTLN("Reached a new day.");
 		if (settings.getColorChange() == COLORCHANGE_DAY)
 			settings.setColor(random(0, COLORCHANGE_COUNT + 1));
 	}
@@ -232,7 +241,6 @@ void loop()
 	{
 		lastHour = hour();
 		screenBufferNeedsUpdate = true;
-		DEBUG_PRINTLN("Reached a new hour.");
 		DEBUG_PRINTLN("Free RAM: " + String(system_get_free_heap_size()));
 		if (settings.getColorChange() == COLORCHANGE_HOUR)
 			settings.setColor(random(0, COLOR_COUNT + 1));
@@ -241,7 +249,7 @@ void loop()
 		if ((hour() / float(randomHour)) == 1.0)
 			getUpdateInfo();
 #endif
-		setTime(getTime());
+		getNtpTime();
 	}
 
 	// Execute every five minutes.
@@ -250,7 +258,6 @@ void loop()
 	{
 		lastFiveMinute = minute() / 5;
 		screenBufferNeedsUpdate = true;
-		DEBUG_PRINTLN("Reached new five minutes.");
 		if (settings.getColorChange() == COLORCHANGE_FIVE)
 			settings.setColor(random(0, COLOR_COUNT + 1));
 	}
@@ -261,11 +268,16 @@ void loop()
 	{
 		lastMinute = minute();
 		screenBufferNeedsUpdate = true;
-#ifdef DEBUG
-		debug.debugTime("Time:", now());
-#endif
 #ifdef RTC_BACKUP
-		setTime(RTC.get());
+		if (now() != RTC.get())
+		{
+			DEBUG_PRINTLN("*** ESP set from RTC. ***");
+			DEBUG_PRINTLN("Drift (ESP/RTC): " + String(RTC.get() - now()) + " sec.");
+			setTime(RTC.get());
+		}
+#endif
+#ifdef DEBUG
+		debug.debugTime("Time (ESP):", now());
 #endif
 	}
 
@@ -885,11 +897,11 @@ void buttonModePressed()
 		setMode(STD_MODE_NORMAL);
 		break;
 	case STD_MODE_EXT_TEMP:
-		getYahooWeather(YAHOO_LOCATION);
+		getWeather(LOCATION);
 		fallBackCounter = settings.getTimeout();
 		break;
 	case STD_MODE_EXT_HUMIDITY:
-		//getYahooWeather(YAHOO_LOCATION);
+		//getYahooWeather(LOCATION);
 		fallBackCounter = settings.getTimeout();
 		break;
 	case EXT_MODE_COLOR:
@@ -1276,11 +1288,11 @@ void buttonMinusPressed()
 	}
 }
 
+#ifdef IR_REMOTE
 /******************************************************************************
 IR-signal received.
 ******************************************************************************/
 
-#ifdef IR_REMOTE
 void remoteAction(decode_results irDecodeResult)
 {
 	switch (irDecodeResult.value)
@@ -1381,6 +1393,8 @@ void setBrightnessFromLdr()
 			minLdrValue = ldrValue;
 		if (ldrValue > maxLdrValue)
 			maxLdrValue = ldrValue;
+		//if ((minLdrValue == maxLdrValue) && (minLdrValue > LDR_HYSTERESIS))
+		//	minLdrValue -= LDR_HYSTERESIS;
 		if (settings.getUseLdr() && ((ldrValue >= (lastLdrValue + LDR_HYSTERESIS)) || (ldrValue <= (lastLdrValue - LDR_HYSTERESIS))))
 		{
 			lastLdrValue = ldrValue;
@@ -1409,159 +1423,165 @@ void setBrightnessFromLdr()
 
 #if defined(UPDATE_INFO_STABLE) || defined(UPDATE_INFO_UNSTABLE)
 /******************************************************************************
-Update info.
+Get update info.
 ******************************************************************************/
 
 void getUpdateInfo()
 {
-	if (WiFi.status() != WL_CONNECTED)
-		return;
-	DEBUG_PRINTLN("Sending HTTP-request for update info.");
-	char server[] = "tmw-it.ch";
-	WiFiClient wifiClient;
-	RestClient restClient = RestClient(wifiClient, server, 80);
-	restClient.get("/qlockwork/updateinfo.json");
-	String response = restClient.readResponse();
-	DEBUG_PRINT("Parsing JSON. ");
-	DynamicJsonBuffer jsonBuffer;
-	JsonObject &responseJson = jsonBuffer.parseObject(response);
-	if (!responseJson.success())
+	DEBUG_PRINT("Sending HTTP-request for update info. Status: ");
+	if (WiFi.status() == WL_CONNECTED)
 	{
-		DEBUG_PRINTLN("ERROR.");
-		return;
-	}
-	else
-		DEBUG_PRINTLN("OK.");
+		char server[] = "tmw-it.ch";
+		WiFiClient wifiClient;
+		RestClient restClient = RestClient(wifiClient, server, 80);
+		uint16_t statusCode = restClient.get("/qlockwork/updateinfo.json");
+		if (statusCode != 200)
+		{
+			DEBUG_PRINTLN(statusCode);
+			return;
+		}
+		String response = restClient.readResponse();
+		DEBUG_PRINTLN(String(statusCode) + "\r\nResponse is " + String(response.length()) + " bytes.");
+		//DEBUG_PRINTLN(String(response));
+		DEBUG_PRINT("Parsing JSON. ");
+		//DynamicJsonBuffer jsonBuffer;
+		StaticJsonBuffer<256> jsonBuffer;
+		JsonObject &responseJson = jsonBuffer.parseObject(response);
+		if (!responseJson.success())
+		{
+			DEBUG_PRINTLN("ERROR.");
+			return;
+		}
+		else
+			DEBUG_PRINTLN("OK.");
 #ifdef UPDATE_INFO_STABLE
-	updateInfo = responseJson["channel"]["stable"]["version"].as<String>();
+		updateInfo = responseJson["channel"]["stable"]["version"].as<String>();
 #endif
 #ifdef UPDATE_INFO_UNSTABLE
-	updateInfo = responseJson["channel"]["unstable"]["version"].as<String>();
+		updateInfo = responseJson["channel"]["unstable"]["version"].as<String>();
 #endif
-	DEBUG_PRINTLN("Update info response: " + updateInfo);
+		DEBUG_PRINTLN("Firmware on GitHub: " + updateInfo);
+		return;
+	}
+	DEBUG_PRINTLN("ERROR. No WiFi.");
+	return;
 }
 #endif
 
 /******************************************************************************
-Weather.
+Get weather conditions.
 ******************************************************************************/
 
-void getYahooWeather(String yahooLocation)
+void getWeather(String location)
 {
-	if (WiFi.status() != WL_CONNECTED)
+	DEBUG_PRINT("Sending HTTP-request for weather. Status: ");
+	if (WiFi.status() == WL_CONNECTED)
 	{
-		DEBUG_PRINTLN("Sending HTTP-request for weather failed. No WiFi.");
-		yahooTitle = "Request failed. No WiFi.";
-		return;
-	}
-	esp8266WebServer.handleClient();
-	DEBUG_PRINT("Sending HTTP-request for weather. ");
-	char server[] = "query.yahooapis.com";
-	WiFiClient wifiClient;
-	RestClient restClient = RestClient(wifiClient, server, 80);
-	String sqlQuery = "select atmosphere.humidity, item.title, item.condition.temp, item.condition.code ";
-	sqlQuery += "from weather.forecast where woeid in ";
-	sqlQuery += "(select woeid from geo.places(1) where text=%22" + yahooLocation + "%22) ";
-	sqlQuery += "and u=%27c%27";
-	sqlQuery.replace(" ", "%20");
-	sqlQuery.replace(",", "%2C");
-	restClient.get("query.yahooapis.com/v1/public/yql?q=" + sqlQuery + "&format=json");
-	String response = restClient.readResponse();
-	if (response.length() > 1024)
-	{
-		DEBUG_PRINTLN("ERROR.");
-		yahooTitle = "Request failed.";
-		return;
-	}
-	response = response.substring(response.indexOf('{'), response.lastIndexOf('}') + 1);
-	//DEBUG_PRINTLN("HTTP-response: " + response);
-	DEBUG_PRINTLN("OK.");
-	DEBUG_PRINT("Parsing JSON. ");
-	DynamicJsonBuffer jsonBuffer;
-	JsonObject &responseJson = jsonBuffer.parseObject(response);
-	if (!responseJson.success())
-	{
-		DEBUG_PRINTLN("ERROR.");
-		yahooTitle = "Parsing JSON failed.";
-		return;
-	}
-	else
-		DEBUG_PRINTLN("OK.");
-	yahooTitle = responseJson["query"]["results"]["channel"]["item"]["title"].as<String>();
-	DEBUG_PRINTLN(yahooTitle);
-	yahooTemp = responseJson["query"]["results"]["channel"]["item"]["condition"]["temp"].as<int8_t>();
-	DEBUG_PRINTLN("Temperature is: " + String(yahooTemp));
-	yahooHumidity = responseJson["query"]["results"]["channel"]["atmosphere"]["humidity"].as<uint8_t>();
-	DEBUG_PRINTLN("Humidity is: " + String(yahooHumidity));
-	yahooCode = responseJson["query"]["results"]["channel"]["item"]["condition"]["code"].as<uint8_t>();
-	DEBUG_PRINTLN("Condition code is: " + String(yahooCode));
-}
-
-/******************************************************************************
-Get time from NTP or RTC.
-******************************************************************************/
-
-time_t getTime()
-{
-	if (WiFi.status() != WL_CONNECTED)
-	{
-		DEBUG_PRINTLN("Sending NTP-request failed. No WiFi.");
-#ifdef RTC_BACKUP
-		DEBUG_PRINTLN("*** ESP set from RTC. ***");
-		return RTC.get();
-#else
-		DEBUG_PRINTLN("*** ESP not set. ***");
-		return now();
-#endif
-	}
-	esp8266WebServer.handleClient();
-	DEBUG_PRINT("Sending NTP-request to \"" + String(NTP_SERVER) + "\". ");
-	uint8_t packetBuffer[49] = { };
-	packetBuffer[0] = 0xE3;
-	packetBuffer[1] = 0x00;
-	packetBuffer[2] = 0x06;
-	packetBuffer[3] = 0xEC;
-	packetBuffer[12] = 0x31;
-	packetBuffer[13] = 0x4E;
-	packetBuffer[14] = 0x31;
-	packetBuffer[15] = 0x34;
-	WiFiUDP wifiUdp;
-	wifiUdp.begin(2390);
-	char server[] = NTP_SERVER;
-	IPAddress timeServerIP;
-	WiFi.hostByName(server, timeServerIP);
-	wifiUdp.beginPacket(timeServerIP, 123);
-	wifiUdp.write(packetBuffer, 48);
-	wifiUdp.endPacket();
-	uint32_t beginWait = millis();
-	while (millis() - beginWait < 1500)
-	{
-		if (wifiUdp.parsePacket() >= 48)
+		location.replace(" ", "%20");
+		location.replace(",", "%2C");
+		char server[] = "query.yahooapis.com";
+		WiFiClient wifiClient;
+		RestClient restClient = RestClient(wifiClient, server, 80);
+		String sqlQuery = "select%20atmosphere.humidity%2C%20item.title%2C%20item.condition.temp%2C%20item.condition.code%20";
+		sqlQuery += "from%20weather.forecast%20where%20woeid%20in%20";
+		sqlQuery += "(select%20woeid%20from%20geo.places(1)%20where%20text=%22" + location + "%22)%20";
+		sqlQuery += "and%20u=%27c%27";
+		uint16_t statusCode = restClient.get("query.yahooapis.com/v1/public/yql?q=" + sqlQuery + "&format=json");
+		if (statusCode != 200)
 		{
-			wifiUdp.read(packetBuffer, 48);
-			uint32_t ntpTime = (packetBuffer[40] << 24) + (packetBuffer[41] << 16) + (packetBuffer[42] << 8) + packetBuffer[43];
-			// NTP time is seconds from 1900, we need from 1970.
-			ntpTime -= 2208988800;
-#ifdef DEBUG
-			DEBUG_PRINTLN("OK.");
-			debug.debugTime("NTP-response: (UTC)", ntpTime);
-#endif
-#ifdef RTC_BACKUP
-			DEBUG_PRINTLN("*** RTC set from NTP. ***");
-			RTC.set(timeZone.toLocal(ntpTime));
-#endif
-			DEBUG_PRINTLN("*** ESP set from NTP. ***");
-			return (timeZone.toLocal(ntpTime));
+			DEBUG_PRINTLN(statusCode);
+			yahooTitle = "Request failed.";
+			return;
 		}
+		String response = restClient.readResponse();
+		response = response.substring(response.indexOf('{'), response.lastIndexOf('}') + 1);
+		DEBUG_PRINTLN(String (statusCode) + "\r\nResponse is " + String(response.length()) + " bytes.");
+		//DEBUG_PRINTLN(String(response));
+		DEBUG_PRINT("Parsing JSON. ");
+		//DynamicJsonBuffer jsonBuffer;
+		StaticJsonBuffer<512> jsonBuffer;
+		JsonObject &responseJson = jsonBuffer.parseObject(response);
+		if (!responseJson.success())
+		{
+			DEBUG_PRINTLN("ERROR.");
+			yahooTitle = "Parsing failed.";
+			return;
+		}
+		else
+			DEBUG_PRINTLN("OK.");
+		yahooTitle = responseJson["query"]["results"]["channel"]["item"]["title"].as<String>();
+		yahooTitle = yahooTitle.substring(0, yahooTitle.indexOf(" at "));
+		DEBUG_PRINTLN(yahooTitle);
+		yahooTemp = responseJson["query"]["results"]["channel"]["item"]["condition"]["temp"].as<int8_t>();
+		DEBUG_PRINTLN("Temperature is: " + String(yahooTemp));
+		yahooHumidity = responseJson["query"]["results"]["channel"]["atmosphere"]["humidity"].as<uint8_t>();
+		DEBUG_PRINTLN("Humidity is: " + String(yahooHumidity));
+		yahooCode = responseJson["query"]["results"]["channel"]["item"]["condition"]["code"].as<uint8_t>();
+		DEBUG_PRINTLN("Condition code is: " + String(yahooCode));
+		return;
 	}
-	DEBUG_PRINTLN("ERROR.");
-#ifdef RTC_BACKUP
-	DEBUG_PRINTLN("*** ESP set from RTC. ***");
-	return RTC.get();
-#else
-	DEBUG_PRINTLN("*** ESP not set. ***");
-	return now();
+	DEBUG_PRINTLN("ERROR. No WiFi.");
+	yahooTitle = "Request failed. No WiFi.";
+	return;
+}
+
+/******************************************************************************
+Get time from NTP.
+******************************************************************************/
+
+void getNtpTime()
+{
+	DEBUG_PRINT("Sending NTP-request to \"" + String(NTP_SERVER) + "\". ");
+	if (WiFi.status() == WL_CONNECTED)
+	{
+		uint8_t packetBuffer[49] = { };
+		packetBuffer[0] = 0xE3;
+		packetBuffer[1] = 0x00;
+		packetBuffer[2] = 0x06;
+		packetBuffer[3] = 0xEC;
+		packetBuffer[12] = 0x31;
+		packetBuffer[13] = 0x4E;
+		packetBuffer[14] = 0x31;
+		packetBuffer[15] = 0x34;
+		WiFiUDP wifiUdp;
+		wifiUdp.begin(2390);
+		char server[] = NTP_SERVER;
+		IPAddress timeServerIP;
+		WiFi.hostByName(server, timeServerIP);
+		wifiUdp.beginPacket(timeServerIP, 123);
+		wifiUdp.write(packetBuffer, 48);
+		wifiUdp.endPacket();
+		uint32_t beginWait = millis();
+		while (millis() - beginWait < 1500)
+		{
+			if (wifiUdp.parsePacket() >= 48)
+			{
+				wifiUdp.read(packetBuffer, 48);
+				uint32_t ntpTime = (packetBuffer[40] << 24) + (packetBuffer[41] << 16) + (packetBuffer[42] << 8) + packetBuffer[43];
+				// NTP time is seconds from 1900, we need time from 1970.
+				ntpTime -= 2208988800;
+				// Shift UTC time to local time. 
+				ntpTime = timeZone.toLocal(ntpTime);
+				DEBUG_PRINTLN("OK.");
+#ifdef DEBUG
+				debug.debugTime("Time (NTP):", ntpTime);
 #endif
+#ifdef RTC_BACKUP
+				DEBUG_PRINTLN("*** RTC set from NTP. ***");
+				DEBUG_PRINTLN("Drift (RTC/NTP): " + String(ntpTime - RTC.get()) + " sec.");
+				RTC.set(ntpTime);
+#endif
+				DEBUG_PRINTLN("*** ESP set from NTP. ***");
+				DEBUG_PRINTLN("Drift (ESP/NTP): " + String(ntpTime - now()) + " sec.");
+				setTime(ntpTime);
+				return;
+			}
+		}
+		DEBUG_PRINTLN("ERROR. Timeout.");
+		return;
+	}
+	DEBUG_PRINTLN("ERROR. No WiFi.");
+	return;
 }
 
 /******************************************************************************
@@ -1573,6 +1593,8 @@ void setMode(Mode newMode)
 {
 	DEBUG_PRINT("Mode: ");
 	DEBUG_PRINTLN(newMode);
+	if (newMode != STD_MODE_BLANK)
+		renderer.clearScreenBuffer(matrix);
 	screenBufferNeedsUpdate = true;
 	lastMode = mode;
 	mode = newMode;
@@ -1630,9 +1652,10 @@ void handleRoot()
 	String message = "<!doctype html>";
 	message += "<html>";
 	message += "<head>";
-	message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
-	message += "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css\">";
 	message += "<title>" + String(HOSTNAME) + "</title>";
+	message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+	message += "<meta http-equiv=\"refresh\" content=\"60\">";
+	message += "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css\">";
 	message += "<style>";
 	message += "body {background-color: #FFFFFF; text-align: center; color: #333333; font-family: Sans-serif; font-size: 16px;}";
 	message += "button {background-color: #1FA3EC; text-align: center; color: #FFFFFF; width: 200px; padding: 10px 30px; border: 5px solid #FFFFFF; display: inline-block;}";
@@ -1655,12 +1678,9 @@ void handleRoot()
 	message += "<br><br>";
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_PLUS'\"><i class=\"fa fa-plus-circle\" style=\"font-size:24px\"></i></button>";
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_MINUS'\"><i class=\"fa fa-minus-circle\" style=\"font-size:24px\"></i></button>";
-	message += "<br><br>";
 #ifdef RTC_BACKUP
-	message += String(LANG_TEMPERATURE) + ": " + String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) + "&#176;C / " + String((RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "&#176;F";
-	message += "<br>";
+	message += "<br><br><i class = \"fa fa-thermometer-three-quarters\" style=\"font-size:20px\"></i> " + String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) + "&#176;C / " + String((RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "&#176;F";
 #endif
-	message += String(LANG_EXT_TEMPERATURE) + ": " + String(yahooTemp) + "&#176;C / " + String(yahooTemp * 9 / 5 + 32) + "&#176;F";
 	message += "<br><br><font size=2>Qlockwork was <i class=\"fa fa-code\" style=\"font-size:15px\"></i> with <i class=\"fa fa-heart\" style=\"font-size:13px\"></i> by ch570512.";
 	message += "<br>Firmware: " + String(FIRMWARE_VERSION);
 #if defined(UPDATE_INFO_STABLE) || defined(UPDATE_INFO_UNSTABLE)
@@ -1668,7 +1688,11 @@ void handleRoot()
 		message += "<br><span style=\"color: red;\">Firmwareupdate available! (" + updateInfo + ")</span>";
 #endif
 #ifdef DEBUG_WEBSITE
-	message += "<br><br>Time: " + String(hour()) + ":" + String(minute());
+	message += "<br><br>Time: " + String(hour()) + ":";
+	if (minute() < 10)
+		message += "0" + String(minute());
+	else
+		message += String(minute());
 	message += "<br>Date: " + String(dayStr(weekday())) + ", " + String(monthStr(month())) + " " + String(day()) + ". " + String(year());
 	message += "<br>Free RAM: " + String(system_get_free_heap_size()) + " bytes";
 	message += "<br>LED-Driver: " + ledDriver.getSignature();

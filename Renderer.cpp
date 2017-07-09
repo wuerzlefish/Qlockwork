@@ -4,13 +4,15 @@
 
 #include "Renderer.h"
 
-Renderer::Renderer() {
+Renderer::Renderer()
+{
 }
 
 // Write time to screenbuffer.
 void Renderer::setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_t matrix[])
 {
-	switch (language) {
+	switch (language)
+	{
 	case LANGUAGE_DE_DE:
 	case LANGUAGE_DE_SW:
 	case LANGUAGE_DE_BA:
@@ -1082,7 +1084,8 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 		}
 		break;
 	case LANGUAGE_EN:
-		if (glatt) EN_OCLOCK;
+		if (glatt)
+			EN_OCLOCK;
 		switch (hours)
 		{
 		case 0:
@@ -1301,7 +1304,8 @@ void Renderer::setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t
 		}
 		break;
 	case LANGUAGE_NL:
-		if (glatt) NL_UUR;
+		if (glatt)
+			NL_UUR;
 		switch (hours)
 		{
 		case 0:

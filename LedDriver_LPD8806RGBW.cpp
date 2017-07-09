@@ -17,7 +17,8 @@ String LedDriver_LPD8806RGBW::getSignature()
 
 void LedDriver_LPD8806RGBW::clear()
 {
-	for (uint8_t i = 0; i < NUM_LEDS; i++) strip->setPixelColor(i, 0);
+	for (uint8_t i = 0; i < NUM_LEDS; i++)
+		strip->setPixelColor(i, 0);
 }
 
 void LedDriver_LPD8806RGBW::show()

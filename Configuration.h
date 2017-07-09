@@ -14,27 +14,32 @@
 #ifdef CONFIG_DEFAULT
 
 #define HOSTNAME "QLOCKWORK"
-#define WIFI_AP_TIMEOUT 120
+#define WIFI_AP_TIMEOUT 300
 #define OTA_PASS "1234"
 #define NTP_SERVER "pool.ntp.org"
 
-#define RTC_BACKUP
+//#define RTC_BACKUP
 #define RTC_TEMP_OFFSET 0
+
 #define SELFTEST
+#define SHOW_IP
 #define ESP_LED
-#define LDR
+//#define NONE_TECHNICAL_ZERO
+//#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
+
+//#define LDR
 #define LDR_HYSTERESIS 30
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
-#define BUZZER
+
+//#define BUZZER
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 60
 #define BUZZTIME_TIMER 30
-//#define NONE_TECHNICAL_ZERO
 
-#define YAHOO_LOCATION "Berlin, BE, DE"
-//#define YAHOO_LOCATION "Zurich, ZH, CH"
-//#define YAHOO_LOCATION "Singapur, SG"
+#define LOCATION "Berlin, BE, DE"
+//#define LOCATION "Zurich, ZH, CH"
+//#define LOCATION "Singapur, SG"
 
 #define UPDATE_INFO_UNSTABLE
 //#define UPDATE_INFO_STABLE
@@ -81,12 +86,12 @@
 //#define IR_CODE_PLUS    16754775 // HX1838 Remote +
 //#define IR_CODE_MINUS   16769055 // HX1838 Remote -
 
-//#define IR_CODE_ONOFF   16769055 // CLT2 V1.1 Remote Power
-//#define IR_CODE_TIME    16752735 // CLT2 V1.1 Remote Time
-//#define IR_CODE_MODE    16720095 // CLT2 V1.1 Remote Region
-//#define IR_CODE_EXTMODE 16736415 // CLT2 V1.1 Remote Seconds
-//#define IR_CODE_PLUS    16734375 // CLT2 V1.1 Remote +
-//#define IR_CODE_MINUS   16730295 // CLT2 V1.1 Remote -
+#define IR_CODE_ONOFF   16769055 // CLT2 V1.1 Remote Power
+#define IR_CODE_TIME    16752735 // CLT2 V1.1 Remote Time
+#define IR_CODE_MODE    16720095 // CLT2 V1.1 Remote Region
+#define IR_CODE_EXTMODE 16736415 // CLT2 V1.1 Remote Seconds
+#define IR_CODE_PLUS    16734375 // CLT2 V1.1 Remote +
+#define IR_CODE_MINUS   16730295 // CLT2 V1.1 Remote -
 
 #define LED_LAYOUT_HORIZONTAL
 //#define LED_LAYOUT_VERTICAL
@@ -137,12 +142,6 @@
 //#define LED_DRIVER_FAST_WS2813
 //#define LED_DRIVER_FAST_WS2852
 
-#define LANG_TEMPERATURE "Temperature"
-//#define LANG_TEMPERATURE "Temperatur (innen)"
-#define LANG_EXT_TEMPERATURE "Ext. Temperature"
-//#define LANG_EXT_TEMPERATURE "Temperatur (aussen)"
-//#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
-
 //#define DEBUG
 //#define DEBUG_WEBSITE
 //#define DEBUG_MATRIX
@@ -161,12 +160,13 @@
 
 #ifdef CONFIG_QLOCKDEV
 #define HOSTNAME "QLOCKDEV"
-#define WIFI_AP_TIMEOUT 60
+#define WIFI_AP_TIMEOUT 10
 #define OTA_PASS "1234"
 #define NTP_SERVER "fritz.box"
 #define RTC_BACKUP
-#define RTC_TEMP_OFFSET 0
+#define RTC_TEMP_OFFSET +0.25
 //#define SELFTEST
+//#define SHOW_IP
 #define ESP_LED
 #define LDR
 #define LDR_HYSTERESIS 150
@@ -176,21 +176,19 @@
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 60
 #define BUZZTIME_TIMER 30
-#define YAHOO_LOCATION "Zurich, ZH, CH"
+#define LOCATION "Zurich, ZH, CH"
 #define UPDATE_INFO_UNSTABLE
 #define TIMEZONE_CET
-#define IR_REMOTE
-#define IR_CODE_ONOFF   16769565 // HX1838 Remote CH+
-#define IR_CODE_TIME    16753245 // HX1838 Remote CH-
-#define IR_CODE_MODE    16736925 // HX1838 Remote CH
-#define IR_CODE_EXTMODE 16748655 // HX1838 Remote EQ
-#define IR_CODE_PLUS    16754775 // HX1838 Remote +
-#define IR_CODE_MINUS   16769055 // HX1838 Remote -
+//#define IR_REMOTE
+//#define IR_CODE_ONOFF   16769565 // HX1838 Remote CH+
+//#define IR_CODE_TIME    16753245 // HX1838 Remote CH-
+//#define IR_CODE_MODE    16736925 // HX1838 Remote CH
+//#define IR_CODE_EXTMODE 16748655 // HX1838 Remote EQ
+//#define IR_CODE_PLUS    16754775 // HX1838 Remote +
+//#define IR_CODE_MINUS   16769055 // HX1838 Remote -
 #define LED_LAYOUT_VERTICAL
 #define LED_LIBRARY_NEOPIXEL
 #define LED_DRIVER_NEO_800KHZ_GRB
-#define LANG_TEMPERATURE "Temperatur (innen)"
-#define LANG_EXT_TEMPERATURE "Temperatur (aussen)"
 #define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
 #define DEBUG
 #define DEBUG_WEBSITE
@@ -212,20 +210,19 @@
 #define OTA_PASS "1234"
 #define NTP_SERVER "fritz.box"
 #define SELFTEST
+#define SHOW_IP
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
 #define BUZZER
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 2
 #define BUZZTIME_TIMER 30
-#define YAHOO_LOCATION "Zurich, ZH, CH"
+#define LOCATION "Zurich, ZH, CH"
 #define UPDATE_INFO_UNSTABLE
 #define TIMEZONE_CET
 #define LED_LAYOUT_HORIZONTAL
 #define LED_LIBRARY_NEOPIXEL
 #define LED_DRIVER_NEO_800KHZ_GRB
-#define LANG_TEMPERATURE "Temperatur (innen)"
-#define LANG_EXT_TEMPERATURE "Temperatur (aussen)"
 #define SERIAL_SPEED    115200
 #define NUM_LEDS        115
 #define PIN_IR_RECEIVER D3
@@ -244,6 +241,7 @@
 #define RTC_BACKUP
 #define RTC_TEMP_OFFSET -4.25
 #define SELFTEST
+#define SHOW_IP
 #define LDR
 #define LDR_HYSTERESIS 30
 #define MIN_BRIGHTNESS 10
@@ -252,13 +250,11 @@
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 60
 #define BUZZTIME_TIMER 30
-#define YAHOO_LOCATION "Berlin, BE, DE"
+#define LOCATION "Berlin, BE, DE"
 #define UPDATE_INFO_STABLE
 #define TIMEZONE_CET
 #define LED_LAYOUT_VERTICAL
 #define LED_LIBRARY_LPD8806RGBW
-#define LANG_TEMPERATURE "Temperatur (innen)"
-#define LANG_EXT_TEMPERATURE "Temperatur (aussen)"
 #define DEDICATION "von Thorsten f&uuml;r die vielen tollen Essen in der Schweiz."
 #define SERIAL_SPEED    115200
 #define NUM_LEDS        115

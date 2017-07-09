@@ -78,14 +78,16 @@ There is a warning from FastLED about SPI when compiling. Just ignore it.
 # QLOCKWORK
 ### Eine Firmware der Selbstbau-QLOCKTWO.
 
-Sie gleicht die Zeit jede Stunde per NTP mit einem Zeitserver im Internet ab. Auf der Web-Seite kann man die Uhr steuern.
+Sie gleicht die Zeit einmal pro Stunde per NTP mit einem Zeitserver im Internet ab.
+Wenn eine RTC installiert ist, wird die Zeit jede Minute mit dieser verglichen und bei einer Abweichung angepasst.
+Auf der Web-Seite kann man die Uhr steuern.
 Updates sind OTA moeglich. Dazu im Arduino IDE den ESP als Port auswaehlen.
 
 Nach dem Einschalten macht die Uhr einen kurzen Selbsttest. Die Reihenfolge der Farben ist: weiss, rot, gruen und blau bei maximaler Helligkeit (MAX_BRIGHTNESS).
 Wenn die Reihenfolge der Farben anders ist, ist der LED-Treiber falsch eingestellt. Sollte weiss nicht sauber sein, reicht evtl. der Strom nicht aus.
 In diesem Fall kann eine zusaetzliche Stromversorgung in der Mitte des Streifens helfen.
 
-Einmal kurz ueber den LDR wischen startet das Einmessen der Helligkeit an die Umgebung.
+Einmal kurz ueber den LDR wischen startet das Einmessen der Helligkeit an die Umgebung nach dem Start der Uhr.
 
 WLAN Manager: Wenn die Uhr sich beim Start mit keinem WLAN verbinden kann schaltet sie einen AccessPoint ein. Dann ein Handy oder Tablet mit diesem verbinden und die WLAN Daten eingeben. WiFi leuchtet in dieser Zeit weiss auf dem Display. Wenn kein WLAN verbunden wird oder der Timeout abgelaufen ist, gibt es einen langern Ton und WiFi wird rot. Bei Erfolg gibt es drei kurze Toene und WiFi wird gruen. WLAN wird nicht zwingend benoetigt. Nach dem WLAN-Timeout funktioniert die Uhr auch ohne NTP. Dazu benutzt sie die optionale RTC oder muss von Hand gestellt werden.
 
@@ -94,52 +96,47 @@ Die Firmware gibt es hier: https://github.com/ch570512/Qlockwork
 
 ### Standard Modi
 ```
-Zeitanzeige:        Der Standardmodus der Uhr. Er zeigt die Zeit an. :)
-                    + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
-Anzeige AM/PM:      Zeigt an, ob es vormittags (AM) oder nachmittags (PM) ist.
-Sekunden:           Anzeige der Sekunden.
-Wochentag:          Zeigt den Wochentag in der eingestellten Sprache an.
-Datum:              Anzeige des aktuellen Tages und Monats.
-Titel TEMP:         + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
-Raumtemperatur:     Anzeige der gemessenen Temperatur (nur mit RTC).
-Externe Temperatur: Anzeige der Temperatur für einen Ort (Yahoo Weather).
-Titel ALRM:         + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
-Timer (TI):         Setzt den Minuten-Timer. Null schaltet den Timer ab.
-                    Anzeige der Restzeit wenn ein Timer gesetzt ist.
-                    + oder - setzt den Timer und start ihn.
-Alarm1 (A1):        ein/aus
-Alarm1:             Setzt den ersten 24-Stunden-Alarm wenn Alarm1 "ein" ist.
-Alarm2 (A2):        ein/aus
-Alarm2:             Setzt den zweiten 24-Stunden-Alarm wenn Alarm2 "ein" ist.
+Zeitanzeige:      Der Standardmodus der Uhr. Er zeigt die Zeit an. :)
+                  + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
+Anzeige AM/PM:    Zeigt an, ob es vormittags (AM) oder nachmittags (PM) ist.
+Sekunden:         Anzeige der Sekunden.
+Wochentag:        Zeigt den Wochentag in der eingestellten Sprache an.
+Datum:            Anzeige des aktuellen Tages und Monats.
+Titel TEMP:       + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
+Raumtemperatur:   Anzeige der gemessenen Temperatur (nur mit RTC).
+Temperatur:       Anzeige der Temperatur fuer einen Ort (Yahoo Weather).
+Luftfeuchtigkeit: Anzeige der Luftfeuchtigkeit fuer den gewaehlen Ort (Yahoo Weather).
+Titel ALRM:       + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu wechseln.
+Timer (TI):       Setzt den Minuten-Timer. Null schaltet den Timer ab.
+                  Anzeige der Restzeit wenn ein Timer gesetzt ist.
+                  + oder - setzt den Timer und start ihn.
+Alarm1 (A1):      ein/aus
+Alarm1:           Setzt den ersten 24-Stunden-Alarm wenn Alarm1 "ein" ist.
+Alarm2 (A2):      ein/aus
+Alarm2:           Setzt den zweiten 24-Stunden-Alarm wenn Alarm2 "ein" ist.
 ```
 ### Erweiterte Modi
 ```
 Titel MAIN:                      + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu
                                  wechseln.
-Autom. Helligkeitsregelung (LD): Ein (EN) / aus (DA)
-Helligkeitsregelung:             + oder - aendern die Helligkeit.
-Farbwechsel (CC):                Setzt eine zufaellige Farbe je nach Intervall.
-                                 Keiner (NO), alle 5 Minuten (FI), jede Stunde (HR), jeden Tag (DY).
-Farbe (CO):                      0: Weiss, 1: Rot, 2: Gruen, 3: Blau usw. Wenn die Reihenfolge der Farben
-                                 abweicht, ist die Anordnung der RGB-LEDs im Streifen anders.
+Autom. Helligkeitsregelung (LD): Enabled (EN) or disabled (DA).
+Helligkeitsregelung:             Press + or - to change the brightness.
+Farbwechsel (CC):                Change the color in intervalls.
+                                 Do not change (NO), every 5 minutes (FI), every hour (HR), every day (DY).
+Farbe (CO):                      0: white, 1: red, 2: green, 3: blue and so on.
 Transition (TR):                 Normal (NO) / Fade (FD).
-Ruecksprungverzoegerung (FB nn): Wie lange soll es dauern, bis z.B. aus der Sekundenanzeige wieder zurueck in
-                                 die Zeitanzeige gewechselt wird. (0: deaktiviert, default: 5)
-Sprache (DE/CH/EN/...):          Die passende Sprache zur benutzten Front waehlen.
+Ruecksprungverzoegerung (FB nn): Time in seconds to change back to time. (0: disabled, default: 5)
+Sprache (DE/CH/EN/...):          Select the correct language for your frontpanel.
 Titel TIME:                      + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu
                                  wechseln.
 Zeit einstellen:                 + fuer Stunden oder - fuer Minuten druecken um die Zeit zu stellen.
                                  Die Sekunden springen mit jedem Druck auf Null.
-"Es ist" (IT):                   Anzeigen (EN) oder nicht (DA).
-Tag einstellen (DD nn):          + oder - druecken um den aktuellen Tag einzustellen.
-Monat einstellen (MM nn):        + oder - druecken um den aktuellen Monat einzustellen.
-Jahr einstellen (YY nn):         + oder - druecken um das aktuelle Jahr einzustellen.
-Nacht aus (NI OF):               + oder - druecken um die Ausschaltzeit des Displays einzustellen.
-Tag ein (DY ON):                 + oder - druecken um die Einschaltzeit des Displays einzustellen.
-
-Titel IP:                        + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu
-                                 wechseln.
-IP-Adresse:                      Zeigt die lokale IP Adresse im WLAN an.
+"It is" (IT):                    Enable (EN) or disable (DA) "It is".
+Set day (DD nn):                 + or - to set the day.
+Set month (MM nn):               + or - to set the month.
+Set year (YY nn):                + or - to set the year.
+Night off (NI OF):               + or - to set the time the clocks turns itself off at night.
+Day on (DY ON):                  + or - to set the time the clocks turns itself on at day.
 Titel TEST:                      + oder - druecken um direkt in die naechste bzw. vorhergehende Kategorie zu
                                  wechseln.
 LED-Test:                        Moves a horizontal bar across the display.
@@ -154,6 +151,8 @@ LED-Test:                        Moves a horizontal bar across the display.
 #define NTP_SERVER          NTP server to be queried.
 #define RTC_BACKUP          Use an RTC as backup.
 #define RTC_TEMP_OFFSET     Sets how many degrees the measured room temperature (+ or -) should be corrected.
+#define SELFTEST            Test LEDs at startup.
+#define SHOW_IP             Show IP at startup.
 #define ESP_LED             Displays the function using the LED on the ESP. It flashes once per second.
 #define LDR                 Use an LDR for brightness control.
 #define LDR_HYSTERESIS      Brightness control from a deviation in the range from 0 to 1023. Default: 30.
@@ -164,20 +163,19 @@ LED-Test:                        Moves a horizontal bar across the display.
 #define BUZZTIME_ALARM_1    Maximum time in seconds that turns alarm 1 on when not turned off manually.
 #define BUZZTIME_ALARM_2    Maximum time in seconds that turns alarm 2 on when not turned off manually.
 #define BUZZTIME_TIMER      Maximum time in seconds that turns the timer alarm on when not turned off manually..
-#define YAHOO_WEATHER       Place for the temperature as entered on the Yahoo weather site.
+#define LOCATION            Location for the weather conditions as entered on the Yahoo site.
                             (Only letters, ' ', and ',' are allowed).
-#define UPDATE_INFO         The update info periodically anonymously checks if there is a firmwareupdate
+#define UPDATE_INFO_*       The update info periodically anonymously checks if there is a firmwareupdate
                             available. No user data is send to the host.
-#define LANG_*              Caption of the site-buttons.
 #define TIMEZONE_*          The time zone in which the clock is located. Important for the UTC offset and the
                             summer / winter time changeover.
 #define IR_REMOTE           Use an IR remote control.
+#define IR_LETTER_OFF       Schaltet die LED hinter dem IR-Sensor dauerhaft ab. Das verbessert den IR-Empfang.
+                            Hier das K vor Uhr.
 #define IR_CODE_*           Jede Fernbedienung kann verwendet werden. Es werden 6 Tasten unterstuetzt.
                             Um die Fernbedienung anzulernen "#define DEBUG" einschalten und einen Knopf auf der
                             Fernbedienung druecken. Den in der seriellen Konsole angezeigten Code fuer die Taste
                             dann in die Datei "Configuration.h" schreiben.
-#define IR_LETTER_OFF       Schaltet die LED hinter dem IR-Sensor dauerhaft ab. Das verbessert den IR-Empfang.
-                            Hier das K vor Uhr.
 
 #define LED_LAYOUT_HORIZONTAL Horizontal and corner LEDs at the end of the strip. (Seen from the front.)
 
