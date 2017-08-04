@@ -154,7 +154,24 @@ void Settings::resetToDefault()
 {
 	mySettings.magicNumber = SETTINGS_MAGIC_NUMBER;
 	mySettings.version = SETTINGS_VERSION;
+#ifdef LANGUAGE_ENGLISH
 	mySettings.language = LANGUAGE_EN;
+#endif
+#ifdef LANGUAGE_GERMAN
+	mySettings.language = LANGUAGE_DE_DE;
+#endif
+#ifdef LANGUAGE_SPANISH
+	mySettings.language = LANGUAGE_ES;
+#endif
+#ifdef LANGUAGE_FRENCH
+	mySettings.language = LANGUAGE_FR;
+#endif
+#ifdef LANGUAGE_ITALIEN
+	mySettings.language = LANGUAGE_IT;
+#endif
+#ifdef LANGUAGE_NETHERLANDS
+	mySettings.language = LANGUAGE_NL;
+#endif
 	mySettings.useLdr = false;
 	mySettings.brightness = MAX_BRIGHTNESS;
 	mySettings.color = WHITE;
@@ -178,6 +195,7 @@ void Settings::loadFromEEPROM()
 	EEPROM.get(0, mySettings);
 	if ((mySettings.magicNumber != SETTINGS_MAGIC_NUMBER) || (mySettings.version != SETTINGS_VERSION))
 		resetToDefault();
+	EEPROM.end();
 }
 
 // Write settings.
@@ -185,5 +203,6 @@ void Settings::saveToEEPROM()
 {
 	EEPROM.begin(512);
 	EEPROM.put(0, mySettings);
-	EEPROM.commit();
+	//EEPROM.commit();
+	EEPROM.end();
 }

@@ -40,8 +40,7 @@ void Debug::debugScreenBuffer(uint16_t screenBuffer[])
 // Write time to console.
 void Debug::debugTime(String label, time_t time)
 {
-	Serial.print(label);
-	Serial.printf(" %02d:%02d:%02d %02d.%02d.%04d\r\n", hour(time), minute(time), second(time), day(time), month(time), year(time));
+	Serial.printf("%s %02d:%02d:%02d %02d.%02d.%04d\r\n", label.c_str(), hour(time), minute(time), second(time), day(time), month(time), year(time));
 }
 
 // Write FPS to console.

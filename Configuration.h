@@ -21,6 +21,8 @@
 //#define RTC_BACKUP
 #define RTC_TEMP_OFFSET 0
 
+//#define SENSOR_DHT22
+
 #define SELFTEST
 #define SHOW_IP
 #define ESP_LED
@@ -28,8 +30,9 @@
 //#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
 
 //#define LDR
+//#define LDR_INVERSE
 #define LDR_HYSTERESIS 30
-#define MIN_BRIGHTNESS 10
+#define MIN_BRIGHTNESS 20
 #define MAX_BRIGHTNESS 255
 
 //#define BUZZER
@@ -40,6 +43,13 @@
 #define LOCATION "Berlin, BE, DE"
 //#define LOCATION "Zurich, ZH, CH"
 //#define LOCATION "Singapur, SG"
+
+#define LANGUAGE_ENGLISH
+//#define LANGUAGE_GERMAN
+//#define LANGUAGE_SPANISH
+//#define LANGUAGE_FRENCH
+//#define LANGUAGE_ITALIEN
+//#define LANGUAGE_NETHERLANDS
 
 #define UPDATE_INFO_UNSTABLE
 //#define UPDATE_INFO_STABLE
@@ -142,6 +152,9 @@
 //#define LED_DRIVER_FAST_WS2813
 //#define LED_DRIVER_FAST_WS2852
 
+//#define SYSLOG_SERVER "192.168.0.1"
+//#define SYSLOG_PORT 514
+
 //#define DEBUG
 //#define DEBUG_WEBSITE
 //#define DEBUG_MATRIX
@@ -152,6 +165,7 @@
 #define PIN_IR_RECEIVER D3
 #define PIN_LED         D4
 #define PIN_BUZZER      D5
+#define PIN_DHT22       D6
 #define PIN_LEDS_CLOCK  D7
 #define PIN_LEDS_DATA   D8
 #define PIN_LDR         A0
@@ -165,18 +179,20 @@
 #define NTP_SERVER "fritz.box"
 #define RTC_BACKUP
 #define RTC_TEMP_OFFSET +0.25
+#define SENSOR_DHT22
 //#define SELFTEST
 //#define SHOW_IP
 #define ESP_LED
 #define LDR
-#define LDR_HYSTERESIS 150
-#define MIN_BRIGHTNESS 10
+#define LDR_HYSTERESIS 30
+#define MIN_BRIGHTNESS 20
 #define MAX_BRIGHTNESS 255
 #define BUZZER
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 60
 #define BUZZTIME_TIMER 30
 #define LOCATION "Zurich, ZH, CH"
+#define LANGUAGE_GERMAN
 #define UPDATE_INFO_UNSTABLE
 #define TIMEZONE_CET
 //#define IR_REMOTE
@@ -199,6 +215,7 @@
 #define PIN_IR_RECEIVER D3
 #define PIN_LED         D4
 #define PIN_BUZZER      D5
+#define PIN_DHT22       D6
 #define PIN_LEDS_CLOCK  D7
 #define PIN_LEDS_DATA   D8
 #define PIN_LDR         A0
@@ -209,25 +226,33 @@
 #define WIFI_AP_TIMEOUT 180
 #define OTA_PASS "1234"
 #define NTP_SERVER "fritz.box"
+#define SENSOR_DHT22
 #define SELFTEST
 #define SHOW_IP
-#define MIN_BRIGHTNESS 10
+#define LDR
+#define LDR_HYSTERESIS 30
+#define MIN_BRIGHTNESS 20
 #define MAX_BRIGHTNESS 255
 #define BUZZER
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 2
 #define BUZZTIME_TIMER 30
 #define LOCATION "Zurich, ZH, CH"
+#define LANGUAGE_GERMAN
 #define UPDATE_INFO_UNSTABLE
 #define TIMEZONE_CET
 #define LED_LAYOUT_HORIZONTAL
 #define LED_LIBRARY_NEOPIXEL
 #define LED_DRIVER_NEO_800KHZ_GRB
+#define SYSLOG_SERVER "pandora"
+#define SYSLOG_PORT 514
+#define DEBUG_WEBSITE
 #define SERIAL_SPEED    115200
 #define NUM_LEDS        115
 #define PIN_IR_RECEIVER D3
 #define PIN_LED         D4
 #define PIN_BUZZER      D5
+#define PIN_DHT22       D6
 #define PIN_LEDS_CLOCK  D7
 #define PIN_LEDS_DATA   D8
 #define PIN_LDR         A0
@@ -243,6 +268,7 @@
 #define SELFTEST
 #define SHOW_IP
 #define LDR
+#define LDR_INVERSE
 #define LDR_HYSTERESIS 30
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
@@ -251,6 +277,7 @@
 #define BUZZTIME_ALARM_2 60
 #define BUZZTIME_TIMER 30
 #define LOCATION "Berlin, BE, DE"
+#define LANGUAGE_GERMAN
 #define UPDATE_INFO_STABLE
 #define TIMEZONE_CET
 #define LED_LAYOUT_VERTICAL
@@ -261,6 +288,7 @@
 #define PIN_IR_RECEIVER D3
 #define PIN_LED         D4
 #define PIN_BUZZER      D5
+#define PIN_DHT22       D6
 #define PIN_LEDS_CLOCK  D7
 #define PIN_LEDS_DATA   D8
 #define PIN_LDR         A0

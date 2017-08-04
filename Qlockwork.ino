@@ -9,16 +9,18 @@ A firmware for the DIY-QLOCKTWO.
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <DS3232RTC.h>
+#include <DHT.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
 #include <IRrecv.h>
 #include <RestClient.h>
+#include <Syslog.h>
 #include <TimeLib.h>
 #include <Timezone.h>
 #include <WiFiManager.h>
-#include "Configuration.h"
 #include "Colors.h"
+#include "Configuration.h"
 #include "Debug.h"
 #include "Enums.h"
 #include "Languages.h"
@@ -29,7 +31,7 @@ A firmware for the DIY-QLOCKTWO.
 #include "Settings.h"
 #include "Timezones.h"
 
-#define FIRMWARE_VERSION 20170709
+#define FIRMWARE_VERSION 20170804
 
 /******************************************************************************
 Init.
@@ -65,7 +67,7 @@ uint8_t randomHour = 0;
 uint8_t testColumn = 0;
 uint8_t brightness = settings.getBrightness();
 String yahooTitle = "";
-int8_t yahooTemp = 0;
+int8_t yahooTemperature = 0;
 uint8_t yahooHumidity = 0;
 uint8_t yahooCode = 0;
 String updateInfo = "";
@@ -79,14 +81,24 @@ uint8_t alarmOn = 0;
 uint8_t ratedBrightness = settings.getBrightness();
 uint16_t ldrValue = 0;
 uint16_t lastLdrValue = 0;
-uint16_t minLdrValue = 1023;
+//uint16_t minLdrValue = 1023;
+uint16_t minLdrValue = 512;
 uint16_t maxLdrValue = 0;
 uint32_t lastLdrCheck = 0;
 uint32_t lastBrightnessCheck = 0;
 #endif
+#ifdef SENSOR_DHT22
+DHT dht(PIN_DHT22, DHT22);
+float dhtHumidity = 0;
+float dhtTemperature = 0;
+#endif
 #ifdef IR_REMOTE
 IRrecv irrecv(PIN_IR_RECEIVER);
 decode_results irDecodeResult;
+#endif
+#ifdef SYSLOG_SERVER
+WiFiUDP Udp;
+Syslog syslog(Udp, SYSLOG_SERVER, SYSLOG_PORT, HOSTNAME, "QLOCKWORK", LOG_KERN);
 #endif
 
 /******************************************************************************
@@ -111,6 +123,10 @@ void setup()
 #ifdef BUZZER
 	DEBUG_PRINTLN("Setting up Buzzer.");
 	pinMode(PIN_BUZZER, OUTPUT);
+#endif
+#ifdef SENSOR_DHT22
+	DEBUG_PRINTLN("Setting up DHT22.");
+	dht.begin();
 #endif
 #ifdef LDR
 	DEBUG_PRINT("Setting up LDR. LDR is ");
@@ -198,6 +214,7 @@ void setup()
 	renderer.clearScreenBuffer(matrix);
 	DEBUG_PRINTLN("Starting mDNS responder.");
 	MDNS.begin(HOSTNAME);
+	MDNS.addService("http", "tcp", 80);
 	DEBUG_PRINTLN("Starting webserver on port 80.");
 	setupWebServer();
 	DEBUG_PRINTLN("Starting Arduino-OTA service.");
@@ -208,15 +225,21 @@ void setup()
 	DEBUG_PRINTLN("Starting IR-receiver.");
 	irrecv.enableIRIn();
 #endif
-	getWeather(LOCATION);
+
+	SYSLOG("QLOCKWORK");
+	SYSLOG("Firmware: " + String(FIRMWARE_VERSION));
+	SYSLOG("LED-Driver: " + ledDriver.getSignature());
+
 	getNtpTime();
+	getWeather(LOCATION);
+	//getUpdateInfo();
 	lastDay = day();
 	lastHour = hour();
 	lastFiveMinute = minute() / 5;
 	lastMinute = minute();
 	lastTime = now();
-	//getUpdateInfo();
 	DEBUG_PRINTLN("Free RAM: " + String(system_get_free_heap_size()));
+	SYSLOG("Free RAM: " + String(system_get_free_heap_size()));
 }
 
 /******************************************************************************
@@ -242,6 +265,7 @@ void loop()
 		lastHour = hour();
 		screenBufferNeedsUpdate = true;
 		DEBUG_PRINTLN("Free RAM: " + String(system_get_free_heap_size()));
+		SYSLOG("Free RAM: " + String(system_get_free_heap_size()));
 		if (settings.getColorChange() == COLORCHANGE_HOUR)
 			settings.setColor(random(0, COLOR_COUNT + 1));
 #if defined(UPDATE_INFO_STABLE) || defined(UPDATE_INFO_UNSTABLE)
@@ -273,11 +297,16 @@ void loop()
 		{
 			DEBUG_PRINTLN("*** ESP set from RTC. ***");
 			DEBUG_PRINTLN("Drift (ESP/RTC): " + String(RTC.get() - now()) + " sec.");
+			SYSLOG("*** ESP set from RTC. ***");
+			SYSLOG("Drift (ESP/RTC): " + String(RTC.get() - now()) + " sec.");
 			setTime(RTC.get());
 		}
 #endif
 #ifdef DEBUG
 		debug.debugTime("Time (ESP):", now());
+#endif
+#ifdef SYSLOG_SERVER
+		syslog.logf(LOG_INFO, "Time (ESP): %02d:%02d:%02d %02d.%02d.%04d", hour(now()), minute(now()), second(now()), day(now()), month(now()), year(now()));
 #endif
 	}
 
@@ -413,8 +442,8 @@ void loop()
 			renderer.setCorners(minute(), matrix);
 			for (uint8_t i = 0; i <= 6; i++)
 			{
-				matrix[1 + i] |= (zahlenGross[second() / 10][i]) << 11;
-				matrix[1 + i] |= (zahlenGross[second() % 10][i]) << 5;
+				matrix[1 + i] |= pgm_read_byte_near(&(zahlenGross[second() / 10][i])) << 11;
+				matrix[1 + i] |= pgm_read_byte_near(&(zahlenGross[second() % 10][i])) << 5;
 			}
 			break;
 		case STD_MODE_WEEKDAY:
@@ -439,7 +468,7 @@ void loop()
 			renderer.setSmallText("TE", TEXT_POS_TOP, matrix);
 			renderer.setSmallText("MP", TEXT_POS_BOTTOM, matrix);
 			break;
-#if defined(RTC_BACKUP) && !defined(DHT22)
+#if defined(RTC_BACKUP) && !defined(SENSOR_DHT22)
 		case STD_MODE_TEMP:
 			renderer.clearScreenBuffer(matrix);
 			if ((RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) == 0)
@@ -467,52 +496,56 @@ void loop()
 			DEBUG_PRINTLN(String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET)); // .0 to get float values for temp
 			break;
 #endif
-#ifdef DHT22
+#ifdef SENSOR_DHT22
 		case STD_MODE_TEMP:
 			renderer.clearScreenBuffer(matrix);
-			if (dht22.temperature == 0)
+			dhtTemperature = getDHT22Temperature();
+			if (dhtTemperature == 0)
 			{
 				matrix[0] = 0b0000000001000000;
 				matrix[1] = 0b0000000010100000;
 				matrix[2] = 0b0000000010100000;
 				matrix[3] = 0b0000000011100000;
 			}
-			if (dht22.temperature > 0)
+			if (dhtTemperature > 0)
 			{
 				matrix[0] = 0b0000000001000000;
 				matrix[1] = 0b0100000010100000;
 				matrix[2] = 0b1110000010100000;
 				matrix[3] = 0b0100000011100000;
 			}
-			if (dht22.temperature < 0)
+			if (dhtTemperature < 0)
 			{
 				matrix[0] = 0b0000000001000000;
 				matrix[1] = 0b0000000010100000;
 				matrix[2] = 0b1110000010100000;
 				matrix[3] = 0b0000000011100000;
 			}
-			renderer.setSmallText(String(dht22.temperature), TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText(String(int(dhtTemperature)), TEXT_POS_BOTTOM, matrix);
+			DEBUG_PRINTLN("DHT22 temperature: " + String(dhtTemperature));
 			break;
 		case STD_MODE_HUMIDITY:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText(String(dht22.Humidity), TEXT_POS_TOP, matrix);
+			dhtHumidity = getDHT22Humidity();
+			renderer.setSmallText(String(int(dhtHumidity)), TEXT_POS_TOP, matrix);
+			DEBUG_PRINTLN("DHT22 humidity: " + String(dhtHumidity));
 			matrix[6] = 0b0100100001000000;
 			matrix[7] = 0b0001000010100000;
 			matrix[8] = 0b0010000010100000;
-			matrix[9] = 0b0101000011100000;
+			matrix[9] = 0b0100100011100000;
 			break;
 #endif
 		case STD_MODE_EXT_TEMP:
 			renderer.clearScreenBuffer(matrix);
-			if (yahooTemp > 0)
+			if (yahooTemperature > 0)
 			{
 				matrix[1] = 0b0100000000000000;
 				matrix[2] = 0b1110000000000000;
 				matrix[3] = 0b0100000000000000;
 			}
-			if (yahooTemp < 0)
+			if (yahooTemperature < 0)
 				matrix[2] = 0b1110000000000000;
-			renderer.setSmallText(String(yahooTemp), TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText(String(yahooTemperature), TEXT_POS_BOTTOM, matrix);
 			break;
 		case STD_MODE_EXT_HUMIDITY:
 			renderer.clearScreenBuffer(matrix);
@@ -776,50 +809,6 @@ void loop()
 				renderer.setAMPM(hour(settings.getDayOnTime()), settings.getLanguage(), matrix);
 			}
 			break;
-			//case EXT_MODE_TITLE_IP:
-			//	renderer.clearScreenBuffer(matrix);
-			//	renderer.setSmallText("IP", TEXT_POS_MIDDLE, matrix);
-			//	break;
-			//case EXT_MODE_IP_0:
-			//	renderer.clearScreenBuffer(matrix);
-			//	if (WiFi.localIP()[0] / 10 == 0)
-			//		renderer.setSmallText(String(WiFi.localIP()[0] % 10), TEXT_POS_MIDDLE, matrix);
-			//	else
-			//	{
-			//		renderer.setSmallText(String(WiFi.localIP()[0] / 10), TEXT_POS_TOP, matrix);
-			//		renderer.setSmallText(String(WiFi.localIP()[0] % 10), TEXT_POS_BOTTOM, matrix);
-			//	}
-			//	break;
-			//case EXT_MODE_IP_1:
-			//	renderer.clearScreenBuffer(matrix);
-			//	if (WiFi.localIP()[1] / 10 == 0)
-			//		renderer.setSmallText(String(WiFi.localIP()[1] % 10), TEXT_POS_MIDDLE, matrix);
-			//	else
-			//	{
-			//		renderer.setSmallText(String(WiFi.localIP()[1] / 10), TEXT_POS_TOP, matrix);
-			//		renderer.setSmallText(String(WiFi.localIP()[1] % 10), TEXT_POS_BOTTOM, matrix);
-			//	}
-			//	break;
-			//case EXT_MODE_IP_2:
-			//	renderer.clearScreenBuffer(matrix);
-			//	if (WiFi.localIP()[2] / 10 == 0)
-			//		renderer.setSmallText(String(WiFi.localIP()[2] % 10), TEXT_POS_MIDDLE, matrix);
-			//	else
-			//	{
-			//		renderer.setSmallText(String(WiFi.localIP()[2] / 10), TEXT_POS_TOP, matrix);
-			//		renderer.setSmallText(String(WiFi.localIP()[2] % 10), TEXT_POS_BOTTOM, matrix);
-			//	}
-			//	break;
-			//case EXT_MODE_IP_3:
-			//	renderer.clearScreenBuffer(matrix);
-			//	if (WiFi.localIP()[3] / 10 == 0)
-			//		renderer.setSmallText(String(WiFi.localIP()[3] % 10), TEXT_POS_MIDDLE, matrix);
-			//	else
-			//	{
-			//		renderer.setSmallText(String(WiFi.localIP()[3] / 10), TEXT_POS_TOP, matrix);
-			//		renderer.setSmallText(String(WiFi.localIP()[3] % 10), TEXT_POS_BOTTOM, matrix);
-			//	}
-			//	break;
 		case EXT_MODE_TITLE_TEST:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText("TE", TEXT_POS_TOP, matrix);
@@ -1118,11 +1107,17 @@ void buttonPlusPressed()
 	case EXT_MODE_YEARSET:
 		setTime(hour(), minute(), second(), day(), month(), year() + 1);
 		break;
+	case EXT_MODE_TEXT_NIGHTOFF:
+		setMode(EXT_MODE_NIGHTOFF);
+		break;
 	case EXT_MODE_NIGHTOFF:
 		settings.setNightOffTime(settings.getNightOffTime() + 3600);
 #ifdef DEBUG
 		debug.debugTime("Night off:", settings.getNightOffTime());
 #endif
+		break;
+	case EXT_MODE_TEXT_DAYON:
+		setMode(EXT_MODE_DAYON);
 		break;
 	case EXT_MODE_DAYON:
 		settings.setDayOnTime(settings.getDayOnTime() + 3600);
@@ -1264,11 +1259,17 @@ void buttonMinusPressed()
 	case EXT_MODE_YEARSET:
 		setTime(hour(), minute(), second(), day(), month(), year() - 1);
 		break;
+	case EXT_MODE_TEXT_NIGHTOFF:
+		setMode(EXT_MODE_NIGHTOFF);
+		break;
 	case EXT_MODE_NIGHTOFF:
 		settings.setNightOffTime(settings.getNightOffTime() + 300);
 #ifdef DEBUG
 		debug.debugTime("Night off:", settings.getNightOffTime());
 #endif
+		break;
+	case EXT_MODE_TEXT_DAYON:
+		setMode(EXT_MODE_DAYON);
 		break;
 	case EXT_MODE_DAYON:
 		settings.setDayOnTime(settings.getDayOnTime() + 300);
@@ -1372,8 +1373,8 @@ void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[
 		for (uint8_t y = 0; y <= 4; y++)
 			ledDriver.setPixel(110 + y, color, brightnessBuffer[y][11]);
 		esp8266WebServer.handleClient();
-		ledDriver.show();
 		delay((255 - brightness) / 7);
+		ledDriver.show();
 	}
 }
 
@@ -1388,19 +1389,23 @@ void setBrightnessFromLdr()
 	if (millis() > (lastLdrCheck + 250))
 	{
 		lastLdrCheck = millis();
+#ifdef LDR_INVERSE
 		ldrValue = 1023 - analogRead(PIN_LDR);
+#else
+		ldrValue = analogRead(PIN_LDR);
+#endif
+		//DEBUG_PRINTLN("ldrValue: " + String(ldrValue));
 		if (ldrValue < minLdrValue)
 			minLdrValue = ldrValue;
 		if (ldrValue > maxLdrValue)
 			maxLdrValue = ldrValue;
-		//if ((minLdrValue == maxLdrValue) && (minLdrValue > LDR_HYSTERESIS))
-		//	minLdrValue -= LDR_HYSTERESIS;
 		if (settings.getUseLdr() && ((ldrValue >= (lastLdrValue + LDR_HYSTERESIS)) || (ldrValue <= (lastLdrValue - LDR_HYSTERESIS))))
 		{
 			lastLdrValue = ldrValue;
 			ratedBrightness = map(ldrValue, minLdrValue, maxLdrValue + 1, 0, 255); // ESP will crash if min and max are equal
 			ratedBrightness = constrain(ratedBrightness, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
 			DEBUG_PRINTLN("Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")");
+			SYSLOG("Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")");
 		}
 	}
 
@@ -1415,7 +1420,7 @@ void setBrightnessFromLdr()
 		if (brightness != ratedBrightness)
 		{
 			writeScreenBuffer(matrix, settings.getColor(), brightness);
-			//DEBUG_PRINTLN("Brightness: " + String(brightness) + ", rated brightness: " + String(ratedBrightness));
+			//DEBUG_PRINTLN("brightness: " + String(brightness) + ", ratedBrightness: " + String(ratedBrightness));
 		}
 	}
 }
@@ -1429,6 +1434,7 @@ Get update info.
 void getUpdateInfo()
 {
 	DEBUG_PRINT("Sending HTTP-request for update info. Status: ");
+	SYSLOG("Sending HTTP-request for update info.");
 	if (WiFi.status() == WL_CONNECTED)
 	{
 		char server[] = "tmw-it.ch";
@@ -1437,23 +1443,31 @@ void getUpdateInfo()
 		uint16_t statusCode = restClient.get("/qlockwork/updateinfo.json");
 		if (statusCode != 200)
 		{
-			DEBUG_PRINTLN(statusCode);
+			DEBUG_PRINTLN(String(statusCode));
+			SYSLOG("Status: " + String(statusCode));
 			return;
 		}
 		String response = restClient.readResponse();
 		DEBUG_PRINTLN(String(statusCode) + "\r\nResponse is " + String(response.length()) + " bytes.");
+		SYSLOG("Status: " + String(statusCode));
+		SYSLOG("Response is " + String(response.length()) + " bytes.");
 		//DEBUG_PRINTLN(String(response));
 		DEBUG_PRINT("Parsing JSON. ");
+		SYSLOG("Parsing JSON. ");
 		//DynamicJsonBuffer jsonBuffer;
 		StaticJsonBuffer<256> jsonBuffer;
 		JsonObject &responseJson = jsonBuffer.parseObject(response);
 		if (!responseJson.success())
 		{
 			DEBUG_PRINTLN("ERROR.");
+			SYSLOG("ERROR.");
 			return;
 		}
 		else
+		{
 			DEBUG_PRINTLN("OK.");
+			SYSLOG("OK.");
+		}
 #ifdef UPDATE_INFO_STABLE
 		updateInfo = responseJson["channel"]["stable"]["version"].as<String>();
 #endif
@@ -1461,9 +1475,11 @@ void getUpdateInfo()
 		updateInfo = responseJson["channel"]["unstable"]["version"].as<String>();
 #endif
 		DEBUG_PRINTLN("Firmware on GitHub: " + updateInfo);
+		SYSLOG("Firmware on GitHub: " + updateInfo);
 		return;
 	}
 	DEBUG_PRINTLN("ERROR. No WiFi.");
+	SYSLOG("ERROR. No WiFi.");
 	return;
 }
 #endif
@@ -1475,6 +1491,7 @@ Get weather conditions.
 void getWeather(String location)
 {
 	DEBUG_PRINT("Sending HTTP-request for weather. Status: ");
+	SYSLOG("Sending HTTP-request for weather.");
 	if (WiFi.status() == WL_CONNECTED)
 	{
 		location.replace(" ", "%20");
@@ -1489,38 +1506,52 @@ void getWeather(String location)
 		uint16_t statusCode = restClient.get("query.yahooapis.com/v1/public/yql?q=" + sqlQuery + "&format=json");
 		if (statusCode != 200)
 		{
-			DEBUG_PRINTLN(statusCode);
+			DEBUG_PRINTLN(String(statusCode));
+			SYSLOG("Status: " + String(statusCode));
 			yahooTitle = "Request failed.";
 			return;
 		}
 		String response = restClient.readResponse();
 		response = response.substring(response.indexOf('{'), response.lastIndexOf('}') + 1);
-		DEBUG_PRINTLN(String (statusCode) + "\r\nResponse is " + String(response.length()) + " bytes.");
+		DEBUG_PRINTLN(String(statusCode) + "\r\nResponse is " + String(response.length()) + " bytes.");
+		SYSLOG("Status: " + String(statusCode));
+		SYSLOG("Response is " + String(response.length()) + " bytes.");
 		//DEBUG_PRINTLN(String(response));
 		DEBUG_PRINT("Parsing JSON. ");
+		SYSLOG("Parsing JSON. ");
 		//DynamicJsonBuffer jsonBuffer;
 		StaticJsonBuffer<512> jsonBuffer;
 		JsonObject &responseJson = jsonBuffer.parseObject(response);
 		if (!responseJson.success())
 		{
 			DEBUG_PRINTLN("ERROR.");
+			SYSLOG("ERROR.");
 			yahooTitle = "Parsing failed.";
 			return;
 		}
 		else
+		{
 			DEBUG_PRINTLN("OK.");
+			SYSLOG("OK.");
+
+		}
 		yahooTitle = responseJson["query"]["results"]["channel"]["item"]["title"].as<String>();
 		yahooTitle = yahooTitle.substring(0, yahooTitle.indexOf(" at "));
 		DEBUG_PRINTLN(yahooTitle);
-		yahooTemp = responseJson["query"]["results"]["channel"]["item"]["condition"]["temp"].as<int8_t>();
-		DEBUG_PRINTLN("Temperature is: " + String(yahooTemp));
+		SYSLOG(yahooTitle);
+		yahooTemperature = responseJson["query"]["results"]["channel"]["item"]["condition"]["temp"].as<int8_t>();
+		DEBUG_PRINTLN("Temperature: " + String(yahooTemperature));
+		SYSLOG("Temperature: " + String(yahooTemperature));
 		yahooHumidity = responseJson["query"]["results"]["channel"]["atmosphere"]["humidity"].as<uint8_t>();
-		DEBUG_PRINTLN("Humidity is: " + String(yahooHumidity));
+		DEBUG_PRINTLN("Humidity: " + String(yahooHumidity));
+		SYSLOG("Humidity: " + String(yahooHumidity));
 		yahooCode = responseJson["query"]["results"]["channel"]["item"]["condition"]["code"].as<uint8_t>();
-		DEBUG_PRINTLN("Condition code is: " + String(yahooCode));
+		DEBUG_PRINTLN("Condition: " + String(yahooCode));
+		SYSLOG("Condition: " + String(yahooCode));
 		return;
 	}
 	DEBUG_PRINTLN("ERROR. No WiFi.");
+	SYSLOG("ERROR. No WiFi.");
 	yahooTitle = "Request failed. No WiFi.";
 	return;
 }
@@ -1532,6 +1563,7 @@ Get time from NTP.
 void getNtpTime()
 {
 	DEBUG_PRINT("Sending NTP-request to \"" + String(NTP_SERVER) + "\". ");
+	SYSLOG("Sending NTP-request to \"" + String(NTP_SERVER) + "\". ");
 	if (WiFi.status() == WL_CONNECTED)
 	{
 		uint8_t packetBuffer[49] = { };
@@ -1563,24 +1595,34 @@ void getNtpTime()
 				// Shift UTC time to local time. 
 				ntpTime = timeZone.toLocal(ntpTime);
 				DEBUG_PRINTLN("OK.");
+				SYSLOG("OK.");
 #ifdef DEBUG
 				debug.debugTime("Time (NTP):", ntpTime);
 #endif
+#ifdef SYSLOG_SERVER
+				syslog.logf(LOG_INFO, "Time (NTP): %02d:%02d:%02d %02d.%02d.%04d", hour(ntpTime), minute(ntpTime), second(ntpTime), day(ntpTime), month(ntpTime), year(ntpTime));
+#endif
 #ifdef RTC_BACKUP
 				DEBUG_PRINTLN("*** RTC set from NTP. ***");
+				SYSLOG("*** RTC set from NTP. ***");
 				DEBUG_PRINTLN("Drift (RTC/NTP): " + String(ntpTime - RTC.get()) + " sec.");
+				SYSLOG("Drift (RTC/NTP): " + String(ntpTime - RTC.get()) + " sec.");
 				RTC.set(ntpTime);
 #endif
 				DEBUG_PRINTLN("*** ESP set from NTP. ***");
+				SYSLOG("*** ESP set from NTP. ***");
 				DEBUG_PRINTLN("Drift (ESP/NTP): " + String(ntpTime - now()) + " sec.");
+				SYSLOG("Drift (ESP/NTP): " + String(ntpTime - now()) + " sec.");
 				setTime(ntpTime);
 				return;
 			}
 		}
 		DEBUG_PRINTLN("ERROR. Timeout.");
+		SYSLOG("ERROR. Timeout.");
 		return;
 	}
 	DEBUG_PRINTLN("ERROR. No WiFi.");
+	SYSLOG("ERROR. No WiFi.");
 	return;
 }
 
@@ -1622,6 +1664,34 @@ void setDisplayToToggle()
 	else
 		setLedsOn();
 }
+
+#ifdef SENSOR_DHT22
+// Get temperature from DHT22
+float getDHT22Temperature()
+{
+	for (uint8_t i = 0; i < 10; i++)
+	{
+		dhtTemperature = dht.readTemperature();
+		if (!isnan(dhtTemperature))
+			return dhtTemperature;
+		delay(300);
+	}
+	return 0;
+}
+
+// Get humidity from DHT22
+float getDHT22Humidity()
+{
+	for (uint8_t i = 0; i < 10; i++)
+	{
+		dhtHumidity = dht.readHumidity();
+		if (!isnan(dhtHumidity))
+			return dhtHumidity;
+		delay(300);
+	}
+	return 0;
+}
+#endif
 
 /******************************************************************************
 Webserver.
@@ -1678,10 +1748,14 @@ void handleRoot()
 	message += "<br><br>";
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_PLUS'\"><i class=\"fa fa-plus-circle\" style=\"font-size:24px\"></i></button>";
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_MINUS'\"><i class=\"fa fa-minus-circle\" style=\"font-size:24px\"></i></button>";
-#ifdef RTC_BACKUP
+#if defined(RTC_BACKUP) && !defined(SENSOR_DHT22)
 	message += "<br><br><i class = \"fa fa-thermometer-three-quarters\" style=\"font-size:20px\"></i> " + String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) + "&#176;C / " + String((RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "&#176;F";
 #endif
-	message += "<br><br><font size=2>Qlockwork was <i class=\"fa fa-code\" style=\"font-size:15px\"></i> with <i class=\"fa fa-heart\" style=\"font-size:13px\"></i> by ch570512.";
+#ifdef SENSOR_DHT22
+	message += "<br><br><i class = \"fa fa-thermometer-three-quarters\" style=\"font-size:20px\"></i> " + String(getDHT22Temperature()) + "&#176;C / " + String(getDHT22Temperature() * 9.0 / 5.0 + 32.0) + "&#176;F";
+	message += "<br><i class = \"fa fa-tint\" style=\"font-size:20px\"></i> " + String(getDHT22Humidity()) + "%RH";
+#endif
+	message += "<br><br><font size=2><a href=\"http://tmw-it.ch/qlockwork/\">Qlockwork</a> was <i class=\"fa fa-code\" style=\"font-size:15px\"></i> with <i class=\"fa fa-heart\" style=\"font-size:13px\"></i> by ch570512.";
 	message += "<br>Firmware: " + String(FIRMWARE_VERSION);
 #if defined(UPDATE_INFO_STABLE) || defined(UPDATE_INFO_UNSTABLE)
 	if (updateInfo > String(FIRMWARE_VERSION))

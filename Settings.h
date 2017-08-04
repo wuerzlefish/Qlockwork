@@ -7,11 +7,12 @@
 
 #include <Arduino.h>
 #include <EEPROM.h>
+#include "Colors.h"
 #include "Configuration.h"
 #include "Enums.h"
 
 #define SETTINGS_MAGIC_NUMBER 0x2A
-#define SETTINGS_VERSION 18
+#define SETTINGS_VERSION 19
 
 class Settings
 {
@@ -80,6 +81,7 @@ private:
 		time_t nightOffTime;
 		time_t dayOnTime;
 	} mySettings;
+
 	void resetToDefault();
 	void loadFromEEPROM();
 };

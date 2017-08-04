@@ -1523,9 +1523,9 @@ void Renderer::setSmallText(String menuText, eTextPos textPos, uint16_t matrix[]
 			for (uint8_t j = 0; j < menuText.length(); j++)
 			{
 				if (!isNumber(menuText[j]))
-					matrix[textPos + i] |= (staben[menuText[j] - 'A'][i]) << (5 + ((j + 1) % 2) * 6);
+					matrix[textPos + i] |= pgm_read_byte_near(&(staben[menuText[j] - 'A'][i])) << (5 + ((j + 1) % 2) * 6);
 				else
-					matrix[textPos + i] |= (zahlenKlein[menuText[j] - '0'][i]) << (5 + ((j + 1) % 2) * 5);
+					matrix[textPos + i] |= pgm_read_byte_near(&(zahlenKlein[menuText[j] - '0'][i])) << (5 + ((j + 1) % 2) * 5);
 			}
 		}
 	}
@@ -1534,9 +1534,9 @@ void Renderer::setSmallText(String menuText, eTextPos textPos, uint16_t matrix[]
 		for (uint8_t i = 0; i <= 4; i++)
 		{
 			if (!isNumber(menuText[0]))
-				matrix[textPos + i] |= (staben[menuText[0] - 'A'][i]) << 8;
+				matrix[textPos + i] |= pgm_read_byte_near(&(staben[menuText[0] - 'A'][i])) << 8;
 			else
-				matrix[textPos + i] |= (zahlenKlein[menuText[0] - '0'][i]) << 8;
+				matrix[textPos + i] |= pgm_read_byte_near(&(zahlenKlein[menuText[0] - '0'][i])) << 8;
 		}
 	}
 }
