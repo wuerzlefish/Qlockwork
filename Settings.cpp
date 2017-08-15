@@ -172,7 +172,7 @@ void Settings::resetToDefault()
 #ifdef LANGUAGE_NETHERLANDS
 	mySettings.language = LANGUAGE_NL;
 #endif
-	mySettings.useLdr = false;
+	mySettings.useLdr = true;
 	mySettings.brightness = MAX_BRIGHTNESS;
 	mySettings.color = WHITE;
 	mySettings.colorChange = COLORCHANGE_NO;

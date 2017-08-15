@@ -6,6 +6,8 @@ A firmware for the DIY-QLOCKTWO.
 @created 01.02.2017
 ******************************************************************************/
 
+#define FIRMWARE_VERSION 20170811
+
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <DS3232RTC.h>
@@ -30,8 +32,6 @@ A firmware for the DIY-QLOCKTWO.
 #include "Renderer.h"
 #include "Settings.h"
 #include "Timezones.h"
-
-#define FIRMWARE_VERSION 20170804
 
 /******************************************************************************
 Init.
@@ -64,6 +64,7 @@ uint8_t lastMinute = 0;
 uint8_t lastFiveMinute = 0;
 time_t lastTime = 0;
 uint8_t randomHour = 0;
+uint8_t randomMinute = 0;
 uint8_t testColumn = 0;
 uint8_t brightness = settings.getBrightness();
 String yahooTitle = "";
@@ -78,14 +79,15 @@ uint8_t timerMinutes = 0;
 uint8_t alarmOn = 0;
 #endif
 #ifdef LDR
-uint8_t ratedBrightness = settings.getBrightness();
+uint8_t ratedBrightness = 0;
 uint16_t ldrValue = 0;
 uint16_t lastLdrValue = 0;
 //uint16_t minLdrValue = 1023;
 uint16_t minLdrValue = 512;
-uint16_t maxLdrValue = 0;
+//uint16_t maxLdrValue = 0;
+uint16_t maxLdrValue = 512;
 uint32_t lastLdrCheck = 0;
-uint32_t lastBrightnessCheck = 0;
+uint32_t lastBrightnessSet = 0;
 #endif
 #ifdef SENSOR_DHT22
 DHT dht(PIN_DHT22, DHT22);
@@ -110,24 +112,30 @@ void setup()
 	// Init serial port.
 	Serial.begin(SERIAL_SPEED);
 	while (!Serial);
+
 	DEBUG_PRINTLN();
 	DEBUG_PRINTLN("QLOCKWORK");
 	DEBUG_PRINTLN("Firmware: " + String(FIRMWARE_VERSION));
 	DEBUG_PRINTLN("LED-Driver: " + ledDriver.getSignature());
+
 	// Init LED, Buzzer and LDR.
+
 #ifdef ESP_LED
 	DEBUG_PRINTLN("Setting up ESP-LED.");
 	pinMode(PIN_LED, OUTPUT);
 	digitalWrite(PIN_LED, HIGH);
 #endif
+
 #ifdef BUZZER
 	DEBUG_PRINTLN("Setting up Buzzer.");
 	pinMode(PIN_BUZZER, OUTPUT);
 #endif
+
 #ifdef SENSOR_DHT22
 	DEBUG_PRINTLN("Setting up DHT22.");
 	dht.begin();
 #endif
+
 #ifdef LDR
 	DEBUG_PRINT("Setting up LDR. LDR is ");
 	if (settings.getUseLdr())
@@ -137,15 +145,7 @@ void setup()
 	pinMode(PIN_LDR, INPUT);
 	randomSeed(analogRead(PIN_LDR));
 #endif
-	randomHour = random(0, 24);
-	DEBUG_PRINTLN("Random hour is: " + String(randomHour));
-#ifdef RTC_BACKUP
-#ifdef DEBUG
-	debug.debugTime("Time (RTC):", RTC.get());
-#endif
-	DEBUG_PRINTLN("*** ESP set from RTC. ***");
-	setTime(RTC.get());
-#endif
+
 #ifdef SELFTEST
 	renderer.setAllScreenBuffer(matrix);
 	DEBUG_PRINTLN("Set all LEDs to white.");
@@ -161,7 +161,9 @@ void setup()
 	writeScreenBuffer(matrix, BLUE, MAX_BRIGHTNESS);
 	delay(2000);
 #endif
-	// Init WiFi and services.
+
+	// Start WiFi and services.
+
 	renderer.clearScreenBuffer(matrix);
 	renderer.setSmallText("WI", TEXT_POS_TOP, matrix);
 	renderer.setSmallText("FI", TEXT_POS_BOTTOM, matrix);
@@ -191,6 +193,7 @@ void setup()
 			delay(100);
 		}
 		delay(500);
+
 #ifdef SHOW_IP
 		renderer.clearScreenBuffer(matrix);
 		renderer.setSmallText("IP", TEXT_POS_MIDDLE, matrix);
@@ -211,35 +214,80 @@ void setup()
 		}
 #endif
 	}
+
 	renderer.clearScreenBuffer(matrix);
-	DEBUG_PRINTLN("Starting mDNS responder.");
-	MDNS.begin(HOSTNAME);
-	MDNS.addService("http", "tcp", 80);
-	DEBUG_PRINTLN("Starting webserver on port 80.");
-	setupWebServer();
-	DEBUG_PRINTLN("Starting Arduino-OTA service.");
-	char otaPassword[] = OTA_PASS;
-	ArduinoOTA.setPassword(otaPassword);
-	ArduinoOTA.begin();
-#ifdef IR_REMOTE
-	DEBUG_PRINTLN("Starting IR-receiver.");
-	irrecv.enableIRIn();
-#endif
 
 	SYSLOG("QLOCKWORK");
 	SYSLOG("Firmware: " + String(FIRMWARE_VERSION));
 	SYSLOG("LED-Driver: " + ledDriver.getSignature());
 
+	DEBUG_PRINTLN("Starting mDNS responder.");
+	SYSLOG("Starting mDNS responder.");
+	MDNS.begin(HOSTNAME);
+	MDNS.addService("http", "tcp", 80);
+
+	DEBUG_PRINTLN("Starting webserver on port 80.");
+	SYSLOG("Starting webserver on port 80.");
+	setupWebServer();
+
+	DEBUG_PRINTLN("Starting OTA service.");
+	SYSLOG("Starting OTA service.");
+#ifdef SYSLOG_SERVER
+	ArduinoOTA.onStart([]()
+	{
+		syslog.log(LOG_INFO, "Starting OTA.");
+	});
+	ArduinoOTA.onError([](ota_error_t error)
+	{
+		syslog.log(LOG_INFO, "OTA Error: " + String(error));
+		if (error == OTA_AUTH_ERROR) syslog.log(LOG_INFO, "Auth Failed.");
+		else if (error == OTA_BEGIN_ERROR) syslog.log(LOG_INFO, "Begin Failed.");
+		else if (error == OTA_CONNECT_ERROR) syslog.log(LOG_INFO, "Connect Failed.");
+		else if (error == OTA_RECEIVE_ERROR) syslog.log(LOG_INFO, "Receive Failed.");
+		else if (error == OTA_END_ERROR) syslog.log(LOG_INFO, "End Failed.");
+	});
+	ArduinoOTA.onEnd([]()
+	{
+		syslog.log(LOG_INFO, "End OTA.");
+	});
+#endif
+	ArduinoOTA.setPassword(OTA_PASS);
+	ArduinoOTA.begin();
+
+#ifdef IR_REMOTE
+	DEBUG_PRINTLN("Starting IR-receiver.");
+	SYSLOG("Starting IR-receiver.");
+	irrecv.enableIRIn();
+#endif
+
+	randomHour = random(0, 24);
+	DEBUG_PRINTLN("Random hour is: " + String(randomHour));
+	SYSLOG("Random hour is: " + String(randomHour));
+
+	randomMinute = random(0, 60);
+	DEBUG_PRINTLN("Random minute is: " + String(randomMinute));
+	SYSLOG("Random minute is: " + String(randomMinute));
+
+	DEBUG_PRINTLN("Free RAM: " + String(system_get_free_heap_size()));
+	SYSLOG("Free RAM: " + String(system_get_free_heap_size()));
+
+#ifdef RTC_BACKUP
+#ifdef DEBUG
+	debug.debugTime("Time (RTC):", RTC.get());
+#endif
+	DEBUG_PRINTLN("*** ESP set from RTC. ***");
+	setTime(RTC.get());
+#endif
+
 	getNtpTime();
 	getWeather(LOCATION);
 	//getUpdateInfo();
+
 	lastDay = day();
 	lastHour = hour();
 	lastFiveMinute = minute() / 5;
 	lastMinute = minute();
 	lastTime = now();
-	DEBUG_PRINTLN("Free RAM: " + String(system_get_free_heap_size()));
-	SYSLOG("Free RAM: " + String(system_get_free_heap_size()));
 }
 
 /******************************************************************************
@@ -248,7 +296,7 @@ Loop().
 
 void loop()
 {
-	// Execute every day.
+	// Run every day.
 
 	if (day() != lastDay)
 	{
@@ -258,7 +306,7 @@ void loop()
 			settings.setColor(random(0, COLORCHANGE_COUNT + 1));
 	}
 
-	// Execute every hour.
+	// Run every hour.
 
 	if (hour() != lastHour)
 	{
@@ -273,10 +321,9 @@ void loop()
 		if ((hour() / float(randomHour)) == 1.0)
 			getUpdateInfo();
 #endif
-		getNtpTime();
 	}
 
-	// Execute every five minutes.
+	// Run every five minutes.
 
 	if ((minute() / 5) != lastFiveMinute)
 	{
@@ -286,20 +333,26 @@ void loop()
 			settings.setColor(random(0, COLOR_COUNT + 1));
 	}
 
-	// Execute every minute.
+	// Run every minute.
 
 	if (minute() != lastMinute)
 	{
 		lastMinute = minute();
 		screenBufferNeedsUpdate = true;
+		// Set ESP time from external source.
+		if (minute() == randomMinute)
+			getNtpTime();
 #ifdef RTC_BACKUP
-		if (now() != RTC.get())
+		else
 		{
-			DEBUG_PRINTLN("*** ESP set from RTC. ***");
-			DEBUG_PRINTLN("Drift (ESP/RTC): " + String(RTC.get() - now()) + " sec.");
-			SYSLOG("*** ESP set from RTC. ***");
-			SYSLOG("Drift (ESP/RTC): " + String(RTC.get() - now()) + " sec.");
-			setTime(RTC.get());
+			if (now() != RTC.get())
+			{
+				setTime(RTC.get());
+				DEBUG_PRINTLN("*** ESP set from RTC. ***");
+				DEBUG_PRINTLN("Drift (ESP/RTC): " + String(RTC.get() - now()) + " sec.");
+				SYSLOG("*** ESP set from RTC. ***");
+				SYSLOG("Drift (ESP/RTC): " + String(RTC.get() - now()) + " sec.");
+			}
 		}
 #endif
 #ifdef DEBUG
@@ -310,7 +363,7 @@ void loop()
 #endif
 	}
 
-	// Execute every second.
+	// Run every second.
 
 	if (now() != lastTime)
 	{
@@ -366,9 +419,17 @@ void loop()
 #ifdef BUZZER
 		// Alarm.
 		if (settings.getAlarm1() && (hour() == hour(settings.getAlarmTime1())) && (minute() == minute(settings.getAlarmTime1())) && (second() == 0))
+		{
 			alarmOn = BUZZTIME_ALARM_1;
+			DEBUG_PRINTLN("Alarm 1: on");
+			SYSLOG("Alarm 1: on");
+		}
 		if (settings.getAlarm2() && (hour() == hour(settings.getAlarmTime2())) && (minute() == minute(settings.getAlarmTime2())) && (second() == 0))
+		{
 			alarmOn = BUZZTIME_ALARM_2;
+			DEBUG_PRINTLN("Alarm 2: on");
+			SYSLOG("Alarm 2: on");
+		}
 
 		// Timer.
 		if (timerSet && (now() == timer))
@@ -378,6 +439,7 @@ void loop()
 			timerSet = false;
 			alarmOn = BUZZTIME_TIMER;
 		}
+
 		// Make some noise.
 		if (alarmOn)
 		{
@@ -390,16 +452,25 @@ void loop()
 		else
 			digitalWrite(PIN_BUZZER, LOW);
 #endif
+
 		// Set nightmode/daymode.
 		if ((hour() == hour(settings.getNightOffTime())) && (minute() == minute(settings.getNightOffTime())) && (second() == 0))
+		{
 			setMode(STD_MODE_BLANK);
+			DEBUG_PRINTLN("Night off.");
+			SYSLOG("Night off.");
+		}
 		if ((hour() == hour(settings.getDayOnTime())) && (minute() == minute(settings.getDayOnTime())) && (second() == 0))
+		{
 			setMode(lastMode);
+			DEBUG_PRINTLN("Day on.");
+			SYSLOG("Day on.");
+		}
 	}
 
-	// Always execute.
+	// Run always.
 
-	// Call HTTP- and OTA-handler.
+	// Call HTTP- and OTA-handle.
 	esp8266WebServer.handleClient();
 	ArduinoOTA.handle();
 #ifdef LDR
@@ -866,17 +937,11 @@ void buttonModePressed()
 	if (alarmOn)
 	{
 		alarmOn = false;
-		digitalWrite(PIN_BUZZER, LOW);
-		setMode(lastMode);
+		DEBUG_PRINTLN("Alarm off.");
+		SYSLOG("Alarm off.");
 		return;
 	}
 #endif
-	// Turn off nightmode.
-	if (mode == STD_MODE_BLANK)
-	{
-		setMode(STD_MODE_NORMAL);
-		return;
-	}
 	// Set mode and fallback.
 	setMode(mode++);
 	switch (mode)
@@ -946,29 +1011,47 @@ void buttonModePressed()
 }
 
 /******************************************************************************
+"Settings" pressed.
+******************************************************************************/
+
+void buttonSettingsPressed()
+{
+	DEBUG_PRINTLN("Settings pressed.");
+	SYSLOG("Settings pressed.");
+#ifdef BUZZER
+	// Turn off alarm.
+	if (alarmOn)
+	{
+		alarmOn = false;
+		DEBUG_PRINTLN("Alarm off.");
+		SYSLOG("Alarm off.");
+		return;
+	}
+#endif
+	if (mode < EXT_MODE_START)
+		setMode(EXT_MODE_START);
+	else
+		buttonModePressed();
+}
+
+/******************************************************************************
 "Time" pressed.
 ******************************************************************************/
 
 void buttonTimePressed()
 {
 	DEBUG_PRINTLN("Time pressed.");
-	screenBufferNeedsUpdate = true;
+	SYSLOG("Time pressed.");
 #ifdef BUZZER
 	// Turn off alarm.
 	if (alarmOn)
 	{
 		alarmOn = false;
-		digitalWrite(PIN_BUZZER, LOW);
-		//setMode(STD_MODE_NORMAL);
-		//return;
+		DEBUG_PRINTLN("Alarm off.");
+		SYSLOG("Alarm off.");
+		return;
 	}
 #endif
-	// Turn off nightmode.
-	//if (mode == STD_MODE_BLANK)
-	//{
-	//	setMode(STD_MODE_NORMAL);
-	//	return;
-	//}
 #ifdef RTC_BACKUP
 	RTC.set(now());
 #endif
@@ -978,25 +1061,13 @@ void buttonTimePressed()
 }
 
 /******************************************************************************
-"Settings" pressed.
-******************************************************************************/
-
-void buttonSettingsPressed()
-{
-	DEBUG_PRINTLN("Settings pressed.");
-	if (mode < EXT_MODE_START)
-		setMode(EXT_MODE_START);
-	else
-		buttonModePressed();
-}
-
-/******************************************************************************
 "Plus" pressed.
 ******************************************************************************/
 
 void buttonPlusPressed()
 {
 	DEBUG_PRINTLN("Plus pressed.");
+	SYSLOG("Plus pressed.");
 	screenBufferNeedsUpdate = true;
 	switch (mode)
 	{
@@ -1086,7 +1157,6 @@ void buttonPlusPressed()
 			settings.setLanguage(0);
 		break;
 	case EXT_MODE_TITLE_TIME:
-		//setMode(EXT_MODE_TITLE_IP);
 		setMode(EXT_MODE_TITLE_TEST);
 		break;
 	case EXT_MODE_TIMESET:
@@ -1125,9 +1195,6 @@ void buttonPlusPressed()
 		debug.debugTime("Day on:", settings.getDayOnTime());
 #endif
 		break;
-		//case EXT_MODE_TITLE_IP:
-		//	setMode(EXT_MODE_TITLE_TEST);
-		//	break;
 	case EXT_MODE_TITLE_TEST:
 		setMode(EXT_MODE_TITLE_MAIN);
 		break;
@@ -1143,6 +1210,7 @@ void buttonPlusPressed()
 void buttonMinusPressed()
 {
 	DEBUG_PRINTLN("Minus pressed.");
+	SYSLOG("Minus pressed.");
 	screenBufferNeedsUpdate = true;
 	switch (mode)
 	{
@@ -1277,11 +1345,7 @@ void buttonMinusPressed()
 		debug.debugTime("Day on:", settings.getDayOnTime());
 #endif
 		break;
-		//case EXT_MODE_TITLE_IP:
-		//	setMode(EXT_MODE_TITLE_TIME);
-		//	break;
 	case EXT_MODE_TITLE_TEST:
-		//setMode(EXT_MODE_TITLE_IP);
 		setMode(EXT_MODE_TITLE_TIME);
 		break;
 	default:
@@ -1389,7 +1453,7 @@ void setBrightnessFromLdr()
 	if (millis() > (lastLdrCheck + 250))
 	{
 		lastLdrCheck = millis();
-#ifdef LDR_INVERSE
+#ifdef LDR_IS_INVERSE
 		ldrValue = 1023 - analogRead(PIN_LDR);
 #else
 		ldrValue = analogRead(PIN_LDR);
@@ -1402,7 +1466,8 @@ void setBrightnessFromLdr()
 		if (settings.getUseLdr() && ((ldrValue >= (lastLdrValue + LDR_HYSTERESIS)) || (ldrValue <= (lastLdrValue - LDR_HYSTERESIS))))
 		{
 			lastLdrValue = ldrValue;
-			ratedBrightness = map(ldrValue, minLdrValue, maxLdrValue + 1, 0, 255); // ESP will crash if min and max are equal
+			if (minLdrValue != maxLdrValue) // The ESP will crash if minLdrValue and maxLdrValue are equal due to an error in map().
+				ratedBrightness = map(ldrValue, minLdrValue, maxLdrValue, 0, 255);
 			ratedBrightness = constrain(ratedBrightness, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
 			DEBUG_PRINTLN("Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")");
 			SYSLOG("Brightness: " + String(ratedBrightness) + " (LDR: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")");
@@ -1410,9 +1475,9 @@ void setBrightnessFromLdr()
 	}
 
 	// Set brightness to rated brightness.
-	if (settings.getUseLdr() && (millis() > (lastBrightnessCheck + 50)))
+	if (settings.getUseLdr() && (millis() > (lastBrightnessSet + 50)))
 	{
-		lastBrightnessCheck = millis();
+		lastBrightnessSet = millis();
 		if (brightness < ratedBrightness)
 			brightness++;
 		if (brightness > ratedBrightness)
@@ -1474,8 +1539,8 @@ void getUpdateInfo()
 #ifdef UPDATE_INFO_UNSTABLE
 		updateInfo = responseJson["channel"]["unstable"]["version"].as<String>();
 #endif
-		DEBUG_PRINTLN("Firmware on GitHub: " + updateInfo);
-		SYSLOG("Firmware on GitHub: " + updateInfo);
+		DEBUG_PRINTLN("Version on server: " + updateInfo);
+		SYSLOG("Version on server: " + updateInfo);
 		return;
 	}
 	DEBUG_PRINTLN("ERROR. No WiFi.");
@@ -1633,8 +1698,8 @@ Misc.
 // Set mode.
 void setMode(Mode newMode)
 {
-	DEBUG_PRINT("Mode: ");
-	DEBUG_PRINTLN(newMode);
+	DEBUG_PRINTLN("Mode: " + String(newMode));
+	SYSLOG("Mode: " + String(newMode));
 	if (newMode != STD_MODE_BLANK)
 		renderer.clearScreenBuffer(matrix);
 	screenBufferNeedsUpdate = true;
@@ -1646,6 +1711,7 @@ void setMode(Mode newMode)
 void setLedsOff()
 {
 	DEBUG_PRINTLN("LEDs off.");
+	SYSLOG("LEDs off.");
 	setMode(STD_MODE_BLANK);
 }
 
@@ -1653,6 +1719,7 @@ void setLedsOff()
 void setLedsOn()
 {
 	DEBUG_PRINTLN("LEDs on.");
+	SYSLOG("LEDs on.");
 	setMode(lastMode);
 }
 
@@ -1669,12 +1736,11 @@ void setDisplayToToggle()
 // Get temperature from DHT22
 float getDHT22Temperature()
 {
-	for (uint8_t i = 0; i < 10; i++)
+	for (uint8_t i = 0; i < 20; i++)
 	{
 		dhtTemperature = dht.readTemperature();
 		if (!isnan(dhtTemperature))
 			return dhtTemperature;
-		delay(300);
 	}
 	return 0;
 }
@@ -1682,12 +1748,11 @@ float getDHT22Temperature()
 // Get humidity from DHT22
 float getDHT22Humidity()
 {
-	for (uint8_t i = 0; i < 10; i++)
+	for (uint8_t i = 0; i < 20; i++)
 	{
 		dhtHumidity = dht.readHumidity();
 		if (!isnan(dhtHumidity))
 			return dhtHumidity;
-		delay(300);
 	}
 	return 0;
 }

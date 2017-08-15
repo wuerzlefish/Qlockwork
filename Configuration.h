@@ -30,7 +30,7 @@
 //#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
 
 //#define LDR
-//#define LDR_INVERSE
+//#define LDR_IS_INVERSE
 #define LDR_HYSTERESIS 30
 #define MIN_BRIGHTNESS 20
 #define MAX_BRIGHTNESS 255
@@ -268,7 +268,7 @@
 #define SELFTEST
 #define SHOW_IP
 #define LDR
-#define LDR_INVERSE
+#define LDR_IS_INVERSE
 #define LDR_HYSTERESIS 30
 #define MIN_BRIGHTNESS 10
 #define MAX_BRIGHTNESS 255
