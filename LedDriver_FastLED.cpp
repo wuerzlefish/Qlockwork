@@ -130,7 +130,7 @@ void LedDriver_FastLED::setPixel(uint8_t x, uint8_t y, uint8_t color, uint8_t br
 	setPixel(x + (y * 11), color, brightness);
 #endif
 #ifdef LED_LAYOUT_VERTICAL
-	setPixel(y + (x * 10), color, brightness);
+	setPixel((x * 10) + y, color, brightness);
 #endif
 }
 
@@ -140,76 +140,146 @@ void LedDriver_FastLED::setPixel(uint8_t num, uint8_t color, uint8_t brightness)
 	uint8_t green = map(brightness, 0, 255, 0, defaultColors[color].green);
 	uint8_t blue = map(brightness, 0, 255, 0, defaultColors[color].blue);
 	uint32_t ledColor = (red << 16) + (green << 8) + blue;
+
 #ifdef LED_LAYOUT_HORIZONTAL
+
 	if (num < 110)
 	{
-		if (num / 11 % 2 == 0)
-			leds[num] = ledColor;
-		else
-			leds[num / 11 * 11 + 10 - (num % 11)] = ledColor;
+		if (num / 11 % 2 != 0)
+		{
+			num = num / 11 * 11 + 10 - (num % 11);
+		}
 	}
 	else
 	{
 		switch (num)
 		{
 		case 110: // upper-left
-			leds[111] = ledColor;
+			num = 111;
 			break;
 		case 111: // upper-right
-			leds[112] = ledColor;
+			num = 112;
 			break;
 		case 112: // bottom-right
-			leds[113] = ledColor;
+			num = 113;
 			break;
 		case 113: // bottom-left
-			leds[110] = ledColor;
+			num = 110;
 			break;
-		case 114: // alarm
-			leds[114] = ledColor;
-			break;
+			//case 114: // alarm
+			//	num = 114;
+			//	break;
 		default:
 			break;
 		}
 	}
+
+#ifdef LED_LAYOUT_DUAL
+	leds[num * 2] = ledColor;
+	leds[num * 2 + 1] = ledColor;
+#else
+	leds[num] = ledColor;
+#endif
+
 #endif // LED_LAYOUT_HORIZONTAL
-#ifdef LED_LAYOUT_VERTICAL
-	uint8_t ledNum;
+
+#if defined(LED_LAYOUT_VERTICAL) && !defined(LED_LAYOUT_DUAL)
+
 	if (num < 110)
 	{
-		if (num / 10 % 2 == 0)
-			ledNum = num;
+		if (num / 10 % 2 != 0)
+		{
+			num = num / 10 * 10 + 9 - (num % 10);
+		}
+		if (num < 10)
+		{
+			num += 1;
+		}
 		else
-			ledNum = num / 10 * 10 + 9 - (num % 10);
-		if (ledNum < 10)
-			leds[ledNum + 1] = ledColor;
-		else
-			if (ledNum < 100)
-				leds[ledNum + 2] = ledColor;
+		{
+			if (num < 100)
+			{
+				num += 2;
+			}
 			else
-				leds[ledNum + 3] = ledColor;
+			{
+				num += 3;
+			}
+		}
 	}
 	else
 	{
 		switch (num)
 		{
 		case 110: // upper-left
-			leds[0] = ledColor;
+			num = 0;
 			break;
 		case 111: // upper-right
-			leds[102] = ledColor;
+			num = 102;
 			break;
 		case 112: // bottom-right
-			leds[113] = ledColor;
+			num = 113;
 			break;
 		case 113: // bottom-left
-			leds[11] = ledColor;
+			num = 11;
 			break;
-		case 114: // alarm
-			leds[114] = ledColor;
-			break;
+			//case 114: // alarm
+			//	num = 114;
+			//	break;
 		default:
 			break;
 		}
 	}
+
+	leds[num] = ledColor;
+
 #endif // LED_LAYOUT_VERTICAL
+
+#if defined(LED_LAYOUT_VERTICAL) && defined(LED_LAYOUT_DUAL)
+
+	if (num < 110)
+	{
+		if (num < 10)
+		{
+			leds[num + 2] = ledColor;
+			leds[23 - num] = ledColor;
+		}
+		else
+		{
+			if (num < 100)
+			{
+				leds[num + 14] = ledColor;
+				leds[53 - num] = ledColor;
+			}
+			else
+			{
+
+			}
+		}
+	}
+	else
+	{
+		switch (num)
+		{
+		case 110: // upper-left
+
+			break;
+		case 111: // upper-right
+
+			break;
+		case 112: // bottom-right
+
+			break;
+		case 113: // bottom-left
+
+			break;
+			//case 114: // alarm
+
+			//	break;
+		default:
+			break;
+		}
+	}
+
+#endif // LED_LAYOUT_VERTICAL DUAL
 }

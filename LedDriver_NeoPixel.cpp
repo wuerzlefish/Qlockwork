@@ -49,7 +49,7 @@ void LedDriver_NeoPixel::setPixel(uint8_t x, uint8_t y, uint8_t color, uint8_t b
 	setPixel(x + (y * 11), color, brightness);
 #endif
 #ifdef LED_LAYOUT_VERTICAL
-	setPixel(y + (x * 10), color, brightness);
+	setPixel((x * 10) + y, color, brightness);
 #endif
 }
 
@@ -59,76 +59,103 @@ void LedDriver_NeoPixel::setPixel(uint8_t num, uint8_t color, uint8_t brightness
 	uint8_t green = map(brightness, 0, 255, 0, defaultColors[color].green);
 	uint8_t blue = map(brightness, 0, 255, 0, defaultColors[color].blue);
 	uint32_t ledColor = (red << 16) + (green << 8) + blue;
+
 #ifdef LED_LAYOUT_HORIZONTAL
+
 	if (num < 110)
 	{
-		if (num / 11 % 2 == 0)
-			strip->setPixelColor(num, ledColor);
-		else
-			strip->setPixelColor(num / 11 * 11 + 10 - (num % 11), ledColor);
+		if (num / 11 % 2 != 0)
+		{
+			num = num / 11 * 11 + 10 - (num % 11);
+		}
 	}
 	else
 	{
 		switch (num)
 		{
 		case 110: // upper-left
-			strip->setPixelColor(111, ledColor);
+			num = 111;
 			break;
 		case 111: // upper-right
-			strip->setPixelColor(112, ledColor);
+			num = 112;
 			break;
 		case 112: // bottom-right
-			strip->setPixelColor(113, ledColor);
+			num = 113;
 			break;
 		case 113: // bottom-left
-			strip->setPixelColor(110, ledColor);
+			num = 110;
 			break;
-		case 114: // alarm
-			strip->setPixelColor(114, ledColor);
-			break;
+			//case 114: // alarm
+			//	num = 114;
+			//	break;
 		default:
 			break;
 		}
 	}
+
+#ifdef LED_LAYOUT_DUAL
+	strip->setPixelColor(num * 2, ledColor);
+	strip->setPixelColor(num * 2 + 1, ledColor);
+#else
+	strip->setPixelColor(num, ledColor);
+#endif
+
 #endif // LED_LAYOUT_HORIZONTAL
+
 #ifdef LED_LAYOUT_VERTICAL
-	uint8_t ledNum;
+
 	if (num < 110)
 	{
-		if (num / 10 % 2 == 0)
-			ledNum = num;
+		if (num / 10 % 2 != 0)
+		{
+			num = num / 10 * 10 + 9 - (num % 10);
+		}
+		if (num < 10)
+		{
+			num += 1;
+		}
 		else
-			ledNum = num / 10 * 10 + 9 - (num % 10);
-		if (ledNum < 10)
-			strip->setPixelColor(ledNum + 1, ledColor);
-		else
-			if (ledNum < 100)
-				strip->setPixelColor(ledNum + 2, ledColor);
+		{
+			if (num < 100)
+			{
+				num += 2;
+			}
 			else
-				strip->setPixelColor(ledNum + 3, ledColor);
+			{
+				num += 3;
+			}
+		}
 	}
 	else
 	{
 		switch (num)
 		{
 		case 110: // upper-left
-			strip->setPixelColor(0, ledColor);
+			num = 0;
 			break;
 		case 111: // upper-right
-			strip->setPixelColor(102, ledColor);
+			num = 102;
 			break;
 		case 112: // bottom-right
-			strip->setPixelColor(113, ledColor);
+			num = 113;
 			break;
 		case 113: // bottom-left
-			strip->setPixelColor(11, ledColor);
+			num = 11;
 			break;
-		case 114: // alarm
-			strip->setPixelColor(114, ledColor);
-			break;
+			//case 114: // alarm
+			//	num = 114;
+			//	break;
 		default:
 			break;
 		}
 	}
+
+	strip->setPixelColor(num, ledColor);
+
 #endif // LED_LAYOUT_VERTICAL
+
+#if defined(LED_LAYOUT_VERTICAL) && defined(LED_LAYOUT_DUAL)
+
+#endif // LED_LAYOUT_VERTICAL DUAL
+
 }

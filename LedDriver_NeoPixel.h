@@ -9,6 +9,14 @@
 #include "Colors.h"
 #include "Configuration.h"
 
+#if !defined(LED_LAYOUT_DUAL)
+#define NUM_LEDS 115
+#endif
+
+#if defined(LED_LAYOUT_DUAL)
+#define NUM_LEDS 230
+#endif
+
 class LedDriver_NeoPixel
 {
 public:

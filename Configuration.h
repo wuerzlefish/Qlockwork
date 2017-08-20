@@ -11,11 +11,20 @@
 //#define CONFIG_QLOCKMIN
 //#define CONFIG_CLT2
 
+struct event_t
+{
+	uint8_t month;
+	uint8_t day;
+	String text;
+	eColor color;
+};
+
 #ifdef CONFIG_DEFAULT
 
 #define HOSTNAME "QLOCKWORK"
 #define WIFI_AP_TIMEOUT 300
 #define OTA_PASS "1234"
+//#define WIFI_RESET
 #define NTP_SERVER "pool.ntp.org"
 
 //#define RTC_BACKUP
@@ -28,6 +37,12 @@
 #define ESP_LED
 //#define NONE_TECHNICAL_ZERO
 //#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
+const event_t event[] =
+{
+	{ 1, 1, "Happy New Year!", YELLOW_25 },
+	{ 12, 24, "It's Christmas!", RED },
+	{ 8, 20, "This is yet another event.", CYAN }
+};
 
 //#define LDR
 //#define LDR_IS_INVERSE
@@ -88,14 +103,12 @@
 
 //#define IR_REMOTE
 //#define IR_LETTER_OFF
-
 //#define IR_CODE_ONOFF   16769565 // HX1838 Remote CH+
 //#define IR_CODE_TIME    16753245 // HX1838 Remote CH-
 //#define IR_CODE_MODE    16736925 // HX1838 Remote CH
 //#define IR_CODE_EXTMODE 16748655 // HX1838 Remote EQ
 //#define IR_CODE_PLUS    16754775 // HX1838 Remote +
 //#define IR_CODE_MINUS   16769055 // HX1838 Remote -
-
 #define IR_CODE_ONOFF   16769055 // CLT2 V1.1 Remote Power
 #define IR_CODE_TIME    16752735 // CLT2 V1.1 Remote Time
 #define IR_CODE_MODE    16720095 // CLT2 V1.1 Remote Region
@@ -105,6 +118,7 @@
 
 #define LED_LAYOUT_HORIZONTAL
 //#define LED_LAYOUT_VERTICAL
+//#define LED_LAYOUT_DUAL
 
 //#define LED_LIBRARY_LPD8806RGBW
 
@@ -160,8 +174,9 @@
 //#define DEBUG_MATRIX
 //#define DEBUG_FPS
 
+#define UPDATE_INFOSERVER "tmw-it.ch"
+#define UPDATE_INFOFILE "/qlockwork/updateinfo.json"
 #define SERIAL_SPEED    115200
-#define NUM_LEDS        115
 #define PIN_IR_RECEIVER D3
 #define PIN_LED         D4
 #define PIN_BUZZER      D5
@@ -182,6 +197,13 @@
 #define SENSOR_DHT22
 //#define SELFTEST
 //#define SHOW_IP
+//#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
+const event_t event[] =
+{
+	{ 1, 1, "Happy New Year!", YELLOW_25 },
+	{ 12, 24, "It's Christmas!", RED },
+	{ 8, 20, "This is yet another event.", CYAN }
+};
 #define ESP_LED
 #define LDR
 #define LDR_HYSTERESIS 30
@@ -196,22 +218,26 @@
 #define UPDATE_INFO_UNSTABLE
 #define TIMEZONE_CET
 //#define IR_REMOTE
-//#define IR_CODE_ONOFF   16769565 // HX1838 Remote CH+
-//#define IR_CODE_TIME    16753245 // HX1838 Remote CH-
-//#define IR_CODE_MODE    16736925 // HX1838 Remote CH
-//#define IR_CODE_EXTMODE 16748655 // HX1838 Remote EQ
-//#define IR_CODE_PLUS    16754775 // HX1838 Remote +
-//#define IR_CODE_MINUS   16769055 // HX1838 Remote -
+#define IR_CODE_ONOFF   16769055 // CLT2 V1.1 Remote Power
+#define IR_CODE_TIME    16752735 // CLT2 V1.1 Remote Time
+#define IR_CODE_MODE    16720095 // CLT2 V1.1 Remote Region
+#define IR_CODE_EXTMODE 16736415 // CLT2 V1.1 Remote Seconds
+#define IR_CODE_PLUS    16734375 // CLT2 V1.1 Remote +
+#define IR_CODE_MINUS   16730295 // CLT2 V1.1 Remote -
+//#define LED_LAYOUT_HORIZONTAL
 #define LED_LAYOUT_VERTICAL
+//#define LED_LAYOUT_DUAL
+//#define LED_LIBRARY_FASTLED
+//#define LED_DRIVER_FAST_NEOPIXEL
 #define LED_LIBRARY_NEOPIXEL
 #define LED_DRIVER_NEO_800KHZ_GRB
-#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
 #define DEBUG
 #define DEBUG_WEBSITE
 //#define DEBUG_MATRIX
 //#define DEBUG_FPS
+#define UPDATE_INFOSERVER "tmw-it.ch"
+#define UPDATE_INFOFILE "/qlockwork/updateinfo.json"
 #define SERIAL_SPEED    115200
-#define NUM_LEDS        115
 #define PIN_IR_RECEIVER D3
 #define PIN_LED         D4
 #define PIN_BUZZER      D5
@@ -229,6 +255,12 @@
 #define SENSOR_DHT22
 #define SELFTEST
 #define SHOW_IP
+const event_t event[] =
+{
+	{ 1, 1, "Happy New Year!", YELLOW_25 },
+	{ 12, 24, "It's Christmas!", RED },
+	{ 8, 20, "This is yet another event.", CYAN }
+};
 #define LDR
 #define LDR_HYSTERESIS 30
 #define MIN_BRIGHTNESS 20
@@ -242,13 +274,17 @@
 #define UPDATE_INFO_UNSTABLE
 #define TIMEZONE_CET
 #define LED_LAYOUT_HORIZONTAL
+//#define LED_LAYOUT_DUAL
+//#define LED_LIBRARY_FASTLED
+//#define LED_DRIVER_FAST_NEOPIXEL
 #define LED_LIBRARY_NEOPIXEL
 #define LED_DRIVER_NEO_800KHZ_GRB
 #define SYSLOG_SERVER "pandora"
 #define SYSLOG_PORT 514
 #define DEBUG_WEBSITE
+#define UPDATE_INFOSERVER "tmw-it.ch"
+#define UPDATE_INFOFILE "/qlockwork/updateinfo.json"
 #define SERIAL_SPEED    115200
-#define NUM_LEDS        115
 #define PIN_IR_RECEIVER D3
 #define PIN_LED         D4
 #define PIN_BUZZER      D5
@@ -267,6 +303,13 @@
 #define RTC_TEMP_OFFSET -4.25
 #define SELFTEST
 #define SHOW_IP
+#define DEDICATION "von Thorsten f&uuml;r die vielen tollen Essen in der Schweiz."
+const event_t event[] =
+{
+	{ 1, 1, "Happy New Year!", YELLOW_25 },
+	{ 12, 24, "It's Christmas!", RED },
+	{ 8, 20, "This is yet another event.", CYAN }
+};
 #define LDR
 #define LDR_IS_INVERSE
 #define LDR_HYSTERESIS 30
@@ -282,9 +325,9 @@
 #define TIMEZONE_CET
 #define LED_LAYOUT_VERTICAL
 #define LED_LIBRARY_LPD8806RGBW
-#define DEDICATION "von Thorsten f&uuml;r die vielen tollen Essen in der Schweiz."
+#define UPDATE_INFOSERVER "tmw-it.ch"
+#define UPDATE_INFOFILE "/qlockwork/updateinfo.json"
 #define SERIAL_SPEED    115200
-#define NUM_LEDS        115
 #define PIN_IR_RECEIVER D3
 #define PIN_LED         D4
 #define PIN_BUZZER      D5
