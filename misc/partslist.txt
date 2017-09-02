@@ -6,16 +6,28 @@
 115x eBay SK6812 RGBW, 30 LED per meter   25,00 EUR
 
 1x   eBay DS3231 RTC Modul                 1,00 EUR (optional)
+          Schraubklemmblock Polzahl 4
 
 1x   eBay DHT22 Modul                      2,90 EUR (optional)
+          Schraubklemmblock Polzahl 3
 
 1x 145475 LDR A9013                        2,00 EUR (optional)
 
 1x   eBay HX1838 IR-Remote                 1,00 EUR (optional)
 1x 171085 IR-Receiver TSOP31240            1,60 EUR (optional)
 
+          Powersupply 5V, 5A
+
 --------------------------------------------------------------
 
-1x        Baseplate 45cm x 45cm
+1x Baseplate 450 x 450 x 2 mm
+
+Outer frame:
+2x Bar 450 x 150 x 20 mm
+2x Bar 420 x 150 x 20 mm
+1x Preglued edging strip 5 m x 23 mm
+
+Inner frame:
+
 
 --------------------------------------------------------------
