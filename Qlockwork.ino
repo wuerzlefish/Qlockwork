@@ -6,7 +6,7 @@ An advanced firmware for a DIY "word-clock".
 @created 01.02.2017
 ******************************************************************************/
 
-#define FIRMWARE_VERSION 20170902
+#define FIRMWARE_VERSION 20170903
 
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
@@ -15,7 +15,9 @@ An advanced firmware for a DIY "word-clock".
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
+#include <IRremoteESP8266.h>
 #include <IRrecv.h>
+#include <IRutils.h>
 #include <RestClient.h>
 #include <Syslog.h>
 #include <TimeLib.h>
@@ -431,10 +433,17 @@ void loop()
 	if (now() != lastTime)
 	{
 		lastTime = now();
-		// Running STD_MODE_NORMAL every second will lock the ESP due to TRANSITION_FADE.
-		if (mode != STD_MODE_NORMAL)
+
+		// Running STD_MODE_NORMAL or STD_MODE_BLANK every second will lock the ESP due to TRANSITION_FADE.
+		switch (mode)
 		{
+		case STD_MODE_NORMAL:
+		case STD_MODE_BLANK:
+			screenBufferNeedsUpdate = false;
+			break;
+		default:
 			screenBufferNeedsUpdate = true;
+			break;
 		}
 
 #ifdef ESP_LED
@@ -530,10 +539,14 @@ void loop()
 #endif
 
 #ifdef IR_REMOTE
-	// Get IR commands.
+	// Look for IR commands.
 	if (irrecv.decode(&irDecodeResult))
 	{
-		DEBUG_PRINTLN("IR signal: " + String(uint32_t(irDecodeResult.value)));
+#ifdef DEBUG
+		Serial.print("IR signal: ");
+		serialPrintUint64(irDecodeResult.value, DEC);
+		Serial.println();
+#endif
 		remoteAction(irDecodeResult);
 		irrecv.resume();
 	}
@@ -1670,7 +1683,7 @@ void remoteAction(decode_results irDecodeResult)
 	case IR_CODE_MODE:
 		buttonModePressed();
 		break;
-	case IR_CODE_EXTMODE:
+	case IR_CODE_SETTINGS:
 		buttonSettingsPressed();
 		break;
 	case IR_CODE_PLUS:
@@ -1706,8 +1719,8 @@ void moveScreenBufferUp(uint16_t screenBufferOld[], uint16_t screenBufferNew[], 
 
 void writeScreenBuffer(uint16_t screenBuffer[], uint8_t color, uint8_t brightness)
 {
+	//DEBUG_PRINT("Running writeScreenBuffer.");
 	ledDriver.clear();
-
 	for (uint8_t y = 0; y <= 9; y++)
 	{
 		for (uint8_t x = 0; x <= 10; x++)
@@ -1755,10 +1768,12 @@ void writeScreenBuffer(uint16_t screenBuffer[], uint8_t color, uint8_t brightnes
 #endif
 
 	ledDriver.show();
+	//DEBUG_PRINTLN(" Done.");
 }
 
 void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[], uint8_t color, uint8_t brightness)
 {
+	//DEBUG_PRINT("Running writeScreenBufferFade.");
 	ledDriver.clear();
 	uint8_t brightnessBuffer[10][12] = {};
 
@@ -1820,6 +1835,7 @@ void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[
 		delay((255 - brightness) / 7);
 		ledDriver.show();
 	}
+	//DEBUG_PRINTLN(" Done.");
 }
 
 #ifdef LDR
@@ -2120,32 +2136,6 @@ void showFeed(String feedText, eColor color)
 Get temperature or humidity from DHT22.
 ******************************************************************************/
 
-//float getDHT22Temperature()
-//{
-//	for (uint8_t i = 0; i < 20; i++)
-//	{
-//		dhtTemperature = dht.readTemperature();
-//		if (!isnan(dhtTemperature))
-//		{
-//			return dhtTemperature;
-//		}
-//	}
-//	return 0;
-//}
-//
-//float getDHT22Humidity()
-//{
-//	for (uint8_t i = 0; i < 20; i++)
-//	{
-//		dhtHumidity = dht.readHumidity();
-//		if (!isnan(dhtHumidity))
-//		{
-//			return dhtHumidity;
-//		}
-//	}
-//	return 0;
-//}
-
 float getDHT22Temperature()
 {
 	dhtTemperature = dht.readTemperature();
@@ -2204,7 +2194,7 @@ void setMode(Mode newMode)
 	}
 }
 
-// Turn LEDs off.
+// Switch LEDs off.
 void setLedsOff()
 {
 	DEBUG_PRINTLN("LEDs off.");
@@ -2212,7 +2202,7 @@ void setLedsOff()
 	setMode(STD_MODE_BLANK);
 }
 
-// Turn LEDs on.
+// Switch LEDs on.
 void setLedsOn()
 {
 	DEBUG_PRINTLN("LEDs on.");
@@ -2223,13 +2213,13 @@ void setLedsOn()
 // Toggle LEDs.
 void setDisplayToToggle()
 {
-	if (mode != STD_MODE_BLANK)
+	if (mode == STD_MODE_BLANK)
 	{
-		setLedsOff();
+		setLedsOn();
 	}
 	else
 	{
-		setLedsOn();
+		setLedsOff();
 	}
 }
 
