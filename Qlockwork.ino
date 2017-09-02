@@ -6,7 +6,7 @@ An advanced firmware for a DIY "word-clock".
 @created 01.02.2017
 ******************************************************************************/
 
-#define FIRMWARE_VERSION 20170901
+#define FIRMWARE_VERSION 20170902
 
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
@@ -557,6 +557,7 @@ void loop()
 			renderer.clearScreenBuffer(matrix);
 			renderer.setTime(hour(), minute(), settings.getLanguage(), matrix);
 			renderer.setCorners(minute(), matrix);
+#ifdef BUZZER
 			if (settings.getAlarm1() || settings.getAlarm2() || timerSet)
 			{
 				renderer.setAlarmLed(matrix);
@@ -565,6 +566,7 @@ void loop()
 			{
 				renderer.clearEntryWords(settings.getLanguage(), matrix);
 			}
+#endif
 			break;
 		case STD_MODE_AMPM:
 			renderer.clearScreenBuffer(matrix);
@@ -1141,7 +1143,9 @@ void loop()
 	switch (mode)
 	{
 	case STD_MODE_TITLE_TEMP:
+#ifdef BUZZER
 	case STD_MODE_TITLE_ALARM:
+#endif
 	case EXT_MODE_TITLE_MAIN:
 	case EXT_MODE_TITLE_TIME:
 	case EXT_MODE_TEXT_NIGHTOFF:
@@ -1154,12 +1158,12 @@ void loop()
 		break;
 	default:
 		break;
-		}
+	}
 
 #ifdef DEBUG_FPS
 	debug.debugFps();
 #endif
-	}
+}
 
 /******************************************************************************
 "On/off" pressed.
@@ -1724,6 +1728,7 @@ void writeScreenBuffer(uint16_t screenBuffer[], uint8_t color, uint8_t brightnes
 		}
 	}
 
+#ifdef BUZZER
 	// Alarm LED.
 	if (bitRead(screenBuffer[4], 4))
 	{
@@ -1747,6 +1752,7 @@ void writeScreenBuffer(uint16_t screenBuffer[], uint8_t color, uint8_t brightnes
 		ledDriver.setPixel(114, color, brightness);
 #endif
 	}
+#endif
 
 	ledDriver.show();
 }
@@ -1790,6 +1796,7 @@ void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[
 			ledDriver.setPixel(110 + y, color, brightnessBuffer[y][11]);
 		}
 
+#ifdef BUZZER
 		// Alarm LED.
 #ifdef ALARM_LED_COLOR
 #ifdef ABUSE_CORNER_LED_FOR_ALARM
@@ -1807,12 +1814,13 @@ void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[
 #else
 		ledDriver.setPixel(114, color, brightnessBuffer[4][11]);
 #endif
+#endif
 
 		esp8266WebServer.handleClient();
 		delay((255 - brightness) / 7);
 		ledDriver.show();
-		}
 	}
+}
 
 #ifdef LDR
 /******************************************************************************
