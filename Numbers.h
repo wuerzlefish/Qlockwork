@@ -1,11 +1,11 @@
 /******************************************************************************
-   Numbers.h
+Numbers.h
 ******************************************************************************/
 
 #ifndef NUMBERS_H
 #define NUMBERS_H
 
-const char zahlenKlein[][5] =
+const char numbers[][5] =
 {
 	{ // 0
 		0b00011110,
@@ -79,7 +79,7 @@ const char zahlenKlein[][5] =
 	}
 };
 
-const char zahlenGross[][7] =
+const char numbersBig[][7] =
 {
 	{ // 0
 #ifdef NONE_TECHNICAL_ZERO

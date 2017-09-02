@@ -1,59 +1,27 @@
 /******************************************************************************
-   Configuration.h
-   See README.md for help.
+Configuration.h
+See README.md for help.
 ******************************************************************************/
 
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#define CONFIG_DEFAULT
-//#define CONFIG_QLOCKDEV
-//#define CONFIG_QLOCKMIN
-//#define CONFIG_CLT2
-
-struct event_t
-{
-	uint8_t month;
-	uint8_t day;
-	String text;
-	eColor color;
-};
-
-#ifdef CONFIG_DEFAULT
+/******************************************************************************
+Software settings.
+******************************************************************************/
 
 #define HOSTNAME "QLOCKWORK"
 #define WIFI_AP_TIMEOUT 300
-#define OTA_PASS "1234"
 //#define WIFI_RESET
+#define OTA_PASS "1234"
 #define NTP_SERVER "pool.ntp.org"
-
-//#define RTC_BACKUP
-#define RTC_TEMP_OFFSET 0
-
-//#define SENSOR_DHT22
 
 #define SELFTEST
 #define SHOW_IP
-#define ESP_LED
 //#define NONE_TECHNICAL_ZERO
+#define ALARM_LED_COLOR RED
+//#define ABUSE_CORNER_LED_FOR_ALARM
 //#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
-const event_t event[] =
-{
-	{ 1, 1, "Happy New Year!", YELLOW_25 },
-	{ 12, 24, "It's Christmas!", RED },
-	{ 8, 20, "This is yet another event.", CYAN }
-};
-
-//#define LDR
-//#define LDR_IS_INVERSE
-#define LDR_HYSTERESIS 30
-#define MIN_BRIGHTNESS 20
-#define MAX_BRIGHTNESS 255
-
-//#define BUZZER
-#define BUZZTIME_ALARM_1 60
-#define BUZZTIME_ALARM_2 60
-#define BUZZTIME_TIMER 30
 
 #define LOCATION "Berlin, BE, DE"
 //#define LOCATION "Zurich, ZH, CH"
@@ -100,6 +68,28 @@ const event_t event[] =
 //#define TIMEZONE_LHST  // LHST  Lord Howe Standard Time UTC+10.5
 //#define TIMEZONE_SBT   // SBT   Solomon Islands Time UTC+11
 //#define TIMEZONE_NZST  // NZST  New Zealand Standard Time UTC+12
+
+/******************************************************************************
+Hardware settings.
+******************************************************************************/
+
+#define ESP_LED
+
+//#define RTC_BACKUP
+#define RTC_TEMP_OFFSET 0
+
+//#define SENSOR_DHT22
+
+//#define LDR
+//#define LDR_IS_INVERSE
+#define LDR_HYSTERESIS 30
+#define MIN_BRIGHTNESS 20
+#define MAX_BRIGHTNESS 255
+
+//#define BUZZER
+#define BUZZTIME_ALARM_1 60
+#define BUZZTIME_ALARM_2 60
+#define BUZZTIME_TIMER 30
 
 //#define IR_REMOTE
 //#define IR_LETTER_OFF
@@ -166,17 +156,23 @@ const event_t event[] =
 //#define LED_DRIVER_FAST_WS2813
 //#define LED_DRIVER_FAST_WS2852
 
-//#define SYSLOG_SERVER "192.168.0.1"
-//#define SYSLOG_PORT 514
+/******************************************************************************
+Misc.
+******************************************************************************/
 
 //#define DEBUG
 //#define DEBUG_WEBSITE
 //#define DEBUG_MATRIX
 //#define DEBUG_FPS
 
+//#define SYSLOG_SERVER "192.168.0.1"
+//#define SYSLOG_PORT 514
+
 #define UPDATE_INFOSERVER "tmw-it.ch"
 #define UPDATE_INFOFILE "/qlockwork/updateinfo.json"
+
 #define SERIAL_SPEED    115200
+
 #define PIN_IR_RECEIVER D3
 #define PIN_LED         D4
 #define PIN_BUZZER      D5
@@ -184,157 +180,5 @@ const event_t event[] =
 #define PIN_LEDS_CLOCK  D7
 #define PIN_LEDS_DATA   D8
 #define PIN_LDR         A0
-
-#endif // CONFIG_DEFAULT
-
-#ifdef CONFIG_QLOCKDEV
-#define HOSTNAME "QLOCKDEV"
-#define WIFI_AP_TIMEOUT 10
-#define OTA_PASS "1234"
-#define NTP_SERVER "fritz.box"
-#define RTC_BACKUP
-#define RTC_TEMP_OFFSET +0.25
-#define SENSOR_DHT22
-//#define SELFTEST
-//#define SHOW_IP
-//#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
-const event_t event[] =
-{
-	{ 1, 1, "Happy New Year!", YELLOW_25 },
-	{ 12, 24, "It's Christmas!", RED },
-	{ 8, 20, "This is yet another event.", CYAN }
-};
-#define ESP_LED
-#define LDR
-#define LDR_HYSTERESIS 30
-#define MIN_BRIGHTNESS 20
-#define MAX_BRIGHTNESS 255
-#define BUZZER
-#define BUZZTIME_ALARM_1 60
-#define BUZZTIME_ALARM_2 60
-#define BUZZTIME_TIMER 30
-#define LOCATION "Zurich, ZH, CH"
-#define LANGUAGE_GERMAN
-#define UPDATE_INFO_UNSTABLE
-#define TIMEZONE_CET
-//#define IR_REMOTE
-#define IR_CODE_ONOFF   16769055 // CLT2 V1.1 Remote Power
-#define IR_CODE_TIME    16752735 // CLT2 V1.1 Remote Time
-#define IR_CODE_MODE    16720095 // CLT2 V1.1 Remote Region
-#define IR_CODE_EXTMODE 16736415 // CLT2 V1.1 Remote Seconds
-#define IR_CODE_PLUS    16734375 // CLT2 V1.1 Remote +
-#define IR_CODE_MINUS   16730295 // CLT2 V1.1 Remote -
-//#define LED_LAYOUT_HORIZONTAL
-#define LED_LAYOUT_VERTICAL
-//#define LED_LAYOUT_DUAL
-//#define LED_LIBRARY_FASTLED
-//#define LED_DRIVER_FAST_NEOPIXEL
-#define LED_LIBRARY_NEOPIXEL
-#define LED_DRIVER_NEO_800KHZ_GRB
-#define DEBUG
-#define DEBUG_WEBSITE
-//#define DEBUG_MATRIX
-//#define DEBUG_FPS
-#define UPDATE_INFOSERVER "tmw-it.ch"
-#define UPDATE_INFOFILE "/qlockwork/updateinfo.json"
-#define SERIAL_SPEED    115200
-#define PIN_IR_RECEIVER D3
-#define PIN_LED         D4
-#define PIN_BUZZER      D5
-#define PIN_DHT22       D6
-#define PIN_LEDS_CLOCK  D7
-#define PIN_LEDS_DATA   D8
-#define PIN_LDR         A0
-#endif // CONFIG_QLOCKDEV
-
-#ifdef CONFIG_QLOCKMIN
-#define HOSTNAME "QLOCKMIN"
-#define WIFI_AP_TIMEOUT 180
-#define OTA_PASS "1234"
-#define NTP_SERVER "fritz.box"
-#define SENSOR_DHT22
-#define SELFTEST
-#define SHOW_IP
-const event_t event[] =
-{
-	{ 1, 1, "Happy New Year!", YELLOW_25 },
-	{ 12, 24, "It's Christmas!", RED },
-	{ 8, 20, "This is yet another event.", CYAN }
-};
-#define LDR
-#define LDR_HYSTERESIS 30
-#define MIN_BRIGHTNESS 20
-#define MAX_BRIGHTNESS 255
-#define BUZZER
-#define BUZZTIME_ALARM_1 60
-#define BUZZTIME_ALARM_2 2
-#define BUZZTIME_TIMER 30
-#define LOCATION "Zurich, ZH, CH"
-#define LANGUAGE_GERMAN
-#define UPDATE_INFO_UNSTABLE
-#define TIMEZONE_CET
-#define LED_LAYOUT_HORIZONTAL
-//#define LED_LAYOUT_DUAL
-//#define LED_LIBRARY_FASTLED
-//#define LED_DRIVER_FAST_NEOPIXEL
-#define LED_LIBRARY_NEOPIXEL
-#define LED_DRIVER_NEO_800KHZ_GRB
-#define SYSLOG_SERVER "pandora"
-#define SYSLOG_PORT 514
-#define DEBUG_WEBSITE
-#define UPDATE_INFOSERVER "tmw-it.ch"
-#define UPDATE_INFOFILE "/qlockwork/updateinfo.json"
-#define SERIAL_SPEED    115200
-#define PIN_IR_RECEIVER D3
-#define PIN_LED         D4
-#define PIN_BUZZER      D5
-#define PIN_DHT22       D6
-#define PIN_LEDS_CLOCK  D7
-#define PIN_LEDS_DATA   D8
-#define PIN_LDR         A0
-#endif // CONFIG_QLOCKMIN
-
-#ifdef CONFIG_CLT2
-#define HOSTNAME "QLOCKWORK"
-#define WIFI_AP_TIMEOUT 300
-#define OTA_PASS "1234"
-#define NTP_SERVER "pool.ntp.org"
-#define RTC_BACKUP
-#define RTC_TEMP_OFFSET -4.25
-#define SELFTEST
-#define SHOW_IP
-#define DEDICATION "von Thorsten f&uuml;r die vielen tollen Essen in der Schweiz."
-const event_t event[] =
-{
-	{ 1, 1, "Happy New Year!", YELLOW_25 },
-	{ 12, 24, "It's Christmas!", RED },
-	{ 8, 20, "This is yet another event.", CYAN }
-};
-#define LDR
-#define LDR_IS_INVERSE
-#define LDR_HYSTERESIS 30
-#define MIN_BRIGHTNESS 10
-#define MAX_BRIGHTNESS 255
-#define BUZZER
-#define BUZZTIME_ALARM_1 60
-#define BUZZTIME_ALARM_2 60
-#define BUZZTIME_TIMER 30
-#define LOCATION "Berlin, BE, DE"
-#define LANGUAGE_GERMAN
-#define UPDATE_INFO_STABLE
-#define TIMEZONE_CET
-#define LED_LAYOUT_VERTICAL
-#define LED_LIBRARY_LPD8806RGBW
-#define UPDATE_INFOSERVER "tmw-it.ch"
-#define UPDATE_INFOFILE "/qlockwork/updateinfo.json"
-#define SERIAL_SPEED    115200
-#define PIN_IR_RECEIVER D3
-#define PIN_LED         D4
-#define PIN_BUZZER      D5
-#define PIN_DHT22       D6
-#define PIN_LEDS_CLOCK  D7
-#define PIN_LEDS_DATA   D8
-#define PIN_LDR         A0
-#endif // CONFIG_CLT2
 
 #endif

@@ -1,12 +1,12 @@
 /******************************************************************************
 QLOCKWORK
-A firmware for the DIY-QLOCKTWO.
+An advanced firmware for a DIY "word-clock".
 
 @mc      ESP8266
 @created 01.02.2017
 ******************************************************************************/
 
-#define FIRMWARE_VERSION 20170820
+#define FIRMWARE_VERSION 20170901
 
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
@@ -24,11 +24,12 @@ A firmware for the DIY-QLOCKTWO.
 #include "Colors.h"
 #include "Configuration.h"
 #include "Debug.h"
-#include "Enums.h"
+#include "Events.h"
 #include "Languages.h"
 #include "LedDriver_FastLED.h"
 #include "LedDriver_NeoPixel.h"
 #include "LedDriver_LPD8806RGBW.h"
+#include "Modes.h"
 #include "Renderer.h"
 #include "Settings.h"
 #include "Timezones.h"
@@ -57,7 +58,9 @@ uint16_t matrixOld[10] = {};
 boolean screenBufferNeedsUpdate = true;
 Mode mode = STD_MODE_NORMAL;
 Mode lastMode = mode;
-uint8_t fallBackCounter = 0;
+uint32_t modeTimeout = 0;
+uint32_t titleTimeout = 0;
+boolean runTransitionOnce = false;
 uint8_t lastDay = 0;
 uint8_t lastHour = 0;
 uint8_t lastMinute = 0;
@@ -71,6 +74,7 @@ String yahooTitle = "";
 int8_t yahooTemperature = 0;
 uint8_t yahooHumidity = 0;
 uint8_t yahooCode = 0;
+uint8_t nextWeatherCheck = 30;
 String updateInfo = "";
 #ifdef BUZZER
 boolean timerSet = false;
@@ -111,6 +115,7 @@ void setup()
 	Serial.begin(SERIAL_SPEED);
 	while (!Serial);
 
+	// Here we go...
 	DEBUG_PRINTLN();
 	DEBUG_PRINTLN("QLOCKWORK");
 	DEBUG_PRINTLN("Firmware: " + String(FIRMWARE_VERSION));
@@ -264,11 +269,12 @@ void setup()
 	irrecv.enableIRIn();
 #endif
 
+	// Set some random values.
 	randomHour = random(0, 24);
 	DEBUG_PRINTLN("Random hour is: " + String(randomHour));
 	SYSLOG("Random hour is: " + String(randomHour));
 
-	randomMinute = random(0, 60);
+	randomMinute = random(1, 60);
 	DEBUG_PRINTLN("Random minute is: " + String(randomMinute));
 	SYSLOG("Random minute is: " + String(randomMinute));
 
@@ -277,20 +283,24 @@ void setup()
 	DEBUG_PRINTLN("Free RAM: " + String(system_get_free_heap_size()));
 	SYSLOG("Free RAM: " + String(system_get_free_heap_size()));
 
+	// Set ESP time at startup.
 #ifdef RTC_BACKUP
 #ifdef DEBUG
-	debug.debugTime("Time (RTC):", RTC.get());
+	debug.debugTime("Time (RTC):", RTC.get(), SHOW_DATE);
 #endif
 	DEBUG_PRINTLN("*** ESP set from RTC. ***");
 	setTime(RTC.get());
 #else
+	DEBUG_PRINTLN("*** ESP time can not be set. ***");
 	setTime(12, 00, 00, 01, 01, 2017);
 #endif
 
+	// Get time and weatherinfo from the internet.
 	getNtpTime();
 	getWeather(LOCATION);
 	//getUpdateInfo();
 
+	// Set some variables to startvalues.
 	lastDay = day();
 	lastHour = hour();
 	lastFiveMinute = minute() / 5;
@@ -305,10 +315,12 @@ Loop().
 void loop()
 {
 	// Run every day.
+
 	if (day() != lastDay)
 	{
 		lastDay = day();
 		screenBufferNeedsUpdate = true;
+
 		// Change color.
 		if (settings.getColorChange() == COLORCHANGE_DAY)
 		{
@@ -319,19 +331,24 @@ void loop()
 	}
 
 	// Run every hour.
+
 	if (hour() != lastHour)
 	{
 		lastHour = hour();
 		screenBufferNeedsUpdate = true;
+
 		DEBUG_PRINTLN("Free RAM: " + String(system_get_free_heap_size()));
 		SYSLOG("Free RAM: " + String(system_get_free_heap_size()));
+
 #if defined(UPDATE_INFO_STABLE) || defined(UPDATE_INFO_UNSTABLE)
 		// Get updateinfo once a day at a random hour.
-		if ((hour() / float(randomHour)) == 1.0)
+		//if ((hour() / float(randomHour)) == 1.0)
+		if (hour() == randomHour)
 		{
 			getUpdateInfo();
 		}
 #endif
+
 		// Change color.
 		if (settings.getColorChange() == COLORCHANGE_HOUR)
 		{
@@ -342,13 +359,16 @@ void loop()
 	}
 
 	// Run every five minutes.
+
 	if ((minute() / 5) != lastFiveMinute)
 	{
 		lastFiveMinute = minute() / 5;
 		screenBufferNeedsUpdate = true;
+
 #ifdef SYSLOG_SERVER
 		syslog.logf(LOG_INFO, "Time (ESP): %02d:%02d:%02d %02d.%02d.%04d", hour(now()), minute(now()), second(now()), day(now()), month(now()), year(now()));
 #endif
+
 		// Show event in feed.
 		for (uint8_t i = 0; i < (sizeof(event) / sizeof(event_t)); i++)
 		{
@@ -357,6 +377,7 @@ void loop()
 				showFeed(event[i].text, event[i].color);
 			}
 		}
+
 		// Change color.
 		if (settings.getColorChange() == COLORCHANGE_FIVE)
 		{
@@ -367,13 +388,16 @@ void loop()
 	}
 
 	// Run every minute.
+
 	if (minute() != lastMinute)
 	{
 		lastMinute = minute();
 		screenBufferNeedsUpdate = true;
+
 #ifdef DEBUG
-		debug.debugTime("Time (ESP):", now());
+		debug.debugTime("Time (ESP):", now(), SHOW_DATE);
 #endif
+
 		// Set ESP time from external source or RTC.
 		if (minute() == randomMinute)
 		{
@@ -382,68 +406,37 @@ void loop()
 #ifdef RTC_BACKUP
 		else
 		{
-			if (now() != RTC.get())
+			if ((now() != RTC.get()) && (minute() != randomMinute) && (minute() != 0))
 			{
-				setTime(RTC.get());
 				DEBUG_PRINTLN("*** ESP set from RTC. ***");
 				DEBUG_PRINTLN("Drift (ESP/RTC): " + String(RTC.get() - now()) + " sec.");
 				SYSLOG("*** ESP set from RTC. ***");
 				SYSLOG("Drift (ESP/RTC): " + String(RTC.get() - now()) + " sec.");
+				setTime(RTC.get());
 			}
 		}
 #endif
+
+		// Countdown to weatherinfo check.
+		if (nextWeatherCheck > 0)
+		{
+			nextWeatherCheck--;
+			DEBUG_PRINTLN("Weathercheck locked for " + String(nextWeatherCheck) + " minutes.");
+			SYSLOG("Weathercheck locked for " + String(nextWeatherCheck) + " minutes.");
+		}
 	}
 
 	// Run every second.
+
 	if (now() != lastTime)
 	{
 		lastTime = now();
-		// Fallback countdown.
-		if (fallBackCounter > 1)
+		// Running STD_MODE_NORMAL every second will lock the ESP due to TRANSITION_FADE.
+		if (mode != STD_MODE_NORMAL)
 		{
-			fallBackCounter--;
-		}
-		else
-		{
-			if (fallBackCounter == 1)
-			{
-				fallBackCounter = 0;
-				setMode(STD_MODE_NORMAL);
-			}
-		}
-		// Display needs update every second.
-		switch (mode)
-		{
-		case STD_MODE_SECONDS:
-#ifdef BUZZER
-		case STD_MODE_SET_TIMER:
-		case STD_MODE_TIMER:
-		case STD_MODE_ALARM_1:
-		case STD_MODE_SET_ALARM_1:
-		case STD_MODE_ALARM_2:
-		case STD_MODE_SET_ALARM_2:
-#endif
-#ifdef LDR
-		case EXT_MODE_LDR:
-#endif
-		case EXT_MODE_COLOR:
-		case EXT_MODE_COLORCHANGE:
-		case EXT_MODE_TRANSITION:
-		case EXT_MODE_TIMEOUT:
-		case EXT_MODE_LANGUAGE:
-		case EXT_MODE_TIMESET:
-		case EXT_MODE_IT_IS:
-		case EXT_MODE_DAYSET:
-		case EXT_MODE_MONTHSET:
-		case EXT_MODE_YEARSET:
-		case EXT_MODE_NIGHTOFF:
-		case EXT_MODE_DAYON:
-		case EXT_MODE_TEST:
 			screenBufferNeedsUpdate = true;
-			break;
-		default:
-			break;
 		}
+
 #ifdef ESP_LED
 		// Flash ESP LED.
 		if (digitalRead(PIN_LED) == LOW)
@@ -455,14 +448,17 @@ void loop()
 			digitalWrite(PIN_LED, LOW);
 		}
 #endif
+
 #ifdef BUZZER
-		// Alarm.
+		// Switch on alarm for alarm1.
 		if (settings.getAlarm1() && (hour() == hour(settings.getAlarmTime1())) && (minute() == minute(settings.getAlarmTime1())) && (second() == 0))
 		{
 			alarmOn = BUZZTIME_ALARM_1;
 			DEBUG_PRINTLN("Alarm 1: on");
 			SYSLOG("Alarm 1: on");
 		}
+
+		// Switch on alarm for alarm2.
 		if (settings.getAlarm2() && (hour() == hour(settings.getAlarmTime2())) && (minute() == minute(settings.getAlarmTime2())) && (second() == 0))
 		{
 			alarmOn = BUZZTIME_ALARM_2;
@@ -470,13 +466,15 @@ void loop()
 			SYSLOG("Alarm 2: on");
 		}
 
-		// Timer.
+		// Switch on alarm for timer.
 		if (timerSet && (now() == timer))
 		{
 			setMode(STD_MODE_SET_TIMER);
 			timerMinutes = 0;
 			timerSet = false;
 			alarmOn = BUZZTIME_TIMER;
+			DEBUG_PRINTLN("Timeralarm: on");
+			SYSLOG("Timeralarm: on");
 		}
 
 		// Make some noise.
@@ -505,22 +503,34 @@ void loop()
 			SYSLOG("Night off.");
 			setMode(STD_MODE_BLANK);
 		}
+
 		if ((hour() == hour(settings.getDayOnTime())) && (minute() == minute(settings.getDayOnTime())) && (second() == 0))
 		{
 			DEBUG_PRINTLN("Day on.");
 			SYSLOG("Day on.");
 			setMode(lastMode);
 		}
+
+		// Show temperature.
+		if ((settings.getShowTemp()) && (second() == 30) && (mode == STD_MODE_NORMAL))
+		{
+			setMode(STD_MODE_EXT_TEMP);
+		}
 	}
 
 	// Run always.
+
 	// Call HTTP- and OTA-handle.
 	esp8266WebServer.handleClient();
 	ArduinoOTA.handle();
+
 #ifdef LDR
+	// Set brigthness from LDR.
 	setBrightnessFromLdr();
 #endif
+
 #ifdef IR_REMOTE
+	// Get IR commands.
 	if (irrecv.decode(&irDecodeResult))
 	{
 		DEBUG_PRINTLN("IR signal: " + String(uint32_t(irDecodeResult.value)));
@@ -533,17 +543,21 @@ void loop()
 	if (screenBufferNeedsUpdate)
 	{
 		screenBufferNeedsUpdate = false;
+
+		// Save old screenbuffer.
 		for (uint8_t i = 0; i <= 9; i++)
 		{
 			matrixOld[i] = matrix[i];
 		}
+
+		// Render a new screenbuffer.
 		switch (mode)
 		{
 		case STD_MODE_NORMAL:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setTime(hour(), minute(), settings.getLanguage(), matrix);
 			renderer.setCorners(minute(), matrix);
-			if (settings.getAlarm1() || settings.getAlarm2())
+			if (settings.getAlarm1() || settings.getAlarm2() || timerSet)
 			{
 				renderer.setAlarmLed(matrix);
 			}
@@ -568,8 +582,8 @@ void loop()
 			renderer.setCorners(minute(), matrix);
 			for (uint8_t i = 0; i <= 6; i++)
 			{
-				matrix[1 + i] |= zahlenGross[second() / 10][i] << 11;
-				matrix[1 + i] |= zahlenGross[second() % 10][i] << 5;
+				matrix[1 + i] |= numbersBig[second() / 10][i] << 11;
+				matrix[1 + i] |= numbersBig[second() % 10][i] << 5;
 			}
 			break;
 		case STD_MODE_WEEKDAY:
@@ -655,13 +669,13 @@ void loop()
 				matrix[2] = 0b1110000010100000;
 				matrix[3] = 0b0000000011100000;
 			}
-			renderer.setSmallText(String(int(dhtTemperature)), TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText(String(int(dhtTemperature + 0.5)), TEXT_POS_BOTTOM, matrix);
 			DEBUG_PRINTLN("DHT22 temperature: " + String(dhtTemperature));
 			break;
 		case STD_MODE_HUMIDITY:
 			renderer.clearScreenBuffer(matrix);
 			dhtHumidity = getDHT22Humidity();
-			renderer.setSmallText(String(int(dhtHumidity)), TEXT_POS_TOP, matrix);
+			renderer.setSmallText(String(int(dhtHumidity + 0.5)), TEXT_POS_TOP, matrix);
 			DEBUG_PRINTLN("DHT22 humidity: " + String(dhtHumidity));
 			matrix[6] = 0b0100100001000000;
 			matrix[7] = 0b0001000010100000;
@@ -671,6 +685,12 @@ void loop()
 #endif
 		case STD_MODE_EXT_TEMP:
 			renderer.clearScreenBuffer(matrix);
+			// Refresh weatherinfo?
+			if (nextWeatherCheck == 0)
+			{
+				nextWeatherCheck = 30;
+				getWeather(LOCATION);
+			}
 			if (yahooTemperature > 0)
 			{
 				matrix[1] = 0b0100000000000000;
@@ -702,6 +722,7 @@ void loop()
 			renderer.setSmallText("TI", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0)
 			{
+				renderer.deactivateAlarmLed(matrix);
 				for (uint8_t i = 5; i <= 9; i++)
 				{
 					matrix[i] = 0;
@@ -709,6 +730,7 @@ void loop()
 			}
 			else
 			{
+				renderer.setAlarmLed(matrix);
 				renderer.setSmallText(String(timerMinutes), TEXT_POS_BOTTOM, matrix);
 			}
 			break;
@@ -858,7 +880,7 @@ void loop()
 			matrix[1] = 0b0000000000010000;
 			matrix[2] = 0b0000000000010000;
 			matrix[3] = 0b0000000000010000;
-			matrix[4] = 0b0000000000010000;
+			matrix[4] = 0b0000000000000000;
 			renderer.setSmallText("CO", TEXT_POS_TOP, matrix);
 			if (second() % 2 == 0)
 			{
@@ -907,6 +929,28 @@ void loop()
 			else
 			{
 				renderer.setSmallText(String(settings.getTimeout()), TEXT_POS_BOTTOM, matrix);
+			}
+			break;
+		case EXT_MODE_SHOW_TEMP:
+			renderer.clearScreenBuffer(matrix);
+			renderer.setSmallText("ST", TEXT_POS_TOP, matrix);
+			if (second() % 2 == 0)
+			{
+				for (uint8_t i = 5; i <= 9; i++)
+				{
+					matrix[i] = 0;
+				}
+			}
+			else
+			{
+				if (settings.getShowTemp())
+				{
+					renderer.setSmallText("EN", TEXT_POS_BOTTOM, matrix);
+				}
+				else
+				{
+					renderer.setSmallText("DA", TEXT_POS_BOTTOM, matrix);
+				}
 			}
 			break;
 		case EXT_MODE_LANGUAGE:
@@ -1054,11 +1098,12 @@ void loop()
 		}
 
 #if defined(IR_LETTER_OFF)
-		// Turn LED behind IR-sensor off.
+		// Turn off LED behind IR-sensor.
 		renderer.unsetPixelInScreenBuffer(8, 9, matrix);
 #endif
 
 #ifdef DEBUG_MATRIX
+		//debug.debugScreenBuffer(matrixOld);
 		debug.debugScreenBuffer(matrix);
 #endif
 
@@ -1073,14 +1118,71 @@ void loop()
 				writeScreenBufferFade(matrixOld, matrix, settings.getColor(), brightness);
 			break;
 		default:
-			writeScreenBuffer(matrix, settings.getColor(), brightness);
+			if (!runTransitionOnce)
+			{
+				moveScreenBufferUp(matrixOld, matrix, settings.getColor(), brightness);
+				runTransitionOnce = true;
+			}
+			else
+			{
+				writeScreenBuffer(matrix, settings.getColor(), brightness);
+			}
 			break;
 		}
 	}
 
+	// Wait for mode timeout then switch back to time.
+	if ((millis() > (modeTimeout + settings.getTimeout() * 1000)) && modeTimeout)
+	{
+		setMode(STD_MODE_NORMAL);
+	}
+
+	// Wait for title timeout then set next mode.
+	switch (mode)
+	{
+	case STD_MODE_TITLE_TEMP:
+	case STD_MODE_TITLE_ALARM:
+	case EXT_MODE_TITLE_MAIN:
+	case EXT_MODE_TITLE_TIME:
+	case EXT_MODE_TEXT_NIGHTOFF:
+	case EXT_MODE_TEXT_DAYON:
+	case EXT_MODE_TITLE_TEST:
+		if (millis() > titleTimeout + 2000)
+		{
+			setMode(mode++);
+		}
+		break;
+	default:
+		break;
+		}
+
 #ifdef DEBUG_FPS
 	debug.debugFps();
 #endif
+	}
+
+/******************************************************************************
+"On/off" pressed.
+******************************************************************************/
+
+void buttonOnOffPressed()
+{
+	DEBUG_PRINTLN("On/off pressed.");
+	SYSLOG("On/off pressed.");
+
+#ifdef BUZZER
+	// Switch off alarm.
+	if (alarmOn)
+	{
+		DEBUG_PRINTLN("Alarm off.");
+		SYSLOG("Alarm off.");
+		digitalWrite(PIN_BUZZER, LOW);
+		alarmOn = false;
+		setMode(STD_MODE_NORMAL);
+	}
+#endif
+
+	setDisplayToToggle();
 }
 
 /******************************************************************************
@@ -1089,31 +1191,28 @@ void loop()
 
 void buttonModePressed()
 {
+	titleTimeout = millis();
+
 #ifdef BUZZER
-	// Turn off alarm.
+	// Switch off alarm.
 	if (alarmOn)
 	{
-		alarmOn = false;
 		DEBUG_PRINTLN("Alarm off.");
 		SYSLOG("Alarm off.");
+		digitalWrite(PIN_BUZZER, LOW);
+		alarmOn = false;
+		setMode(STD_MODE_NORMAL);
 		return;
 	}
 #endif
-	// Set mode and fallback.
+
+	// Set mode.
 	setMode(mode++);
 	switch (mode)
 	{
 	case STD_MODE_COUNT:
 	case EXT_MODE_COUNT:
 		setMode(STD_MODE_NORMAL);
-		break;
-	case STD_MODE_EXT_TEMP:
-		getWeather(LOCATION);
-		fallBackCounter = settings.getTimeout();
-		break;
-	case STD_MODE_EXT_HUMIDITY:
-		//getYahooWeather(LOCATION);
-		fallBackCounter = settings.getTimeout();
 		break;
 	case EXT_MODE_COLOR:
 		if (settings.getColorChange())
@@ -1123,12 +1222,10 @@ void buttonModePressed()
 	case STD_MODE_SET_TIMER:
 		if (timerSet)
 			setMode(mode++);
-		fallBackCounter = 0;
 		break;
 	case STD_MODE_TIMER:
 		if (!timerSet)
 			setMode(mode++);
-		fallBackCounter = 0;
 		break;
 	case STD_MODE_SET_ALARM_1:
 		if (!settings.getAlarm1())
@@ -1148,22 +1245,14 @@ void buttonModePressed()
 	case EXT_MODE_TEST:
 		testColumn = 0;
 		return;
-	case STD_MODE_AMPM:
-	case STD_MODE_SECONDS:
-	case STD_MODE_WEEKDAY:
-	case STD_MODE_DATE:
-#ifdef RTC_BACKUP
-	case STD_MODE_TEMP:
-#endif
-		fallBackCounter = settings.getTimeout();
-		break;
 	default:
-		fallBackCounter = 0;
 		break;
 	}
+
 #ifdef RTC_BACKUP
 	RTC.set(now());
 #endif
+
 	settings.saveToEEPROM();
 }
 
@@ -1175,20 +1264,29 @@ void buttonSettingsPressed()
 {
 	DEBUG_PRINTLN("Settings pressed.");
 	SYSLOG("Settings pressed.");
+	titleTimeout = millis();
+
 #ifdef BUZZER
-	// Turn off alarm.
+	// Switch off alarm.
 	if (alarmOn)
 	{
-		alarmOn = false;
 		DEBUG_PRINTLN("Alarm off.");
 		SYSLOG("Alarm off.");
+		digitalWrite(PIN_BUZZER, LOW);
+		alarmOn = false;
+		setMode(STD_MODE_NORMAL);
 		return;
 	}
 #endif
+
 	if (mode < EXT_MODE_START)
+	{
 		setMode(EXT_MODE_START);
+	}
 	else
+	{
 		buttonModePressed();
+	}
 }
 
 /******************************************************************************
@@ -1199,21 +1297,27 @@ void buttonTimePressed()
 {
 	DEBUG_PRINTLN("Time pressed.");
 	SYSLOG("Time pressed.");
+
 #ifdef BUZZER
-	// Turn off alarm.
+	// Switch off alarm.
 	if (alarmOn)
 	{
-		alarmOn = false;
 		DEBUG_PRINTLN("Alarm off.");
 		SYSLOG("Alarm off.");
+		digitalWrite(PIN_BUZZER, LOW);
+		alarmOn = false;
+		setMode(STD_MODE_NORMAL);
 		return;
 	}
 #endif
+
 #ifdef RTC_BACKUP
 	RTC.set(now());
 #endif
+
 	settings.saveToEEPROM();
-	fallBackCounter = 0;
+	modeTimeout = 0;
+	renderer.clearScreenBuffer(matrix);
 	setMode(STD_MODE_NORMAL);
 }
 
@@ -1226,6 +1330,20 @@ void buttonPlusPressed()
 	DEBUG_PRINTLN("Plus pressed.");
 	SYSLOG("Plus pressed.");
 	screenBufferNeedsUpdate = true;
+	titleTimeout = millis();
+
+#ifdef BUZZER
+	// Switch off alarm.
+	if (alarmOn)
+	{
+		DEBUG_PRINTLN("Alarm off.");
+		SYSLOG("Alarm off.");
+		digitalWrite(PIN_BUZZER, LOW);
+		alarmOn = false;
+		return;
+	}
+#endif
+
 	switch (mode)
 	{
 	case STD_MODE_NORMAL:
@@ -1254,7 +1372,7 @@ void buttonPlusPressed()
 	case STD_MODE_SET_ALARM_1:
 		settings.setAlarmTime1(settings.getAlarmTime1() + 3600);
 #ifdef DEBUG
-		debug.debugTime("Alarm 1:", settings.getAlarmTime1());
+		debug.debugTime("Alarm 1:", settings.getAlarmTime1(), HIDE_DATE);
 #endif
 		break;
 	case STD_MODE_ALARM_2:
@@ -1263,7 +1381,7 @@ void buttonPlusPressed()
 	case STD_MODE_SET_ALARM_2:
 		settings.setAlarmTime2(settings.getAlarmTime2() + 3600);
 #ifdef DEBUG
-		debug.debugTime("Alarm 2:", settings.getAlarmTime2());
+		debug.debugTime("Alarm 2:", settings.getAlarmTime2(), HIDE_DATE);
 #endif
 #endif
 		break;
@@ -1307,6 +1425,9 @@ void buttonPlusPressed()
 		if (settings.getTimeout() < 99)
 			settings.setTimeout(settings.getTimeout() + 1);
 		break;
+	case EXT_MODE_SHOW_TEMP:
+		settings.toggleShowTemp();
+		break;
 	case EXT_MODE_LANGUAGE:
 		if (settings.getLanguage() < LANGUAGE_COUNT)
 			settings.setLanguage(settings.getLanguage() + 1);
@@ -1319,7 +1440,7 @@ void buttonPlusPressed()
 	case EXT_MODE_TIMESET:
 		setTime(hour() + 1, minute(), second(), day(), month(), year());
 #ifdef DEBUG
-		debug.debugTime("Time set:", now());
+		debug.debugTime("Time set:", now(), SHOW_DATE);
 #endif
 		break;
 	case EXT_MODE_IT_IS:
@@ -1340,7 +1461,7 @@ void buttonPlusPressed()
 	case EXT_MODE_NIGHTOFF:
 		settings.setNightOffTime(settings.getNightOffTime() + 3600);
 #ifdef DEBUG
-		debug.debugTime("Night off:", settings.getNightOffTime());
+		debug.debugTime("Night off:", settings.getNightOffTime(), HIDE_DATE);
 #endif
 		break;
 	case EXT_MODE_TEXT_DAYON:
@@ -1349,7 +1470,7 @@ void buttonPlusPressed()
 	case EXT_MODE_DAYON:
 		settings.setDayOnTime(settings.getDayOnTime() + 3600);
 #ifdef DEBUG
-		debug.debugTime("Day on:", settings.getDayOnTime());
+		debug.debugTime("Day on:", settings.getDayOnTime(), HIDE_DATE);
 #endif
 		break;
 	case EXT_MODE_TITLE_TEST:
@@ -1369,6 +1490,20 @@ void buttonMinusPressed()
 	DEBUG_PRINTLN("Minus pressed.");
 	SYSLOG("Minus pressed.");
 	screenBufferNeedsUpdate = true;
+	titleTimeout = millis();
+
+#ifdef BUZZER
+	// Switch off alarm.
+	if (alarmOn)
+	{
+		DEBUG_PRINTLN("Alarm off.");
+		SYSLOG("Alarm off.");
+		digitalWrite(PIN_BUZZER, LOW);
+		alarmOn = false;
+		return;
+	}
+#endif
+
 	switch (mode)
 	{
 	case STD_MODE_TITLE_TEMP:
@@ -1404,7 +1539,7 @@ void buttonMinusPressed()
 	case STD_MODE_SET_ALARM_1:
 		settings.setAlarmTime1(settings.getAlarmTime1() + 300);
 #ifdef DEBUG
-		debug.debugTime("Alarm 1:", settings.getAlarmTime1());
+		debug.debugTime("Alarm 1:", settings.getAlarmTime1(), HIDE_DATE);
 #endif
 		break;
 	case STD_MODE_ALARM_2:
@@ -1413,7 +1548,7 @@ void buttonMinusPressed()
 	case STD_MODE_SET_ALARM_2:
 		settings.setAlarmTime2(settings.getAlarmTime2() + 300);
 #ifdef DEBUG
-		debug.debugTime("Alarm 2:", settings.getAlarmTime2());
+		debug.debugTime("Alarm 2:", settings.getAlarmTime2(), HIDE_DATE);
 #endif
 #endif
 		break;
@@ -1457,6 +1592,9 @@ void buttonMinusPressed()
 		if (settings.getTimeout() > 0)
 			settings.setTimeout(settings.getTimeout() - 1);
 		break;
+	case EXT_MODE_SHOW_TEMP:
+		settings.toggleShowTemp();
+		break;
 	case EXT_MODE_LANGUAGE:
 		if (settings.getLanguage() > 0)
 			settings.setLanguage(settings.getLanguage() - 1);
@@ -1469,7 +1607,7 @@ void buttonMinusPressed()
 	case EXT_MODE_TIMESET:
 		setTime(hour(), minute() + 1, 0, day(), month(), year());
 #ifdef DEBUG
-		debug.debugTime("Time set:", now());
+		debug.debugTime("Time set:", now(), HIDE_DATE);
 #endif
 		break;
 	case EXT_MODE_IT_IS:
@@ -1490,7 +1628,7 @@ void buttonMinusPressed()
 	case EXT_MODE_NIGHTOFF:
 		settings.setNightOffTime(settings.getNightOffTime() + 300);
 #ifdef DEBUG
-		debug.debugTime("Night off:", settings.getNightOffTime());
+		debug.debugTime("Night off:", settings.getNightOffTime(), HIDE_DATE);
 #endif
 		break;
 	case EXT_MODE_TEXT_DAYON:
@@ -1499,7 +1637,7 @@ void buttonMinusPressed()
 	case EXT_MODE_DAYON:
 		settings.setDayOnTime(settings.getDayOnTime() + 300);
 #ifdef DEBUG
-		debug.debugTime("Day on:", settings.getDayOnTime());
+		debug.debugTime("Day on:", settings.getDayOnTime(), HIDE_DATE);
 #endif
 		break;
 	case EXT_MODE_TITLE_TEST:
@@ -1520,7 +1658,7 @@ void remoteAction(decode_results irDecodeResult)
 	switch (irDecodeResult.value)
 	{
 	case IR_CODE_ONOFF:
-		setDisplayToToggle();
+		buttonOnOffPressed();
 		break;
 	case IR_CODE_TIME:
 		buttonTimePressed();
@@ -1547,9 +1685,25 @@ void remoteAction(decode_results irDecodeResult)
 Transitions.
 ******************************************************************************/
 
+void moveScreenBufferUp(uint16_t screenBufferOld[], uint16_t screenBufferNew[], uint8_t color, uint8_t brightness)
+{
+	esp8266WebServer.handleClient();
+	for (uint8_t z = 0; z <= 9; z++)
+	{
+		for (uint8_t i = 0; i <= 8; i++)
+		{
+			screenBufferOld[i] = screenBufferOld[i + 1];
+		}
+		screenBufferOld[9] = screenBufferNew[z];
+		writeScreenBuffer(screenBufferOld, color, brightness);
+		delay(50);
+	}
+}
+
 void writeScreenBuffer(uint16_t screenBuffer[], uint8_t color, uint8_t brightness)
 {
 	ledDriver.clear();
+
 	for (uint8_t y = 0; y <= 9; y++)
 	{
 		for (uint8_t x = 0; x <= 10; x++)
@@ -1560,13 +1714,40 @@ void writeScreenBuffer(uint16_t screenBuffer[], uint8_t color, uint8_t brightnes
 			}
 		}
 	}
-	for (uint8_t y = 0; y <= 4; y++)
+
+	// Corner LEDs.
+	for (uint8_t y = 0; y <= 3; y++)
 	{
 		if (bitRead(screenBuffer[y], 4))
 		{
 			ledDriver.setPixel(110 + y, color, brightness);
 		}
 	}
+
+	// Alarm LED.
+	if (bitRead(screenBuffer[4], 4))
+	{
+#ifdef ALARM_LED_COLOR
+#ifdef ABUSE_CORNER_LED_FOR_ALARM
+		if (settings.getAlarm1() || settings.getAlarm2() || timerSet)
+		{
+			ledDriver.setPixel(111, ALARM_LED_COLOR, brightness);
+		}
+		else
+		{
+			if (bitRead(screenBuffer[1], 4))
+			{
+				ledDriver.setPixel(111, color, brightness);
+			}
+		}
+#else
+		ledDriver.setPixel(114, ALARM_LED_COLOR, brightness);
+#endif
+#else
+		ledDriver.setPixel(114, color, brightness);
+#endif
+	}
+
 	ledDriver.show();
 }
 
@@ -1574,6 +1755,7 @@ void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[
 {
 	ledDriver.clear();
 	uint8_t brightnessBuffer[10][12] = {};
+
 	for (uint8_t y = 0; y <= 9; y++)
 	{
 		for (uint8_t x = 0; x <= 11; x++)
@@ -1601,15 +1783,36 @@ void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[
 				ledDriver.setPixel(x, y, color, brightnessBuffer[y][x]);
 			}
 		}
-		for (uint8_t y = 0; y <= 4; y++)
+
+		// Corner LEDs.
+		for (uint8_t y = 0; y <= 3; y++)
 		{
 			ledDriver.setPixel(110 + y, color, brightnessBuffer[y][11]);
 		}
+
+		// Alarm LED.
+#ifdef ALARM_LED_COLOR
+#ifdef ABUSE_CORNER_LED_FOR_ALARM
+		if (settings.getAlarm1() || settings.getAlarm2() || timerSet)
+		{
+			ledDriver.setPixel(111, ALARM_LED_COLOR, brightnessBuffer[4][11]);
+		}
+		else
+		{
+			ledDriver.setPixel(111, color, brightnessBuffer[1][11]);
+		}
+#else
+		ledDriver.setPixel(114, ALARM_LED_COLOR, brightnessBuffer[4][11]);
+#endif
+#else
+		ledDriver.setPixel(114, color, brightnessBuffer[4][11]);
+#endif
+
 		esp8266WebServer.handleClient();
 		delay((255 - brightness) / 7);
 		ledDriver.show();
+		}
 	}
-}
 
 #ifdef LDR
 /******************************************************************************
@@ -1650,7 +1853,7 @@ void setBrightnessFromLdr()
 	}
 
 	// Set brightness to rated brightness.
-	if (settings.getUseLdr() && (millis() > (lastBrightnessSet + 50)))
+	if ((millis() > (lastBrightnessSet + 50)) && settings.getUseLdr())
 	{
 		lastBrightnessSet = millis();
 		if (brightness < ratedBrightness)
@@ -1848,7 +2051,7 @@ void getNtpTime()
 				DEBUG_PRINTLN("OK.");
 				SYSLOG("OK.");
 #ifdef DEBUG
-				debug.debugTime("Time (NTP):", ntpTime);
+				debug.debugTime("Time (NTP):", ntpTime, SHOW_DATE);
 #endif
 #ifdef SYSLOG_SERVER
 				syslog.logf(LOG_INFO, "Time (NTP): %02d:%02d:%02d %02d.%02d.%04d", hour(ntpTime), minute(ntpTime), second(ntpTime), day(ntpTime), month(ntpTime), year(ntpTime));
@@ -1904,6 +2107,58 @@ void showFeed(String feedText, eColor color)
 	}
 }
 
+#ifdef SENSOR_DHT22
+/******************************************************************************
+Get temperature or humidity from DHT22.
+******************************************************************************/
+
+//float getDHT22Temperature()
+//{
+//	for (uint8_t i = 0; i < 20; i++)
+//	{
+//		dhtTemperature = dht.readTemperature();
+//		if (!isnan(dhtTemperature))
+//		{
+//			return dhtTemperature;
+//		}
+//	}
+//	return 0;
+//}
+//
+//float getDHT22Humidity()
+//{
+//	for (uint8_t i = 0; i < 20; i++)
+//	{
+//		dhtHumidity = dht.readHumidity();
+//		if (!isnan(dhtHumidity))
+//		{
+//			return dhtHumidity;
+//		}
+//	}
+//	return 0;
+//}
+
+float getDHT22Temperature()
+{
+	dhtTemperature = dht.readTemperature();
+	if (!isnan(dhtTemperature))
+	{
+		return dhtTemperature;
+	}
+	return 0;
+}
+
+float getDHT22Humidity()
+{
+	dhtHumidity = dht.readHumidity();
+	if (!isnan(dhtHumidity))
+	{
+		return dhtHumidity;
+	}
+	return 0;
+}
+#endif
+
 /******************************************************************************
 Misc.
 ******************************************************************************/
@@ -1912,14 +2167,33 @@ Misc.
 void setMode(Mode newMode)
 {
 	DEBUG_PRINTLN("Mode: " + String(newMode));
-	SYSLOG("Mode: " + String(newMode));
-	if (newMode != STD_MODE_BLANK)
-	{
-		renderer.clearScreenBuffer(matrix);
-	}
 	screenBufferNeedsUpdate = true;
+	runTransitionOnce = false;
 	lastMode = mode;
 	mode = newMode;
+
+	// Set modeTimeout.
+	switch (mode)
+	{
+	case STD_MODE_AMPM:
+	case STD_MODE_SECONDS:
+	case STD_MODE_WEEKDAY:
+	case STD_MODE_DATE:
+#if defined(RTC_BACKUP) && !defined(SENSOR_DHT22)
+	case STD_MODE_TEMP:
+#endif
+#ifdef SENSOR_DHT22
+	case STD_MODE_TEMP:
+	case STD_MODE_HUMIDITY:
+#endif
+	case STD_MODE_EXT_TEMP:
+	case STD_MODE_EXT_HUMIDITY:
+		modeTimeout = millis();
+		break;
+	default:
+		modeTimeout = 0;
+		break;
+	}
 }
 
 // Turn LEDs off.
@@ -1950,36 +2224,6 @@ void setDisplayToToggle()
 		setLedsOn();
 	}
 }
-
-#ifdef SENSOR_DHT22
-// Get temperature from DHT22
-float getDHT22Temperature()
-{
-	for (uint8_t i = 0; i < 20; i++)
-	{
-		dhtTemperature = dht.readTemperature();
-		if (!isnan(dhtTemperature))
-		{
-			return dhtTemperature;
-		}
-	}
-	return 0;
-}
-
-// Get humidity from DHT22
-float getDHT22Humidity()
-{
-	for (uint8_t i = 0; i < 20; i++)
-	{
-		dhtHumidity = dht.readHumidity();
-		if (!isnan(dhtHumidity))
-		{
-			return dhtHumidity;
-		}
-	}
-	return 0;
-}
-#endif
 
 /******************************************************************************
 Webserver.
@@ -2037,11 +2281,11 @@ void handleRoot()
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_PLUS'\"><i class=\"fa fa-plus-circle\" style=\"font-size:24px\"></i></button>";
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_MINUS'\"><i class=\"fa fa-minus-circle\" style=\"font-size:24px\"></i></button>";
 #if defined(RTC_BACKUP) && !defined(SENSOR_DHT22)
-	message += "<br><br><i class = \"fa fa-thermometer-three-quarters\" style=\"font-size:20px\"></i> " + String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) + "&#176;C / " + String((RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + "&#176;F";
+	message += "<br><br><i class = \"fa fa-thermometer-three-quarters\" style=\"font-size:20px\"></i> " + String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) + " &#176;C / " + String((RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + " &#176;F";
 #endif
 #ifdef SENSOR_DHT22
-	message += "<br><br><i class = \"fa fa-thermometer-three-quarters\" style=\"font-size:20px\"></i> " + String(getDHT22Temperature()) + "&#176;C / " + String(getDHT22Temperature() * 9.0 / 5.0 + 32.0) + "&#176;F";
-	message += "<br><i class = \"fa fa-tint\" style=\"font-size:20px\"></i> " + String(getDHT22Humidity()) + "%RH";
+	message += "<br><br><i class = \"fa fa-thermometer-three-quarters\" style=\"font-size:20px\"></i> " + String(getDHT22Temperature()) + " &#176;C / " + String(getDHT22Temperature() * 9.0 / 5.0 + 32.0) + " &#176;F";
+	message += "<br><i class = \"fa fa-tint\" style=\"font-size:20px\"></i> " + String(getDHT22Humidity()) + " %RH";
 #endif
 	message += "<br><br><font size=2><a href=\"http://tmw-it.ch/qlockwork/\">Qlockwork</a> was <i class=\"fa fa-code\" style=\"font-size:15px\"></i> with <i class=\"fa fa-heart\" style=\"font-size:13px\"></i> by ch570512.";
 	message += "<br>Firmware: " + String(FIRMWARE_VERSION);
@@ -2080,7 +2324,7 @@ void handle_BUTTON_ONOFF()
 {
 	String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
 	esp8266WebServer.send(200, "text/html", message);
-	setDisplayToToggle();
+	buttonOnOffPressed();
 }
 
 void handle_BUTTON_TIME()

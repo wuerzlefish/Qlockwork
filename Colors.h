@@ -1,9 +1,48 @@
 /******************************************************************************
-   Colors.h
+Colors.h
 ******************************************************************************/
 
 #ifndef COLORS_H
 #define COLORS_H
+
+enum eColorChange : uint8_t
+{
+	COLORCHANGE_NO,
+	COLORCHANGE_FIVE,
+	COLORCHANGE_HOUR,
+	COLORCHANGE_DAY,
+	COLORCHANGE_COUNT = COLORCHANGE_DAY
+};
+
+enum eColor : uint8_t
+{
+	WHITE,
+	RED,
+	RED_25,
+	RED_50,
+	ORANGE,
+	YELLOW,
+	YELLOW_25,
+	YELLOW_50,
+	GREENYELLOW,
+	GREEN,
+	GREEN_25,
+	GREEN_50,
+	MINTGREEN,
+	CYAN,
+	CYAN_25,
+	CYAN_50,
+	LIGHTBLUE,
+	BLUE,
+	BLUE_25,
+	BLUE_50,
+	VIOLET,
+	MAGENTA,
+	MAGENTA_25,
+	MAGENTA_50,
+	PINK,
+	COLOR_COUNT = PINK
+};
 
 struct color_s
 {
@@ -51,36 +90,6 @@ const color_s defaultColors[] =
 	{ 0xFF, 0x80, 0xFF }, // 23 MAGENTA_50
 
 	{ 0xFF, 0x00, 0x7F }  // 24 PINK
-};
-
-enum eColor : uint8_t
-{
-	WHITE,
-	RED,
-	RED_25,
-	RED_50,
-	ORANGE,
-	YELLOW,
-	YELLOW_25,
-	YELLOW_50,
-	GREENYELLOW,
-	GREEN,
-	GREEN_25,
-	GREEN_50,
-	MINTGREEN,
-	CYAN,
-	CYAN_25,
-	CYAN_50,
-	LIGHTBLUE,
-	BLUE,
-	BLUE_25,
-	BLUE_50,
-	VIOLET,
-	MAGENTA,
-	MAGENTA_25,
-	MAGENTA_50,
-	PINK,
-	COLOR_COUNT = PINK
 };
 
 #endif

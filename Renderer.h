@@ -1,16 +1,23 @@
 /******************************************************************************
-   Renderer.h
+Renderer.h
 ******************************************************************************/
 
 #ifndef RENDERER_H
 #define RENDERER_H
 
 #include <Arduino.h>
-#include "Enums.h"
+#include "Modes.h"
 #include "Languages.h"
 #include "Letters.h"
 #include "Numbers.h"
 #include "Words.h"
+
+enum eTextPos : uint8_t
+{
+	TEXT_POS_TOP,
+	TEXT_POS_MIDDLE = 2,
+	TEXT_POS_BOTTOM = 5
+};
 
 class Renderer
 {

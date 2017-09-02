@@ -1,5 +1,5 @@
 /******************************************************************************
-   Debug.h
+Debug.h
 ******************************************************************************/
 
 #ifndef DEBUG_H
@@ -7,6 +7,9 @@
 
 #include <Arduino.h>
 #include <TimeLib.h>
+
+#define HIDE_DATE 0
+#define SHOW_DATE 1
 
 #ifdef DEBUG
 #define DEBUG_PRINT(x) Serial.print(x)
@@ -27,7 +30,7 @@ class Debug
 public:
 	Debug();
 	void debugScreenBuffer(uint16_t screenBuffer[]);
-	void debugTime(String label, time_t time);
+	void debugTime(String label, time_t time, boolean showDate);
 	void debugFps();
 
 private:

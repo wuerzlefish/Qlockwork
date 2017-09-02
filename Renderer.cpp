@@ -1,5 +1,5 @@
 /******************************************************************************
-   Renderer.cpp
+Renderer.cpp
 ******************************************************************************/
 
 #include "Renderer.h"
@@ -1525,7 +1525,7 @@ void Renderer::setSmallText(String menuText, eTextPos textPos, uint16_t matrix[]
 				if (!isNumber(menuText[j]))
 					matrix[textPos + i] |= letters[menuText[j] - 'A'][i] << (5 + ((j + 1) % 2) * 6);
 				else
-					matrix[textPos + i] |= zahlenKlein[menuText[j] - '0'][i] << (5 + ((j + 1) % 2) * 5);
+					matrix[textPos + i] |= numbers[menuText[j] - '0'][i] << (5 + ((j + 1) % 2) * 5);
 			}
 		}
 	}
@@ -1536,7 +1536,7 @@ void Renderer::setSmallText(String menuText, eTextPos textPos, uint16_t matrix[]
 			if (!isNumber(menuText[0]))
 				matrix[textPos + i] |= letters[menuText[0] - 'A'][i] << 8;
 			else
-				matrix[textPos + i] |= zahlenKlein[menuText[0] - '0'][i] << 8;
+				matrix[textPos + i] |= numbers[menuText[0] - '0'][i] << 8;
 		}
 	}
 }

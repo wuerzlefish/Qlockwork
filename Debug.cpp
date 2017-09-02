@@ -1,5 +1,5 @@
 /******************************************************************************
-   Debug.cpp
+Debug.cpp
 ******************************************************************************/
 
 #include "Debug.h"
@@ -30,7 +30,9 @@ void Debug::debugScreenBuffer(uint16_t screenBuffer[])
 	{
 		Serial.print('|');
 		for (uint8_t x = 0; x <= 10; x++)
+		{
 			Serial.print((bitRead(screenBuffer[y], 15 - x) ? buchstabensalat[y][x] : ' '));
+		}
 		Serial.print('|');
 		Serial.println((bitRead(screenBuffer[y], 4) ? buchstabensalat[y][11] : ' '));
 	}
@@ -38,9 +40,16 @@ void Debug::debugScreenBuffer(uint16_t screenBuffer[])
 }
 
 // Write time to console.
-void Debug::debugTime(String label, time_t time)
+void Debug::debugTime(String label, time_t time, boolean showDate)
 {
-	Serial.printf("%s %02d:%02d:%02d %02d.%02d.%04d\r\n", label.c_str(), hour(time), minute(time), second(time), day(time), month(time), year(time));
+	if (showDate)
+	{
+		Serial.printf("%s %02d:%02d:%02d %02d.%02d.%04d\r\n", label.c_str(), hour(time), minute(time), second(time), day(time), month(time), year(time));
+	}
+	else
+	{
+		Serial.printf("%s %02d:%02d:%02d\r\n", label.c_str(), hour(time), minute(time), second(time));
+	}
 }
 
 // Write FPS to console.

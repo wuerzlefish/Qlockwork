@@ -1,5 +1,5 @@
 /******************************************************************************
-  Settings.h
+Settings.h
 ******************************************************************************/
 
 #ifndef SETTINGS_H
@@ -9,10 +9,12 @@
 #include <EEPROM.h>
 #include "Colors.h"
 #include "Configuration.h"
-#include "Enums.h"
+#include "Debug.h"
+#include "Languages.h"
+#include "Modes.h"
 
 #define SETTINGS_MAGIC_NUMBER 0x2A
-#define SETTINGS_VERSION 19
+#define SETTINGS_VERSION 20
 
 class Settings
 {
@@ -39,6 +41,9 @@ public:
 
 	uint8_t getTimeout();
 	void setTimeout(uint8_t timeout);
+
+	boolean getShowTemp();
+	void toggleShowTemp();
 
 	boolean getItIs();
 	void toggleItIs();
@@ -73,6 +78,7 @@ private:
 		uint8_t colorChange;
 		uint8_t transition;
 		uint8_t timeout;
+		boolean showTemp;
 		boolean itIs;
 		boolean alarm1;
 		time_t alarmTime1;

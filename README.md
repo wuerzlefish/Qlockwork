@@ -10,6 +10,8 @@ At startup the clock performs a short self test. The sequence of the colors shou
 
 WiFi manager: If the clock can not connect to any WLAN at startup, it turns on an access point. Connect a mobile phone or tablet to the AP and enter the WLAN credentials. A white "WiFi" is shown on the clock. If no WLAN is connected or the timeout has expired, there is a long beep and "WiFi" turns red. On success there are three short beeps and "WiFi" will be green. WLAN is not required. After the WLAN timeout the clock works without NTP. In this case the clock uses the optional RTC or if no RTC is present has to be set manually.
 
+Events can be shown every five minutes on a particular day of the year as a textfeed. You can set them in "Events.h". Expand the array with events as shown in the default values. Set variables for recurrent texts to save RAM. You can set a color for every event. There is no comma behind the last entry.
+
 Updates of the firmware are possible via USB and OTA. You will find more help and information on how to configure and compile the firmware in "Readme.md" in the zip-archive. You will also find a circuit diagram, a partslist and some pictures in the "/misc" directory. All sensors, the RTC and the buzzer are optional. The clock will run with the ESP8266 module only.
 
 Disclaimer: Qlockwork uses lots of third party libraries. I can not guarantee the integrity of these libraries. You use Qlockwork at your own risk.
@@ -41,7 +43,7 @@ Automatic adjustment of daylight saving time.
 Over-the-air updates.
 WiFi manager for initial setup via accesspoint.
 ```
-### Standard modes
+### Modes
 ```
 Time.
 AM/PM.
@@ -55,21 +57,22 @@ Outdoor humidity (Yahoo weather).
 Timer.
 Alarm 1.
 Alarm 2.
+LED-test.
 ```
-### Extended modes
+### Settings
 ```
 Brightness.
 Timed colorchange.
 Color.
 Transition.
 Fallbacktime.
+Show temperature.
 Front language.
 Set time.
 "It is" on/off.
 Set date.
 Night off time.
 Day on time.
-Testmode.
 ```
 ### Needed libraries:
 ```
@@ -107,16 +110,16 @@ brightness = MAX_BRIGHTNESS
 color = WHITE
 colorChange = COLORCHANGE_NO
 transition = TRANSITION_FADE
-timeout = 5
+timeout = 10
+showTemp = false
 itIs = true
 alarm1 = false
-alarmTime1 = 0
+alarmTime1 = 00:00
 alarm2 = false
-alarmTime2 = 0
-nightOffTime = 0
-dayOnTime = 0
+alarmTime2 = 00:00
+nightOffTime = 00:00
+dayOnTime = 00:00
 ```
-
 ### Standard modes
 ```
 Time:                            The default mode of the clock. Shows the actual time. :)
@@ -128,8 +131,8 @@ Date:                            Shows day and month.
 Title (TE MP):                   + or - to move directly to the next or previous category.
 Room temperature:                Display of the measured temperature in the room (only with RTC or DHT22).
 Room humidity:                   Display of the measured humidity in the room (only with DHT22).
-Outdoor Temperature:             Displays the temperature for a location (Yahoo Weather).
-Outdorr Humidity:                Humidity display for the selected location (Yahoo Weather).
+Outdoor temperature:             Displays the temperature for a location (Yahoo Weather).
+Outdorr humidity:                Humidity display for the selected location (Yahoo Weather).
 Title (AL RM):                   + or - to move directly to the next or previous category.
 Timer (TI):                      Sets the minute timer. Zero turns off the timer.
                                  Display of the remaining time if a timer is set.
@@ -149,6 +152,7 @@ Color Change (CC):               Change the color in intervalls.
 Color (CO):                      0: white, 1: red, 2: green, 3: blue and so on.
 Transition (TR):                 Normal (NO) / Fade (FD).
 Fallback (FB nn):                Time in seconds to change back to time. (0: disabled, default: 5)
+Show outdoor temperature (ST):   Enable (EN) or disable (DA) temperature in time view once a minute.
 Front language (DE/CH/EN/...):   Select the correct language for your frontpanel.
 Title (TI ME):                   + or - to move directly to the next or previous category.
 Set time:                        + or - to set the time manually. + sets the hour, - the minute.
@@ -166,27 +170,45 @@ LED-Test:                        Moves a horizontal bar across the display.
 ```
 ### Configuration.h
 ```
-#define CONFIG_*                 Simple support of different configurations in one file.
-#define HOSTNAME                 The name of the watch.
-#define WIFI_AP_TIMEOUT          Time in seconds for the WiFiManager to set-up/search the WLAN.
-#define OTA_PASS                 Password for "Over the Air" updates.
-#define WIFI_RESET               Reset all settings to default in WiFiManager.
-#define NTP_SERVER               NTP server to be queried.
+/******************************************************************************
+Software settings.
+******************************************************************************/
+
+#define HOSTNAME                   The name of the watch.
+#define WIFI_AP_TIMEOUT            Time in seconds for the WiFiManager to set-up/search the WLAN.
+#define OTA_PASS                   Password for "Over the Air" updates.
+#define WIFI_RESET                 Reset all settings to default in WiFiManager at startup.
+#define NTP_SERVER                 NTP server to be queried.
+#define SELFTEST                   Test LEDs at startup. Colors are: white, red, green, blue. In this order.
+#define SHOW_IP                    Show local IP at startup. Use this in the browser to access the clocks menue.
+#define NONE_TECHNICAL_ZERO        Displays the zero without the diagonal line.
+#define ALARM_LED_COLOR            Color of the alarm LED. If not defined the display color will be used.
+                                   The possible colors are:
+                                   WHITE, RED, RED_25, RED_50, ORANGE, YELLOW, YELLOW_25, YELLOW_50, GREENYELLOW,
+                                   GREEN, GREEN_25, GREEN_50, MINTGREEN, CYAN, CYAN_25, CYAN_50, LIGHTBLUE, BLUE,
+                                   BLUE_25, BLUE_50, VIOLET, MAGENTA, MAGENTA_25, MAGENTA_50, PINK.
+#define ABUSE_CORNER_LED_FOR_ALARM Use the upper right minute LED as alarm LED. Only works if ALARM_LED_COLOR is defined.
+                                   If no alarm or timer is set the LED works as expected.
+#define DEDICATION                 Show a text on the clocks webpage.
+#define LOCATION                   Location for the weather conditions as entered on the Yahoo site.
+                                   (Only letters, ' ', and ',' are allowed).
+#define LANGUAGE_*                 Language of the clock. The front itself is set in the clocks menue.
+#define UPDATE_INFO_*              The update info periodically anonymously checks if there is a firmwareupdate
+                                   available. No user data is send to the host.
+#define TIMEZONE_*                 The time zone in which the clock is located. Important for the UTC offset and the
+                                   summer/winter time change.
+
+/******************************************************************************
+Hardware settings.
+******************************************************************************/
+
+#define ESP_LED                  Displays the function using the LED on the ESP. It flashes once a second.
+
 #define RTC_BACKUP               Use an RTC as backup.
 #define RTC_TEMP_OFFSET          Sets how many degrees the measured room temperature (+ or -) should be corrected.
-#define SENSOR_DHT22             Use a DHT22 sensor module (not the plain sensor) for room temperature and humidity.
-#define SELFTEST                 Test LEDs at startup. Colors are: white, red, green, blue. In this order.
-#define SHOW_IP                  Show local IP at startup. Use this in the browser to access the clocks menue.
-#define ESP_LED                  Displays the function using the LED on the ESP. It flashes once a second.
-#define NONE_TECHNICAL_ZERO      Displays the zero without the diagonal line.
-#define DEDICATION               Show a text on the clocks webpage.
 
-const event_t event[]            Display a textfeed every 5 minutes on a particular day of year.
-                                 The format of the array is: { month, day, "Text to display.", color }
-								 The possible colors are: WHITE, RED, RED_25, RED_50, ORANGE, YELLOW, YELLOW_25,
-								 YELLOW_50, GREENYELLOW, GREEN, GREEN_25, GREEN_50, MINTGREEN, CYAN, CYAN_25, CYAN_50,
-								 LIGHTBLUE, BLUE, BLUE_25, BLUE_50, VIOLET, MAGENTA, MAGENTA_25, MAGENTA_50, PINK.
-								 
+#define SENSOR_DHT22             Use a DHT22 sensor module (not the plain sensor) for room temperature and humidity.
+
 #define LDR                      Use an LDR for brightness control.
 #define LDR_IS_INVERSE           Combined with #define LDR inverse the value of the LDR.
 #define LDR_HYSTERESIS           Brightness control from a deviation in the range from 0 to 1023. Default: 30.
@@ -197,19 +219,12 @@ const event_t event[]            Display a textfeed every 5 minutes on a particu
 #define BUZZTIME_ALARM_1         Maximum time in seconds for alarm 1 to be active when not turned off manually.
 #define BUZZTIME_ALARM_2         Maximum time in seconds for alarm 2 to be active when not turned off manually.
 #define BUZZTIME_TIMER           Maximum time in seconds for the timer alarm to be active when not turned off manually.
-#define LOCATION                 Location for the weather conditions as entered on the Yahoo site.
-                                 (Only letters, ' ', and ',' are allowed).
-#define LANGUAGE_*               Language of the clock. The front itself is set in the clocks menue.
-#define UPDATE_INFO_*            The update info periodically anonymously checks if there is a firmwareupdate
-                                 available. No user data is send to the host.
-#define TIMEZONE_*               The time zone in which the clock is located. Important for the UTC offset and the
-                                 summer/winter time change.
-								 
+
 #define IR_REMOTE                Use an IR remote control.
 #define IR_LETTER_OFF            Turns off the LED behind the IR sensor permanently. This improves IR reception.
 #define IR_CODE_*                Any remote control can be used. 6 keys are supported.
                                  Turn on "#define DEBUG" and press a button on the remote control.
-							     Then write the code displayed in the serial console to the file "Configuration.h".
+                                 Then write the code displayed in the serial console to the file "Configuration.h".
 
 #define LED_LIBRARY_LPD8806RGBW  LED Driver for LPD8806 RGBW LEDs.
 
@@ -241,7 +256,7 @@ const event_t event[]            Display a textfeed every 5 minutes on a particu
    109 108 107 106 105 104 103 102 101 100 099
 110                                            113
 
-#define LED_LAYOUT_HORIZONTAL && #define LED_LAYOUT_DUAL (NOT TESTED!)
+#define LED_LAYOUT_HORIZONTAL and #define LED_LAYOUT_DUAL (NOT TESTED!)
 
 222                                                    228                                                    224
 223                                                    229                                                    225
@@ -273,7 +288,7 @@ const event_t event[]            Display a textfeed every 5 minutes on a particu
    010 012 031 032 051 052 071 072 091 092 112
 011                                           113
 
-#define LED_LAYOUT_VERTICAL && #define LED_LAYOUT_DUAL (NOT WORKING YET!)
+#define LED_LAYOUT_VERTICAL and #define LED_LAYOUT_DUAL (NOT WORKING YET!)
 
 000                                                    228                                                    204
 001                                                    229                                                    205
@@ -290,14 +305,44 @@ const event_t event[]            Display a textfeed every 5 minutes on a particu
 012                                                                                                           226
 013                                                                                                           227
 
-#define SERIAL_SPEED             Serial port speed for the console.
+/******************************************************************************
+Misc.
+******************************************************************************/
+
 #define DEBUG                    Outputs technical information in the serial console.
 #define DEBUG_WEBSITE            Provides technical information on the web page.
 #define DEBUG_MATRIX             Renders the output of the matrix for the German front in the serial console.
 #define DEBUG_FPS                Number of loops per second.
 
-Hardware setup of the ESP:
+#define SYSLOG_SERVER            Address of a syslog server for writing debug infos.
+#define SYSLOG_PORT              Port of the syslog server.
 
+#define UPDATE_INFOSERVER        Address of the updateinfo server.
+#define UPDATE_INFOFILE          Path to the updateinfo file.
+
+#define SERIAL_SPEED             Serial port speed for the console.
+
+#define PIN_IR_RECEIVER D3
+#define PIN_LED         D4
+#define PIN_BUZZER      D5
+#define PIN_DHT22       D6
+#define PIN_LEDS_CLOCK  D7
+#define PIN_LEDS_DATA   D8
+#define PIN_LDR         A0
+```
+### Events.h
+```
+const event_t event[]            Display a textfeed every 5 minutes on a particular day of year.
+                                 The format of an entry in the array is:
+                                 { month, day, "Text to display.", color },
+                                 The last entry has no comma.
+                                 The possible colors are:
+                                 WHITE, RED, RED_25, RED_50, ORANGE, YELLOW, YELLOW_25, YELLOW_50, GREENYELLOW,
+                                 GREEN, GREEN_25, GREEN_50, MINTGREEN, CYAN, CYAN_25, CYAN_50, LIGHTBLUE, BLUE,
+                                 BLUE_25, BLUE_50, VIOLET, MAGENTA, MAGENTA_25, MAGENTA_50, PINK.
+```
+### Hardware setup of the ESP:
+```
 D0 = GPIO16 = NodeMCU_LED
 D1 = GPIO05 = PIN_WIRE_SCL
 D2 = GPIO04 = PIN_WIRE_SDA
@@ -308,5 +353,4 @@ D6 = GPIO12 = PIN_DHT22
 D7 = GPIO13 = PIN_LEDS_CLOCK
 D8 = GPIO15 = PIN_LEDS_DATA
 A0 = ADC0   = PIN_LDR
-
 ```

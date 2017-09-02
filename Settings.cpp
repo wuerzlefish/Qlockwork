@@ -1,5 +1,5 @@
 /******************************************************************************
-  Settings.cpp
+Settings.cpp
 ******************************************************************************/
 
 #include "Settings.h"
@@ -67,6 +67,16 @@ uint8_t Settings::getTransition()
 void Settings::setTransition(uint8_t transition)
 {
 	mySettings.transition = transition;
+}
+
+boolean Settings::getShowTemp()
+{
+	return mySettings.showTemp;
+}
+
+void Settings::toggleShowTemp()
+{
+	mySettings.showTemp = !mySettings.showTemp;
 }
 
 uint8_t Settings::getTimeout()
@@ -152,6 +162,7 @@ void Settings::setDayOnTime(time_t dayOnTime)
 // Set all defaults.
 void Settings::resetToDefault()
 {
+	DEBUG_PRINTLN("*** Settings set to defaults in EEPROM. ***");
 	mySettings.magicNumber = SETTINGS_MAGIC_NUMBER;
 	mySettings.version = SETTINGS_VERSION;
 #ifdef LANGUAGE_ENGLISH
@@ -177,7 +188,8 @@ void Settings::resetToDefault()
 	mySettings.color = WHITE;
 	mySettings.colorChange = COLORCHANGE_NO;
 	mySettings.transition = TRANSITION_FADE;
-	mySettings.timeout = 5;
+	mySettings.timeout = 10;
+	mySettings.showTemp = false;
 	mySettings.itIs = true;
 	mySettings.alarm1 = false;
 	mySettings.alarmTime1 = 0;
@@ -188,9 +200,10 @@ void Settings::resetToDefault()
 	saveToEEPROM();
 }
 
-// Load settings.
+// Load settings from EEPROM.
 void Settings::loadFromEEPROM()
 {
+	DEBUG_PRINTLN("Settings loaded from EEPROM.");
 	EEPROM.begin(512);
 	EEPROM.get(0, mySettings);
 	if ((mySettings.magicNumber != SETTINGS_MAGIC_NUMBER) || (mySettings.version != SETTINGS_VERSION))
@@ -198,9 +211,10 @@ void Settings::loadFromEEPROM()
 	EEPROM.end();
 }
 
-// Write settings.
+// Write settings to EEPROM.
 void Settings::saveToEEPROM()
 {
+	DEBUG_PRINTLN("Settings saved to EEPROM.");
 	EEPROM.begin(512);
 	EEPROM.put(0, mySettings);
 	//EEPROM.commit();
