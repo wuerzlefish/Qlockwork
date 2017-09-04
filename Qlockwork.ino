@@ -6,7 +6,7 @@ An advanced firmware for a DIY "word-clock".
 @created 01.02.2017
 ******************************************************************************/
 
-#define FIRMWARE_VERSION 20170903
+#define FIRMWARE_VERSION 20170904
 
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
@@ -434,16 +434,10 @@ void loop()
 	{
 		lastTime = now();
 
-		// Running STD_MODE_NORMAL or STD_MODE_BLANK every second will lock the ESP due to TRANSITION_FADE.
-		switch (mode)
+		// Running displayupdate in STD_MODE_NORMAL or STD_MODE_BLANK every second will lock the ESP due to TRANSITION_FADE.
+		if ((mode != STD_MODE_NORMAL) && (mode != STD_MODE_BLANK))
 		{
-		case STD_MODE_NORMAL:
-		case STD_MODE_BLANK:
-			screenBufferNeedsUpdate = false;
-			break;
-		default:
 			screenBufferNeedsUpdate = true;
-			break;
 		}
 
 #ifdef ESP_LED
@@ -490,7 +484,7 @@ void loop()
 		if (alarmOn)
 		{
 			alarmOn--;
-			if (second() % 2 == 0)
+			if (digitalRead(PIN_BUZZER) == LOW)
 			{
 				digitalWrite(PIN_BUZZER, HIGH);
 			}
@@ -2129,6 +2123,8 @@ void showFeed(String feedText, eColor color)
 		}
 		esp8266WebServer.handleClient();
 	}
+	DEBUG_PRINTLN(" Done.");
+	SYSLOG(" Done.");
 }
 
 #ifdef SENSOR_DHT22

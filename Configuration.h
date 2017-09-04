@@ -75,44 +75,50 @@ Hardware settings.
 
 #define ESP_LED
 
-//#define RTC_BACKUP
-#define RTC_TEMP_OFFSET 0
-
 //#define SENSOR_DHT22
 
+//#define RTC_BACKUP
+//------------------
+#define RTC_TEMP_OFFSET 0
+
 //#define LDR
+//-----------
 //#define LDR_IS_INVERSE
 #define LDR_HYSTERESIS 30
 #define MIN_BRIGHTNESS 20
 #define MAX_BRIGHTNESS 255
 
 //#define BUZZER
+//--------------
 #define BUZZTIME_ALARM_1 60
 #define BUZZTIME_ALARM_2 60
 #define BUZZTIME_TIMER 30
 
 //#define IR_REMOTE
+//-----------------
 //#define IR_LETTER_OFF
-//#define IR_CODE_ONOFF   16769565 // HX1838 Remote CH+
-//#define IR_CODE_TIME    16753245 // HX1838 Remote CH-
-//#define IR_CODE_MODE    16736925 // HX1838 Remote CH
-//#define IR_CODE_EXTMODE 16748655 // HX1838 Remote EQ
-//#define IR_CODE_PLUS    16754775 // HX1838 Remote +
-//#define IR_CODE_MINUS   16769055 // HX1838 Remote -
-#define IR_CODE_ONOFF   16769055 // CLT2 V1.1 Remote Power
-#define IR_CODE_TIME    16752735 // CLT2 V1.1 Remote Time
-#define IR_CODE_MODE    16720095 // CLT2 V1.1 Remote Region
-#define IR_CODE_EXTMODE 16736415 // CLT2 V1.1 Remote Seconds
-#define IR_CODE_PLUS    16734375 // CLT2 V1.1 Remote +
-#define IR_CODE_MINUS   16730295 // CLT2 V1.1 Remote -
+//#define IR_CODE_ONOFF    16769565 // HX1838 Remote CH+
+//#define IR_CODE_TIME     16753245 // HX1838 Remote CH-
+//#define IR_CODE_MODE     16736925 // HX1838 Remote CH
+//#define IR_CODE_SETTINGS 16748655 // HX1838 Remote EQ
+//#define IR_CODE_PLUS     16754775 // HX1838 Remote +
+//#define IR_CODE_MINUS    16769055 // HX1838 Remote -
+#define IR_CODE_ONOFF    16769055 // CLT2 V1.1 Remote Power
+#define IR_CODE_TIME     16752735 // CLT2 V1.1 Remote Time
+#define IR_CODE_MODE     16720095 // CLT2 V1.1 Remote Region
+#define IR_CODE_SETTINGS 16736415 // CLT2 V1.1 Remote Seconds
+#define IR_CODE_PLUS     16734375 // CLT2 V1.1 Remote +
+#define IR_CODE_MINUS    16730295 // CLT2 V1.1 Remote -
 
 #define LED_LAYOUT_HORIZONTAL
 //#define LED_LAYOUT_VERTICAL
 //#define LED_LAYOUT_DUAL
 
 //#define LED_LIBRARY_LPD8806RGBW
+//-------------------------------
 
 #define LED_LIBRARY_NEOPIXEL
+//----------------------------
 #define LED_DRIVER_NEO_800KHZ_GRB
 //#define LED_DRIVER_NEO_800KHZ_RGB
 //#define LED_DRIVER_NEO_800KHZ_GRBW
@@ -121,6 +127,7 @@ Hardware settings.
 //#define LED_DRIVER_NEO_400KHZ_RGB
 
 //#define LED_LIBRARY_FASTLED
+//---------------------------
 //#define LED_DRIVER_FAST_APA102
 //#define LED_DRIVER_FAST_APA104
 //#define LED_DRIVER_FAST_APA106
