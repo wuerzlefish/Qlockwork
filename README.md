@@ -12,7 +12,7 @@ WiFi manager: If the clock can not connect to any WLAN at startup, it turns on a
 
 Events can be shown every five minutes on a particular day of the year as a textfeed. You can set them in "Events.h". Expand the array with events as shown in the default values. Set variables for recurrent texts to save RAM. You can set a color for every event. There is no comma behind the last entry.
 
-Updates of the firmware are possible via USB and OTA. You will find more help and information on how to configure and compile the firmware in "Readme.md" in the zip-archive. You will also find a circuit diagram, a partslist and some pictures in the "/misc" directory. All sensors, the RTC and the buzzer are optional. The clock will run with the ESP8266 module only.
+Updates of the firmware could be made via USB, OTA or the clocks web-server. You will find more help and information on how to configure and compile the firmware in "Readme.md" in the zip-archive. You will also find a circuit diagram, a partslist and some pictures in the "/misc" directory. All sensors, the RTC and the buzzer are optional. The clock will run with the ESP8266 module only.
 
 Disclaimer: Qlockwork uses lots of third party libraries. I can not guarantee the integrity of these libraries. You use Qlockwork at your own risk.
 
@@ -40,7 +40,7 @@ NTP timesync.
 RTC timesync as backup.
 Timezones.
 Automatic adjustment of daylight saving time.
-Over-the-air updates.
+USB, Over-the-air or webserver firmware updates.
 WiFi manager for initial setup via accesspoint.
 ```
 ### Modes
@@ -99,26 +99,10 @@ https://github.com/tzapu/WiFiManager
 
 There is a warning from FastLED about SPI when compiling. Just ignore it.
 
-For OTA updates check out: https://esp8266.github.io/Arduino/versions/2.0.0/doc/ota_updates/ota_updates.html
-Don't forget to install Python 2.7 and to select “Add python.exe to Path”.
-```
-```
-Defaults are:
-language = LANGUAGE_EN
-useLdr = true
-brightness = MAX_BRIGHTNESS
-color = WHITE
-colorChange = COLORCHANGE_NO
-transition = TRANSITION_FADE
-timeout = 10
-showTemp = false
-itIs = true
-alarm1 = false
-alarmTime1 = 00:00
-alarm2 = false
-alarmTime2 = 00:00
-nightOffTime = 00:00
-dayOnTime = 00:00
+For OTA and web-server updates check out:
+http://esp8266.github.io/Arduino/versions/2.3.0/doc/ota_updates/readme.html
+Try "http://your_clocks_ip/update" to upload an update.
+Don't forget to install Python 2.7 and to select “Add python.exe to path”.
 ```
 ### Standard modes
 ```
@@ -203,10 +187,7 @@ Hardware settings.
 ******************************************************************************/
 
 #define ESP_LED                  Displays the function using the LED on the ESP. It flashes once a second.
-
-#define RTC_BACKUP               Use an RTC as backup.
-#define RTC_TEMP_OFFSET          Sets how many degrees the measured room temperature (+ or -) should be corrected.
-
+#define RTC_BACKUP               Use an RTC as backup and room temperature.
 #define SENSOR_DHT22             Use a DHT22 sensor module (not the plain sensor) for room temperature and humidity.
 
 #define LDR                      Use an LDR for brightness control.
@@ -306,6 +287,19 @@ Hardware settings.
 013                                                                                                           227
 
 /******************************************************************************
+Default values for EEPROM.
+******************************************************************************/
+
+#define DEFAULT_BRIGHTNESS
+#define DEFAULT_COLOR
+#define DEFAULT_COLORCHANGE
+#define DEFAULT_SHOWTEMP
+#define DEFAULT_SHOWITIS
+#define DEFAULT_TRANSITION
+#define DEFAULT_TIMEOUT
+#define DEFAULT_USELDR
+
+/******************************************************************************
 Misc.
 ******************************************************************************/
 
@@ -322,19 +316,19 @@ Misc.
 
 #define SERIAL_SPEED             Serial port speed for the console.
 
-#define PIN_IR_RECEIVER D3
-#define PIN_LED         D4
-#define PIN_BUZZER      D5
-#define PIN_DHT22       D6
-#define PIN_LEDS_CLOCK  D7
-#define PIN_LEDS_DATA   D8
-#define PIN_LDR         A0
+#define PIN_IR_RECEIVER D3       Pin for the IR receiver.
+#define PIN_LED         D4       Pin for the LED (build into the ESP).
+#define PIN_BUZZER      D5       Pin for the buzzer.
+#define PIN_DHT22       D6       Pin for the DHT22 module.
+#define PIN_LEDS_CLOCK  D7       Pin for the LED stripe "clock" if needed.
+#define PIN_LEDS_DATA   D8       Pin for the LED stripe "data".
+#define PIN_LDR         A0       Pin for the LDR.
 ```
 ### Events.h
 ```
 const event_t event[]            Display a textfeed every 5 minutes on a particular day of year.
                                  The format of an entry in the array is:
-                                 { month, day, "Text to display.", color },
+                                 { month, day, "Text to display.", year, color },
                                  The last entry has no comma.
                                  The possible colors are:
                                  WHITE, RED, RED_25, RED_50, ORANGE, YELLOW, YELLOW_25, YELLOW_50, GREENYELLOW,

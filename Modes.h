@@ -7,7 +7,7 @@ Modes.h
 
 typedef enum eMode : uint8_t
 {
-	STD_MODE_NORMAL,
+	STD_MODE_TIME,
 	STD_MODE_AMPM,
 	STD_MODE_SECONDS,
 	STD_MODE_WEEKDAY,

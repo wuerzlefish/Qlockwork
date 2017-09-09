@@ -19,6 +19,7 @@ Software settings.
 #define SELFTEST
 #define SHOW_IP
 //#define NONE_TECHNICAL_ZERO
+#define AUTO_MODECHANGE_TIME 60
 #define ALARM_LED_COLOR RED
 //#define ABUSE_CORNER_LED_FOR_ALARM
 //#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
@@ -74,12 +75,8 @@ Hardware settings.
 ******************************************************************************/
 
 #define ESP_LED
-
 //#define SENSOR_DHT22
-
 //#define RTC_BACKUP
-//------------------
-#define RTC_TEMP_OFFSET 0
 
 //#define LDR
 //-----------
@@ -162,6 +159,19 @@ Hardware settings.
 //#define LED_DRIVER_FAST_WS2812B
 //#define LED_DRIVER_FAST_WS2813
 //#define LED_DRIVER_FAST_WS2852
+
+/******************************************************************************
+Default values for EEPROM.
+******************************************************************************/
+
+#define DEFAULT_BRIGHTNESS MAX_BRIGHTNESS
+#define DEFAULT_COLOR WHITE
+#define DEFAULT_COLORCHANGE COLORCHANGE_NO
+#define DEFAULT_SHOWTEMP false
+#define DEFAULT_SHOWITIS true
+#define DEFAULT_TRANSITION TRANSITION_FADE
+#define DEFAULT_TIMEOUT 10
+#define DEFAULT_USELDR true
 
 /******************************************************************************
 Misc.

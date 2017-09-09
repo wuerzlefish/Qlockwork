@@ -6,12 +6,13 @@ An advanced firmware for a DIY "word-clock".
 @created 01.02.2017
 ******************************************************************************/
 
-#define FIRMWARE_VERSION 20170904
+#define FIRMWARE_VERSION 20170909
 
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <DS3232RTC.h>
 #include <DHT.h>
+#include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
@@ -51,6 +52,7 @@ LedDriver_NeoPixel ledDriver;
 #endif
 
 ESP8266WebServer esp8266WebServer(80);
+ESP8266HTTPUpdateServer httpUpdater;
 Renderer renderer;
 Settings settings;
 Debug debug;
@@ -58,10 +60,11 @@ Debug debug;
 uint16_t matrix[10] = {};
 uint16_t matrixOld[10] = {};
 boolean screenBufferNeedsUpdate = true;
-Mode mode = STD_MODE_NORMAL;
+Mode mode = STD_MODE_TIME;
 Mode lastMode = mode;
 uint32_t modeTimeout = 0;
 uint32_t titleTimeout = 0;
+uint32_t autoModeChange = AUTO_MODECHANGE_TIME;
 boolean runTransitionOnce = false;
 uint8_t lastDay = 0;
 uint8_t lastHour = 0;
@@ -213,7 +216,7 @@ void setup()
 		delay(500);
 
 #ifdef SHOW_IP
-		showFeed(String("IP: " + String(WiFi.localIP()[0]) + '.' + String(WiFi.localIP()[1]) + '.' + String(WiFi.localIP()[2]) + '.' + String(WiFi.localIP()[3])), WHITE);
+		showFeed("IP: " + String(WiFi.localIP()[0]) + '.' + String(WiFi.localIP()[1]) + '.' + String(WiFi.localIP()[2]) + '.' + String(WiFi.localIP()[3]), WHITE);
 #endif
 	}
 
@@ -241,6 +244,10 @@ void setup()
 	SYSLOG("Starting webserver on port 80.");
 	setupWebServer();
 
+	DEBUG_PRINTLN("Starting updateserver on port 80.");
+	SYSLOG("Starting updateserver on port 80.");
+	httpUpdater.setup(&esp8266WebServer);
+
 	DEBUG_PRINTLN("Starting OTA service.");
 	SYSLOG("Starting OTA service.");
 #ifdef SYSLOG_SERVER
@@ -251,11 +258,11 @@ void setup()
 	ArduinoOTA.onError([](ota_error_t error)
 	{
 		syslog.log(LOG_INFO, "OTA Error: " + String(error));
-		if (error == OTA_AUTH_ERROR) syslog.log(LOG_INFO, "Auth Failed.");
-		else if (error == OTA_BEGIN_ERROR) syslog.log(LOG_INFO, "Begin Failed.");
-		else if (error == OTA_CONNECT_ERROR) syslog.log(LOG_INFO, "Connect Failed.");
-		else if (error == OTA_RECEIVE_ERROR) syslog.log(LOG_INFO, "Receive Failed.");
-		else if (error == OTA_END_ERROR) syslog.log(LOG_INFO, "End Failed.");
+		if (error == OTA_AUTH_ERROR) syslog.log(LOG_INFO, "Auth failed.");
+		else if (error == OTA_BEGIN_ERROR) syslog.log(LOG_INFO, "Begin failed.");
+		else if (error == OTA_CONNECT_ERROR) syslog.log(LOG_INFO, "Connect failed.");
+		else if (error == OTA_RECEIVE_ERROR) syslog.log(LOG_INFO, "Receive failed.");
+		else if (error == OTA_END_ERROR) syslog.log(LOG_INFO, "End failed.");
 	});
 	ArduinoOTA.onEnd([]()
 	{
@@ -316,7 +323,7 @@ Loop().
 
 void loop()
 {
-	// Run every day.
+	// Run once a day.
 
 	if (day() != lastDay)
 	{
@@ -332,7 +339,7 @@ void loop()
 		}
 	}
 
-	// Run every hour.
+	// Run once every hour.
 
 	if (hour() != lastHour)
 	{
@@ -360,7 +367,7 @@ void loop()
 		}
 	}
 
-	// Run every five minutes.
+	// Run once every five minutes.
 
 	if ((minute() / 5) != lastFiveMinute)
 	{
@@ -374,9 +381,16 @@ void loop()
 		// Show event in feed.
 		for (uint8_t i = 0; i < (sizeof(event) / sizeof(event_t)); i++)
 		{
-			if ((day() == event[i].day) && (month() == event[i].month) && (mode == STD_MODE_NORMAL))
+			if ((day() == event[i].day) && (month() == event[i].month) && (mode == STD_MODE_TIME))
 			{
-				showFeed(event[i].text, event[i].color);
+				if (event[i].year)
+				{
+					showFeed(event[i].text + " (" + String(year() - event[i].year) + ")", event[i].color);
+				}
+				else
+				{
+					showFeed(event[i].text, event[i].color);
+				}
 			}
 		}
 
@@ -389,7 +403,7 @@ void loop()
 		}
 	}
 
-	// Run every minute.
+	// Run once every minute.
 
 	if (minute() != lastMinute)
 	{
@@ -399,6 +413,21 @@ void loop()
 #ifdef DEBUG
 		debug.debugTime("Time (ESP):", now(), SHOW_DATE);
 #endif
+
+		// Set nightmode/daymode.
+		if ((hour() == hour(settings.getNightOffTime())) && (minute() == minute(settings.getNightOffTime())))
+		{
+			DEBUG_PRINTLN("Night off.");
+			SYSLOG("Night off.");
+			setMode(STD_MODE_BLANK);
+		}
+
+		if ((hour() == hour(settings.getDayOnTime())) && (minute() == minute(settings.getDayOnTime())))
+		{
+			DEBUG_PRINTLN("Day on.");
+			SYSLOG("Day on.");
+			setMode(lastMode);
+		}
 
 		// Set ESP time from external source or RTC.
 		if (minute() == randomMinute)
@@ -420,7 +449,7 @@ void loop()
 #endif
 
 		// Countdown to weatherinfo check.
-		if (nextWeatherCheck > 0)
+		if (nextWeatherCheck)
 		{
 			nextWeatherCheck--;
 			DEBUG_PRINTLN("Weathercheck locked for " + String(nextWeatherCheck) + " minutes.");
@@ -428,14 +457,14 @@ void loop()
 		}
 	}
 
-	// Run every second.
+	// Run once every second.
 
 	if (now() != lastTime)
 	{
 		lastTime = now();
 
-		// Running displayupdate in STD_MODE_NORMAL or STD_MODE_BLANK every second will lock the ESP due to TRANSITION_FADE.
-		if ((mode != STD_MODE_NORMAL) && (mode != STD_MODE_BLANK))
+		// Running displayupdate in STD_MODE_TIME or STD_MODE_BLANK every second will lock the ESP due to TRANSITION_FADE.
+		if ((mode != STD_MODE_TIME) && (mode != STD_MODE_BLANK))
 		{
 			screenBufferNeedsUpdate = true;
 		}
@@ -499,25 +528,15 @@ void loop()
 		}
 #endif
 
-		// Set nightmode/daymode.
-		if ((hour() == hour(settings.getNightOffTime())) && (minute() == minute(settings.getNightOffTime())) && (second() == 0))
+		// Show temperatures.
+		if (settings.getShowTemp() && (mode == STD_MODE_TIME))
 		{
-			DEBUG_PRINTLN("Night off.");
-			SYSLOG("Night off.");
-			setMode(STD_MODE_BLANK);
-		}
-
-		if ((hour() == hour(settings.getDayOnTime())) && (minute() == minute(settings.getDayOnTime())) && (second() == 0))
-		{
-			DEBUG_PRINTLN("Day on.");
-			SYSLOG("Day on.");
-			setMode(lastMode);
-		}
-
-		// Show temperature.
-		if ((settings.getShowTemp()) && (second() == 30) && (mode == STD_MODE_NORMAL))
-		{
-			setMode(STD_MODE_EXT_TEMP);
+			autoModeChange--;
+			if (!autoModeChange)
+			{
+				autoModeChange = AUTO_MODECHANGE_TIME;
+				setMode(STD_MODE_EXT_TEMP);
+			}
 		}
 	}
 
@@ -560,7 +579,7 @@ void loop()
 		// Render a new screenbuffer.
 		switch (mode)
 		{
-		case STD_MODE_NORMAL:
+		case STD_MODE_TIME:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setTime(hour(), minute(), settings.getLanguage(), matrix);
 			renderer.setCorners(minute(), matrix);
@@ -628,29 +647,29 @@ void loop()
 #if defined(RTC_BACKUP) && !defined(SENSOR_DHT22)
 		case STD_MODE_TEMP:
 			renderer.clearScreenBuffer(matrix);
-			if ((RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) == 0)
+			if ((RTC.temperature() / 4) == 0)
 			{
 				matrix[0] = 0b0000000001000000;
 				matrix[1] = 0b0000000010100000;
 				matrix[2] = 0b0000000010100000;
 				matrix[3] = 0b0000000011100000;
 			}
-			if ((RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) > 0)
+			if ((RTC.temperature() / 4) > 0)
 			{
 				matrix[0] = 0b0000000001000000;
 				matrix[1] = 0b0100000010100000;
 				matrix[2] = 0b1110000010100000;
 				matrix[3] = 0b0100000011100000;
 			}
-			if ((RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)) < 0)
+			if ((RTC.temperature() / 4) < 0)
 			{
 				matrix[0] = 0b0000000001000000;
 				matrix[1] = 0b0000000010100000;
 				matrix[2] = 0b1110000010100000;
 				matrix[3] = 0b0000000011100000;
 			}
-			renderer.setSmallText(String(RTC.temperature() / 4 + int(RTC_TEMP_OFFSET)), TEXT_POS_BOTTOM, matrix);
-			DEBUG_PRINTLN(String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET)); // .0 to get float values for temp
+			renderer.setSmallText(String(int(RTC.temperature() / 4.0 + 0.5)), TEXT_POS_BOTTOM, matrix);
+			DEBUG_PRINTLN(String(RTC.temperature() / 4.0)); // .0 to get float value, +0.5 for rounding.
 			break;
 #endif
 #ifdef SENSOR_DHT22
@@ -1104,7 +1123,7 @@ void loop()
 			break;
 		default:
 			break;
-		}
+			}
 
 #if defined(IR_LETTER_OFF)
 		// Turn off LED behind IR-sensor.
@@ -1119,7 +1138,7 @@ void loop()
 		// Write screenbuffer to display.
 		switch (mode)
 		{
-		case STD_MODE_NORMAL:
+		case STD_MODE_TIME:
 		case STD_MODE_BLANK:
 			if (settings.getTransition() == TRANSITION_NORMAL)
 				writeScreenBuffer(matrix, settings.getColor(), brightness);
@@ -1143,7 +1162,7 @@ void loop()
 	// Wait for mode timeout then switch back to time.
 	if ((millis() > (modeTimeout + settings.getTimeout() * 1000)) && modeTimeout)
 	{
-		setMode(STD_MODE_NORMAL);
+		setMode(STD_MODE_TIME);
 	}
 
 	// Wait for title timeout then set next mode.
@@ -1189,7 +1208,7 @@ void buttonOnOffPressed()
 		SYSLOG("Alarm off.");
 		digitalWrite(PIN_BUZZER, LOW);
 		alarmOn = false;
-		setMode(STD_MODE_NORMAL);
+		setMode(STD_MODE_TIME);
 	}
 #endif
 
@@ -1212,7 +1231,7 @@ void buttonModePressed()
 		SYSLOG("Alarm off.");
 		digitalWrite(PIN_BUZZER, LOW);
 		alarmOn = false;
-		setMode(STD_MODE_NORMAL);
+		setMode(STD_MODE_TIME);
 		return;
 	}
 #endif
@@ -1223,7 +1242,7 @@ void buttonModePressed()
 	{
 	case STD_MODE_COUNT:
 	case EXT_MODE_COUNT:
-		setMode(STD_MODE_NORMAL);
+		setMode(STD_MODE_TIME);
 		break;
 	case EXT_MODE_COLOR:
 		if (settings.getColorChange())
@@ -1244,7 +1263,7 @@ void buttonModePressed()
 		break;
 	case STD_MODE_SET_ALARM_2:
 		if (!settings.getAlarm2())
-			setMode(STD_MODE_NORMAL);
+			setMode(STD_MODE_TIME);
 		break;
 #endif
 #ifdef LDR
@@ -1285,7 +1304,7 @@ void buttonSettingsPressed()
 		SYSLOG("Alarm off.");
 		digitalWrite(PIN_BUZZER, LOW);
 		alarmOn = false;
-		setMode(STD_MODE_NORMAL);
+		setMode(STD_MODE_TIME);
 		return;
 	}
 #endif
@@ -1317,7 +1336,7 @@ void buttonTimePressed()
 		SYSLOG("Alarm off.");
 		digitalWrite(PIN_BUZZER, LOW);
 		alarmOn = false;
-		setMode(STD_MODE_NORMAL);
+		setMode(STD_MODE_TIME);
 		return;
 	}
 #endif
@@ -1329,7 +1348,7 @@ void buttonTimePressed()
 	settings.saveToEEPROM();
 	modeTimeout = 0;
 	renderer.clearScreenBuffer(matrix);
-	setMode(STD_MODE_NORMAL);
+	setMode(STD_MODE_TIME);
 }
 
 /******************************************************************************
@@ -1357,7 +1376,7 @@ void buttonPlusPressed()
 
 	switch (mode)
 	{
-	case STD_MODE_NORMAL:
+	case STD_MODE_TIME:
 		setMode(STD_MODE_TITLE_TEMP);
 		break;
 #ifdef BUZZER
@@ -1365,7 +1384,7 @@ void buttonPlusPressed()
 		setMode(STD_MODE_TITLE_ALARM);
 		break;
 	case STD_MODE_TITLE_ALARM:
-		setMode(STD_MODE_NORMAL);
+		setMode(STD_MODE_TIME);
 		break;
 	case STD_MODE_SET_TIMER:
 		if (timerMinutes < 100)
@@ -1518,13 +1537,13 @@ void buttonMinusPressed()
 	switch (mode)
 	{
 	case STD_MODE_TITLE_TEMP:
-		setMode(STD_MODE_NORMAL);
+		setMode(STD_MODE_TIME);
 		break;
 #ifdef BUZZER
 	case STD_MODE_TITLE_ALARM:
 		setMode(STD_MODE_TITLE_TEMP);
 		break;
-	case STD_MODE_NORMAL:
+	case STD_MODE_TIME:
 		setMode(STD_MODE_TITLE_ALARM);
 		break;
 	case STD_MODE_SET_TIMER:
@@ -1763,7 +1782,7 @@ void writeScreenBuffer(uint16_t screenBuffer[], uint8_t color, uint8_t brightnes
 
 	ledDriver.show();
 	//DEBUG_PRINTLN(" Done.");
-}
+	}
 
 void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[], uint8_t color, uint8_t brightness)
 {
@@ -1852,7 +1871,7 @@ void setBrightnessFromLdr()
 		if (ldrValue < minLdrValue)
 		{
 			minLdrValue = ldrValue;
-		}
+	}
 		if (ldrValue > maxLdrValue)
 		{
 			maxLdrValue = ldrValue;
@@ -1868,7 +1887,7 @@ void setBrightnessFromLdr()
 			DEBUG_PRINTLN("Brightness: " + String(ratedBrightness) + " (value: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")");
 			SYSLOG("Brightness: " + String(ratedBrightness) + " (value: " + String(ldrValue) + ", min: " + String(minLdrValue) + ", max: " + String(maxLdrValue) + ")");
 		}
-	}
+}
 
 	// Set brightness to rated brightness.
 	if ((millis() > (lastBrightnessSet + 50)) && settings.getUseLdr())
@@ -2104,7 +2123,7 @@ Show feedtext.
 
 void showFeed(String feedText, eColor color)
 {
-	DEBUG_PRINTLN("Feed: " + feedText);
+	DEBUG_PRINT("Feed: " + feedText);
 	SYSLOG("Feed: " + feedText);
 	feedText = "  " + feedText + "  ";
 	for (uint8_t x = 0; x < (feedText.length() - 2); x++)
@@ -2124,7 +2143,7 @@ void showFeed(String feedText, eColor color)
 		esp8266WebServer.handleClient();
 	}
 	DEBUG_PRINTLN(" Done.");
-	SYSLOG(" Done.");
+	SYSLOG("Done.");
 }
 
 #ifdef SENSOR_DHT22
@@ -2275,7 +2294,7 @@ void handleRoot()
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_PLUS'\"><i class=\"fa fa-plus-circle\" style=\"font-size:24px\"></i></button>";
 	message += "<button onclick=\"window.location.href='/handle_BUTTON_MINUS'\"><i class=\"fa fa-minus-circle\" style=\"font-size:24px\"></i></button>";
 #if defined(RTC_BACKUP) && !defined(SENSOR_DHT22)
-	message += "<br><br><i class = \"fa fa-thermometer-three-quarters\" style=\"font-size:20px\"></i> " + String(RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) + " &#176;C / " + String((RTC.temperature() / 4.0 + RTC_TEMP_OFFSET) * 9.0 / 5.0 + 32.0) + " &#176;F";
+	message += "<br><br><i class = \"fa fa-thermometer-three-quarters\" style=\"font-size:20px\"></i> " + String(RTC.temperature() / 4.0) + " &#176;C / " + String((RTC.temperature() / 4.0) * 9.0 / 5.0 + 32.0) + " &#176;F";
 #endif
 #ifdef SENSOR_DHT22
 	message += "<br><br><i class = \"fa fa-thermometer-three-quarters\" style=\"font-size:20px\"></i> " + String(getDHT22Temperature()) + " &#176;C / " + String(getDHT22Temperature() * 9.0 / 5.0 + 32.0) + " &#176;F";

@@ -183,14 +183,14 @@ void Settings::resetToDefault()
 #ifdef LANGUAGE_NETHERLANDS
 	mySettings.language = LANGUAGE_NL;
 #endif
-	mySettings.useLdr = true;
-	mySettings.brightness = MAX_BRIGHTNESS;
-	mySettings.color = WHITE;
-	mySettings.colorChange = COLORCHANGE_NO;
-	mySettings.transition = TRANSITION_FADE;
-	mySettings.timeout = 10;
-	mySettings.showTemp = false;
-	mySettings.itIs = true;
+	mySettings.useLdr = DEFAULT_USELDR;
+	mySettings.brightness = DEFAULT_BRIGHTNESS;
+	mySettings.color = DEFAULT_COLOR;
+	mySettings.colorChange = DEFAULT_COLORCHANGE;
+	mySettings.transition = DEFAULT_TRANSITION;
+	mySettings.timeout = DEFAULT_TIMEOUT;
+	mySettings.showTemp = DEFAULT_SHOWTEMP;
+	mySettings.itIs = DEFAULT_SHOWITIS;
 	mySettings.alarm1 = false;
 	mySettings.alarmTime1 = 0;
 	mySettings.alarm2 = false;
