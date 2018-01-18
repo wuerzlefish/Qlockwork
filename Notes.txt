@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+<script>
+window.onload=function()
+{
+if (navigator.userAgent.indexOf("Firefox")!=-1)
+{
+window.alert("Firefox");
+}
+else
+{
+window.alert("nicht Firefox");
+}
+}
+</script>
+</head>
+</html>
+
+
+{
+	"query":
+	{
+		"count":0,"created":"2017-11-01T16:00:01Z","lang":"en-US","results":null
+	}
+}
+
+
+{
+"query":
+	{
+		"count":1,"created":"2017-11-01T16:30:03Z","lang":"en-US","results":
+		{
+			"channel":
+			{
+				"atmosphere":
+				{
+				"humidity":"64"
+				}
+				,"item":
+				{
+					"condition":
+					{
+						"code":"28","temp":"10"
+					}
+					,"title":"Conditions for Sarmenstorf, AG, CH at 04:00 PM CET"
+				}
+			}
+		}
+	}
+}
+
+MIN_BRIGHTNESS = Hardware min brightness
+MAX_BRIGHTNESS = Hardware max brightness
+abcBrightness = User max brightness
+ratedBrightness = brightness we want to go to
+brightness = actual brightness of LEDs

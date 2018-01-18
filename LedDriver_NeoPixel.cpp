@@ -93,12 +93,7 @@ void LedDriver_NeoPixel::setPixel(uint8_t num, uint8_t color, uint8_t brightness
 		}
 	}
 
-#ifdef LED_LAYOUT_DUAL
-	strip->setPixelColor(num * 2, ledColor);
-	strip->setPixelColor(num * 2 + 1, ledColor);
-#else
 	strip->setPixelColor(num, ledColor);
-#endif
 
 #endif // LED_LAYOUT_HORIZONTAL
 
@@ -153,9 +148,5 @@ void LedDriver_NeoPixel::setPixel(uint8_t num, uint8_t color, uint8_t brightness
 	strip->setPixelColor(num, ledColor);
 
 #endif // LED_LAYOUT_VERTICAL
-
-#if defined(LED_LAYOUT_VERTICAL) && defined(LED_LAYOUT_DUAL)
-
-#endif // LED_LAYOUT_VERTICAL DUAL
 
 }

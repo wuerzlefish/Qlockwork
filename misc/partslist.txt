@@ -32,4 +32,8 @@ Inner frame:
 2x Bar 325 x 20 x 15 mm
 8x super-magnet 10 x 5 mm
 
+Light grid:
+12x Bar 325 x 20 x 5 mm
+99x Bar 23,2 x 20 x 5 mm
+
 --------------------------------------------------------------

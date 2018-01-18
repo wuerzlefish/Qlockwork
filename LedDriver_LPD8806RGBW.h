@@ -5,17 +5,11 @@ LedDriver_LPD8806RGBW.h
 #ifndef LEDDRIVER_LPD8806RGBW_H
 #define LEDDRIVER_LPD8806RGBW_H
 
-#include <LPD8806RGBW.h>
+#include "LPD8806RGBW.h"
 #include "Colors.h"
 #include "Configuration.h"
 
-#if !defined(LED_LAYOUT_DUAL)
 #define NUM_LEDS 115
-#endif
-
-#if defined(LED_LAYOUT_DUAL)
-#define NUM_LEDS 230
-#endif
 
 class LedDriver_LPD8806RGBW
 {

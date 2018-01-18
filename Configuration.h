@@ -1,6 +1,6 @@
 /******************************************************************************
 Configuration.h
-See README.md for help.
+See README.txt for help.
 ******************************************************************************/
 
 #ifndef CONFIGURATION_H
@@ -11,32 +11,48 @@ Software settings.
 ******************************************************************************/
 
 #define HOSTNAME "QLOCKWORK"
-#define WIFI_AP_TIMEOUT 300
-//#define WIFI_RESET
+#define WIFI_AP_TIMEOUT 120
+#define WIFI_AP_PASS "12345678"
 #define OTA_PASS "1234"
 #define NTP_SERVER "pool.ntp.org"
-
-#define SELFTEST
+#define NTP_TIMEOUT 2000
 #define SHOW_IP
 //#define NONE_TECHNICAL_ZERO
 #define AUTO_MODECHANGE_TIME 60
+#define FEED_SPEED 120
+#define EVENT_TIME 300
 #define ALARM_LED_COLOR RED
 //#define ABUSE_CORNER_LED_FOR_ALARM
 //#define DEDICATION "The only reason for time is so that everything doesn't happen at once.<br>(Albert Einstein)"
+
+#define SELFTEST
+//--------------
+#define BRIGHTNESS_SELFTEST 100
 
 #define LOCATION "Berlin, BE, DE"
 //#define LOCATION "Zurich, ZH, CH"
 //#define LOCATION "Singapur, SG"
 
-#define LANGUAGE_ENGLISH
-//#define LANGUAGE_GERMAN
-//#define LANGUAGE_SPANISH
-//#define LANGUAGE_FRENCH
-//#define LANGUAGE_ITALIEN
-//#define LANGUAGE_NETHERLANDS
+#define FRONTCOVER_EN
+//#define FRONTCOVER_DE_DE
+//#define FRONTCOVER_DE_SW
+//#define FRONTCOVER_DE_BA
+//#define FRONTCOVER_DE_SA
+//#define FRONTCOVER_DE_MKF_DE
+//#define FRONTCOVER_DE_MKF_SW
+//#define FRONTCOVER_DE_MKF_BA
+//#define FRONTCOVER_DE_MKF_SA
+//#define FRONTCOVER_D3
+//#define FRONTCOVER_CH
+//#define FRONTCOVER_CH_GS
+//#define FRONTCOVER_ES
+//#define FRONTCOVER_FR
+//#define FRONTCOVER_IT
+//#define FRONTCOVER_NL
 
-#define UPDATE_INFO_UNSTABLE
-//#define UPDATE_INFO_STABLE
+/******************************************************************************
+Timezone.
+******************************************************************************/
 
 //#define TIMEZONE_IDLW  // IDLW  Internation Date Line West UTC-12
 //#define TIMEZONE_SST   // SST   Samoa Standard Time UTC-11
@@ -75,41 +91,41 @@ Hardware settings.
 ******************************************************************************/
 
 #define ESP_LED
+
 //#define SENSOR_DHT22
+//--------------------
+#define DHT_TEMPERATURE_OFFSET 0.3
+#define DHT_HUMIDITY_OFFSET 0.4
+
 //#define RTC_BACKUP
+//------------------
+#define RTC_TEMPERATURE_OFFSET 0.25
 
 //#define LDR
 //-----------
 //#define LDR_IS_INVERSE
-#define LDR_HYSTERESIS 30
+#define LDR_HYSTERESIS 40
 #define MIN_BRIGHTNESS 20
 #define MAX_BRIGHTNESS 255
 
 //#define BUZZER
 //--------------
-#define BUZZTIME_ALARM_1 60
-#define BUZZTIME_ALARM_2 60
+#define BUZZTIME_ALARM_1 30
+#define BUZZTIME_ALARM_2 30
 #define BUZZTIME_TIMER 30
 
-//#define IR_REMOTE
-//-----------------
+//#define IR_RECEIVER
+//-------------------
 //#define IR_LETTER_OFF
 //#define IR_CODE_ONOFF    16769565 // HX1838 Remote CH+
 //#define IR_CODE_TIME     16753245 // HX1838 Remote CH-
 //#define IR_CODE_MODE     16736925 // HX1838 Remote CH
-//#define IR_CODE_SETTINGS 16748655 // HX1838 Remote EQ
-//#define IR_CODE_PLUS     16754775 // HX1838 Remote +
-//#define IR_CODE_MINUS    16769055 // HX1838 Remote -
-#define IR_CODE_ONOFF    16769055 // CLT2 V1.1 Remote Power
-#define IR_CODE_TIME     16752735 // CLT2 V1.1 Remote Time
-#define IR_CODE_MODE     16720095 // CLT2 V1.1 Remote Region
-#define IR_CODE_SETTINGS 16736415 // CLT2 V1.1 Remote Seconds
-#define IR_CODE_PLUS     16734375 // CLT2 V1.1 Remote +
-#define IR_CODE_MINUS    16730295 // CLT2 V1.1 Remote -
+#define IR_CODE_ONOFF    0xFFE01F // CLT2 V1.1 Remote Power
+#define IR_CODE_TIME     0xFFA05F // CLT2 V1.1 Remote Time
+#define IR_CODE_MODE     0xFF20DF // CLT2 V1.1 Remote Region
 
 #define LED_LAYOUT_HORIZONTAL
 //#define LED_LAYOUT_VERTICAL
-//#define LED_LAYOUT_DUAL
 
 //#define LED_LIBRARY_LPD8806RGBW
 //-------------------------------
@@ -135,7 +151,7 @@ Hardware settings.
 //#define LED_DRIVER_FAST_LPD1886
 //#define LED_DRIVER_FAST_LPD1886_8BIT
 //#define LED_DRIVER_FAST_LPD8806
-//#define LED_DRIVER_FAST_NEOPIXEL
+#define LED_DRIVER_FAST_NEOPIXEL
 //#define LED_DRIVER_FAST_P9813
 //#define LED_DRIVER_FAST_PL9823
 //#define LED_DRIVER_FAST_SK6812
@@ -164,38 +180,59 @@ Hardware settings.
 Default values for EEPROM.
 ******************************************************************************/
 
-#define DEFAULT_BRIGHTNESS MAX_BRIGHTNESS
+#define DEFAULT_BRIGHTNESS 50
 #define DEFAULT_COLOR WHITE
 #define DEFAULT_COLORCHANGE COLORCHANGE_NO
 #define DEFAULT_SHOWTEMP false
 #define DEFAULT_SHOWITIS true
 #define DEFAULT_TRANSITION TRANSITION_FADE
 #define DEFAULT_TIMEOUT 10
-#define DEFAULT_USELDR true
+#define DEFAULT_USEABC true
+#define DEFAULT_ALARM1 false
+#define DEFAULT_ALARM1TIME 0
+#define DEFAULT_ALARM1WEEKDAYS 0b11111110 // SFTWTMS_
+#define DEFAULT_ALARM2 false
+#define DEFAULT_ALARM2TIME 0
+#define DEFAULT_ALARM2WEEKDAYS 0b11111110 // SFTWTMS_
+#define DEFAULT_NIGHTOFF 3600
+#define DEFAULT_DAYON 18000
 
 /******************************************************************************
 Misc.
 ******************************************************************************/
 
+#define SERIAL_SPEED 115200
+
 //#define DEBUG
-//#define DEBUG_WEBSITE
+//#define DEBUG_WEB
 //#define DEBUG_MATRIX
 //#define DEBUG_FPS
 
-//#define SYSLOG_SERVER "192.168.0.1"
-//#define SYSLOG_PORT 514
+//#define SYSLOGSERVER
+//------------------
+#define SYSLOGSERVER_SERVER "172.21.4.172"
+#define SYSLOGSERVER_PORT 514
 
+#define UPDATE_INFO_UNSTABLE
+//#define UPDATE_INFO_STABLE
+//--------------------------
 #define UPDATE_INFOSERVER "tmw-it.ch"
 #define UPDATE_INFOFILE "/qlockwork/updateinfo.json"
 
-#define SERIAL_SPEED    115200
-
-#define PIN_IR_RECEIVER D3
-#define PIN_LED         D4
-#define PIN_BUZZER      D5
-#define PIN_DHT22       D6
-#define PIN_LEDS_CLOCK  D7
-#define PIN_LEDS_DATA   D8
-#define PIN_LDR         A0
+// ESP8266
+//#define none          D0 // GPIO 16   NodeMCU_LED
+//#define PIN_WIRE_SCL  D1 // GPIO 05
+//#define PIN_WIRE_SDA  D2 // GPIO 04
+#define PIN_IR_RECEIVER D3 // GPIO 00 *
+#define PIN_LED         D4 // GPIO 02 * ESP8266_LED
+#define PIN_BUZZER      D5 // GPIO 14
+#define PIN_DHT22       D6 // GPIO 12
+#define PIN_LEDS_CLOCK  D7 // GPIO 13
+#define PIN_LEDS_DATA   D8 // GPIO 15 *
+//#define none          D9 // GPIO 03   RXD0
+//#define none         D10 // GPIO 01   TXD0
+#define PIN_LDR         A0 // ADC
+// GPIO 06 - GPIO 11 flash memory databus
+// * used to enter flash mode.
 
 #endif

@@ -174,12 +174,7 @@ void LedDriver_FastLED::setPixel(uint8_t num, uint8_t color, uint8_t brightness)
 		}
 	}
 
-#ifdef LED_LAYOUT_DUAL
-	leds[num * 2] = ledColor;
-	leds[num * 2 + 1] = ledColor;
-#else
 	leds[num] = ledColor;
-#endif
 
 #endif // LED_LAYOUT_HORIZONTAL
 
@@ -235,51 +230,4 @@ void LedDriver_FastLED::setPixel(uint8_t num, uint8_t color, uint8_t brightness)
 
 #endif // LED_LAYOUT_VERTICAL
 
-#if defined(LED_LAYOUT_VERTICAL) && defined(LED_LAYOUT_DUAL)
-
-	if (num < 110)
-	{
-		if (num < 10)
-		{
-			leds[num + 2] = ledColor;
-			leds[23 - num] = ledColor;
-		}
-		else
-		{
-			if (num < 100)
-			{
-				leds[num + 14] = ledColor;
-				leds[53 - num] = ledColor;
-			}
-			else
-			{
-
-			}
-		}
-	}
-	else
-	{
-		switch (num)
-		{
-		case 110: // upper-left
-
-			break;
-		case 111: // upper-right
-
-			break;
-		case 112: // bottom-right
-
-			break;
-		case 113: // bottom-left
-
-			break;
-			//case 114: // alarm
-
-			//	break;
-		default:
-			break;
-		}
-	}
-
-#endif // LED_LAYOUT_VERTICAL DUAL
 }

@@ -6,9 +6,10 @@ Renderer.h
 #define RENDERER_H
 
 #include <Arduino.h>
-#include "Modes.h"
+#include "Configuration.h"
 #include "Languages.h"
 #include "Letters.h"
+#include "Modes.h"
 #include "Numbers.h"
 #include "Words.h"
 
@@ -23,14 +24,14 @@ class Renderer
 {
 public:
 	Renderer();
-	void setHours(uint8_t hours, boolean glatt, uint8_t language, uint16_t matrix[]);
-	void setTime(uint8_t hours, uint8_t minutes, uint8_t language, uint16_t matrix[]);
+	void setHours(uint8_t hours, boolean glatt, uint16_t matrix[]);
+	void setTime(uint8_t hours, uint8_t minutes, uint16_t matrix[]);
 	void setCorners(uint8_t minutes, uint16_t matrix[]);
 	void setAlarmLed(uint16_t matrix[]);
 	void deactivateAlarmLed(uint16_t matrix[]);
-	void clearEntryWords(uint8_t language, uint16_t matrix[]);
+	void clearEntryWords(uint16_t matrix[]);
 	void setSmallText(String menuText, eTextPos textPos, uint16_t matrix[]);
-	void setAMPM(uint8_t hours, uint8_t language, uint16_t matrix[]);
+	void setAMPM(uint8_t hours, uint16_t matrix[]);
 	void setPixelInScreenBuffer(uint8_t x, uint8_t y, uint16_t matrix[]);
 	void unsetPixelInScreenBuffer(uint8_t x, uint8_t y, uint16_t matrix[]);
 	void clearScreenBuffer(uint16_t matrix[]);
@@ -38,9 +39,15 @@ public:
 
 private:
 	boolean isNumber(char symbol);
+#if defined(FRONTCOVER_FR)
 	void FR_hours(uint8_t hours, uint16_t matrix[]);
+#endif
+#if defined(FRONTCOVER_IT)
 	void IT_hours(uint8_t hours, uint16_t matrix[]);
+#endif
+#if defined(FRONTCOVER_ES)
 	void ES_hours(uint8_t hours, uint16_t matrix[]);
+#endif
 };
 
 #endif

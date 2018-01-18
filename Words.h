@@ -5,14 +5,15 @@ Words.h
 #ifndef WORDS_H
 #define WORDS_H
 
+#if defined(FRONTCOVER_CH) || defined(FRONTCOVER_CH_GS)
 // CH
 
 #define CH_VOR				matrix[2] |= 0b0000000011100000
 #define CH_AB				matrix[3] |= 0b1100000000000000
 #define CH_ESISCH			matrix[0] |= 0b1101111000000000
 #define CH_GSI				matrix[9] |= 0b0000000011100000
-#define CH_AM				matrix[0] |= 0b1000000000000000
-#define CH_PM				matrix[0] |= 0b0100000000000000
+#define CH_AM				matrix[9] |= 0b0000001100000000
+#define CH_PM				matrix[3] |= 0b0000000001100000
 
 #define CH_FUEF				matrix[0] |= 0b0000000011100000
 #define CH_ZAEAE			matrix[1] |= 0b0000000011100000
@@ -32,7 +33,9 @@ Words.h
 #define CH_H_ZAENI			matrix[8] |= 0b1111000000000000
 #define CH_H_EUFI			matrix[8] |= 0b0000000111100000
 #define CH_H_ZWOEUFI		matrix[9] |= 0b1111110000000000
+#endif
 
+#if defined(FRONTCOVER_D3)
 //D3
 
 #define D3_ESISCH			matrix[0] |= 0b1101111000000000
@@ -59,7 +62,9 @@ Words.h
 #define D3_H_ZEHNE			matrix[8] |= 0b1111100000000000
 #define D3_H_ELFE			matrix[5] |= 0b0000000111100000
 #define D3_H_ZWOELFE		matrix[7] |= 0b0000011111100000
+#endif
 
+#if defined(FRONTCOVER_DE_DE) || defined(FRONTCOVER_DE_SW) || defined(FRONTCOVER_DE_BA) || defined(FRONTCOVER_DE_SA)
 // DE
 
 #define DE_VOR				matrix[3] |= 0b1110000000000000
@@ -89,7 +94,9 @@ Words.h
 #define DE_H_ZEHN			matrix[9] |= 0b1111000000000000
 #define DE_H_ELF			matrix[4] |= 0b0000011100000000
 #define DE_H_ZWOELF			matrix[8] |= 0b0000001111100000
+#endif
 
+#if defined(FRONTCOVER_DE_MKF_DE) || defined(FRONTCOVER_DE_MKF_SW) || defined(FRONTCOVER_DE_MKF_BA) || defined(FRONTCOVER_DE_MKF_SA)
 // DE MKF
 
 #define DE_MKF_VOR			matrix[3] |= 0b0000001110000000
@@ -119,7 +126,9 @@ Words.h
 #define DE_MKF_H_ZEHN		matrix[8] |= 0b0000011110000000
 #define DE_MKF_H_ELF		matrix[7] |= 0b1110000000000000
 #define DE_MKF_H_ZWOELF		matrix[4] |= 0b0000011111000000
+#endif
 
+#if defined(FRONTCOVER_EN)
 // EN
 
 #define EN_ITIS				matrix[0] |= 0b1101100000000000
@@ -149,7 +158,9 @@ Words.h
 #define EN_H_SEVEN			matrix[8] |= 0b1111100000000000
 #define EN_H_TWELVE			matrix[8] |= 0b0000011111100000
 #define EN_H_TEN			matrix[9] |= 0b1110000000000000
+#endif
 
+#if defined(FRONTCOVER_ES)
 // ES
 
 #define ES_SONLAS			matrix[0] |= 0b0111011100000000
@@ -178,7 +189,9 @@ Words.h
 #define ES_H_DIEZ			matrix[5] |= 0b0011110000000000
 #define ES_H_ONCE			matrix[5] |= 0b0000000111100000
 #define ES_H_DOCE			matrix[6] |= 0b1111000000000000
+#endif
 
+#if defined(FRONTCOVER_FR)
 // FR
 
 #define FR_TRAIT			matrix[8] |= 0b0000010000000000
@@ -210,7 +223,9 @@ Words.h
 #define FR_H_ONZE			matrix[5] |= 0b1111000000000000
 #define FR_H_MIDI			matrix[4] |= 0b1111000000000000
 #define FR_H_MINUIT			matrix[4] |= 0b0000011111100000
+#endif
 
+#if defined(FRONTCOVER_IT)
 // IT
 
 #define IT_SONOLE			matrix[0] |= 0b1111011000000000
@@ -241,7 +256,9 @@ Words.h
 #define IT_CINQUE			matrix[8] |= 0b0000011111100000
 #define IT_DIECI			matrix[9] |= 0b1111100000000000
 #define IT_MEZZA			matrix[9] |= 0b0000001111100000
+#endif
 
+#if defined(FRONTCOVER_NL)
 // NL
 
 #define NL_VOOR				matrix[1] |= 0b0000000111100000
@@ -272,5 +289,6 @@ Words.h
 #define NL_H_TIEN			matrix[8] |= 0b0000111100000000
 #define NL_H_ELF			matrix[8] |= 0b0000000011100000
 #define NL_H_TWAALF			matrix[9] |= 0b1111110000000000
+#endif
 
 #endif
