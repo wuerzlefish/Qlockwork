@@ -8,11 +8,21 @@ Modes.h
 typedef enum eMode : uint8_t
 {
 	MODE_TIME,
+#ifdef SHOW_MODE_AMPM
 	MODE_AMPM,
+#endif
+#ifdef SHOW_MODE_SECONDS
 	MODE_SECONDS,
+#endif
+#ifdef SHOW_MODE_WEEKDAY
 	MODE_WEEKDAY,
+#endif
+#ifdef SHOW_MODE_DATE
 	MODE_DATE,
+#endif
+#ifdef SHOW_MODE_MOONPHASE
 	MODE_MOONPHASE,
+#endif
 #if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
 	MODE_TEMP,
 #endif
@@ -21,15 +31,17 @@ typedef enum eMode : uint8_t
 #endif
 	MODE_EXT_TEMP,
 	MODE_EXT_HUMIDITY,
-	MODE_EXT_CONDITION,
+	//MODE_EXT_CONDITION,
 #ifdef BUZZER
 	MODE_TIMER,
 #endif
-	EXT_MODE_TEST,
-	EXT_MODE_RED,
-	EXT_MODE_GREEN,
-	EXT_MODE_BLUE,
-	EXT_MODE_WHITE,
+#ifdef SHOW_MODE_TEST
+	MODE_TEST,
+	MODE_RED,
+	MODE_GREEN,
+	MODE_BLUE,
+	MODE_WHITE,
+#endif
 	MODE_COUNT,
 	MODE_BLANK,
 	MODE_FEED

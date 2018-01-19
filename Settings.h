@@ -73,9 +73,6 @@ public:
 	time_t getDayOnTime();
 	void setDayOnTime(time_t dayOnTime);
 
-	//boolean getShowDebug();
-	//void setShowDebug(boolean onOff);
-
 	void saveToEEPROM();
 
 private:
@@ -99,7 +96,6 @@ private:
 		uint8_t alarm2Weekdays;
 		time_t nightOffTime;
 		time_t dayOnTime;
-		//boolean showDebug;
 	} mySettings;
 
 	void resetToDefault();

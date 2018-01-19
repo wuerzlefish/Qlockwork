@@ -204,16 +204,6 @@ void Settings::setDayOnTime(time_t dayOnTime)
 	mySettings.dayOnTime = dayOnTime;
 }
 
-//boolean Settings::getShowDebug()
-//{
-//	return mySettings.showDebug;
-//}
-//
-//void Settings::setShowDebug(boolean onOff)
-//{
-//	mySettings.showDebug = onOff;
-//}
-
 // Set all defaults.
 void Settings::resetToDefault()
 {
@@ -254,7 +244,6 @@ void Settings::resetToDefault()
 	mySettings.alarm2Weekdays = DEFAULT_ALARM2WEEKDAYS;
 	mySettings.nightOffTime = DEFAULT_NIGHTOFF;
 	mySettings.dayOnTime = DEFAULT_DAYON;
-	//mySettings.showDebug = DEFAULT_SHOWDEBUG;
 	saveToEEPROM();
 }
 

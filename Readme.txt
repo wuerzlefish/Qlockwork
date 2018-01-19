@@ -217,6 +217,12 @@ Configuration.h - Software settings.
                                    "https://www.yahoo.com/news/weather" Click on "Change location". (Not Search.)
                                    (Only letters, ' ', and ',' are allowed).
 #define FRONTCOVER_*               Frontcover of the clock. Also sets the language of the menu and the web-site.
+#define SHOW_MODE_AMPM
+#define SHOW_MODE_SECONDS
+#define SHOW_MODE_WEEKDAY
+#define SHOW_MODE_DATE
+#define SHOW_MODE_MOONPHASE
+#define SHOW_MODE_TEST
 #define TIMEZONE_*                 The time zone in which the clock is located. Important for the UTC offset and the
                                    summer/winter time change.
 
@@ -368,6 +374,9 @@ const event_t events[]             Display a textfeed on a particular day of the
 ******************************************************************************
 Changelog:
 ******************************************************************************
+
+20171127:
+Bugfixes.
 
 20171125:
 Set weekdays for alarms on web-page.

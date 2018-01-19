@@ -50,6 +50,13 @@ Software settings.
 //#define FRONTCOVER_IT
 //#define FRONTCOVER_NL
 
+#define SHOW_MODE_AMPM
+#define SHOW_MODE_SECONDS
+#define SHOW_MODE_WEEKDAY
+#define SHOW_MODE_DATE
+#define SHOW_MODE_MOONPHASE
+#define SHOW_MODE_TEST
+
 /******************************************************************************
 Timezone.
 ******************************************************************************/
@@ -190,10 +197,10 @@ Default values for EEPROM.
 #define DEFAULT_USEABC true
 #define DEFAULT_ALARM1 false
 #define DEFAULT_ALARM1TIME 0
-#define DEFAULT_ALARM1WEEKDAYS 0b11111110 // SFTWTMS_
+#define DEFAULT_ALARM1WEEKDAYS 0b11111110
 #define DEFAULT_ALARM2 false
 #define DEFAULT_ALARM2TIME 0
-#define DEFAULT_ALARM2WEEKDAYS 0b11111110 // SFTWTMS_
+#define DEFAULT_ALARM2WEEKDAYS 0b11111110
 #define DEFAULT_NIGHTOFF 3600
 #define DEFAULT_DAYON 18000
 
@@ -210,7 +217,7 @@ Misc.
 
 //#define SYSLOGSERVER
 //------------------
-#define SYSLOGSERVER_SERVER "172.21.4.172"
+#define SYSLOGSERVER_SERVER "192.168.0.1"
 #define SYSLOGSERVER_PORT 514
 
 #define UPDATE_INFO_UNSTABLE

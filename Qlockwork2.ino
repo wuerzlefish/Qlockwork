@@ -6,7 +6,7 @@ An advanced firmware for a DIY "word-clock".
 @created 11.11.2017
 ******************************************************************************/
 
-#define FIRMWARE_VERSION 20171125
+#define FIRMWARE_VERSION 20171127
 
 #include <Arduino.h>
 #include <ArduinoHttpClient.h>
@@ -149,7 +149,7 @@ void setup()
 
 	// And the monkey flips the switch. (Akiva Goldsman)
 	Serial.println();
-	Serial.println("*** QLOCKWORK ***");
+	Serial.println("*** QLOCKWORK2 ***");
 	Serial.println("Firmware: " + String(FIRMWARE_VERSION));
 	Serial.println("LED-Driver: " + ledDriver.getSignature());
 	Serial.print("LED-Layout: ");
@@ -337,6 +337,8 @@ void setup()
 	Serial.printf("Alarm2: %02u:%02u ", hour(settings.getAlarm2Time()), minute(settings.getAlarm2Time()));
 	settings.getAlarm2() ? Serial.print("on ") : Serial.print("off ");
 	Serial.println(settings.getAlarm2Weekdays(), BIN);
+#else
+	Serial.printf("Debug is off.");
 #endif
 }
 
@@ -355,15 +357,14 @@ void loop()
 		lastDay = day();
 		screenBufferNeedsUpdate = true;
 		time_t tempEspTime = now();
+#ifdef SHOW_MODE_MOONPHASE
 		moonphase = getMoonphase(year(), month(), day());
+#endif
 		randomSeed(analogRead(A0));
 		randomHour = random(0, 24);
 		randomMinute = random(5, 56);
 		randomSecond = random(5, 56);
 		Serial.printf("Free RAM: %u bytes\r\n", system_get_free_heap_size());
-#ifndef DEBUG
-		Serial.printf("Debug is off.");
-#endif
 
 #ifdef DEBUG
 		Serial.printf("Uptime: %u days, %02u:%02u\r\n", int((tempEspTime - powerOnTime) / 86400), hour(tempEspTime - powerOnTime), minute(tempEspTime - powerOnTime));
@@ -754,21 +755,18 @@ void loop()
 			renderer.clearScreenBuffer(matrix);
 			renderer.setTime(hour(), minute(), matrix);
 			renderer.setCorners(minute(), matrix);
+			if (!settings.getItIs() && ((minute() / 5) % 6)) renderer.clearEntryWords(matrix);
 #ifdef BUZZER
-			if (settings.getAlarm1() || settings.getAlarm2() || alarmTimerSet)
-			{
-				renderer.setAlarmLed(matrix);
-			}
+			if (settings.getAlarm1() || settings.getAlarm2() || alarmTimerSet) renderer.setAlarmLed(matrix);
 #endif
-			if (!settings.getItIs() && ((minute() / 5) % 6))
-			{
-				renderer.clearEntryWords(matrix);
-			}
 			break;
+#ifdef SHOW_MODE_AMPM
 		case MODE_AMPM:
 			renderer.clearScreenBuffer(matrix);
 			isAM() ? renderer.setSmallText("AM", TEXT_POS_MIDDLE, matrix) : renderer.setSmallText("PM", TEXT_POS_MIDDLE, matrix);
 			break;
+#endif
+#ifdef SHOW_MODE_SECONDS
 		case MODE_SECONDS:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setCorners(minute(), matrix);
@@ -778,10 +776,14 @@ void loop()
 				matrix[1 + i] |= numbersBig[second() % 10][i] << 5;
 			}
 			break;
+#endif
+#ifdef SHOW_MODE_WEEKDAY
 		case MODE_WEEKDAY:
 			renderer.clearScreenBuffer(matrix);
 			renderer.setSmallText(String(sWeekday[weekday()][0]) + String(sWeekday[weekday()][1]), TEXT_POS_MIDDLE, matrix);
 			break;
+#endif
+#ifdef SHOW_MODE_DATE
 		case MODE_DATE:
 			renderer.clearScreenBuffer(matrix);
 			if (day() < 10) renderer.setSmallText(("0" + String(day())), TEXT_POS_TOP, matrix);
@@ -791,6 +793,8 @@ void loop()
 			renderer.setPixelInScreenBuffer(5, 4, matrix);
 			renderer.setPixelInScreenBuffer(5, 9, matrix);
 			break;
+#endif
+#ifdef SHOW_MODE_MOONPHASE
 		case MODE_MOONPHASE:
 			renderer.clearScreenBuffer(matrix);
 			switch (moonphase)
@@ -893,6 +897,7 @@ void loop()
 				break;
 			}
 			break;
+#endif
 #if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
 		case MODE_TEMP:
 			renderer.clearScreenBuffer(matrix);
@@ -959,24 +964,20 @@ void loop()
 			renderer.setSmallText(String(alarmTimer), TEXT_POS_BOTTOM, matrix);
 			break;
 #endif
-		case EXT_MODE_TEST:
+#ifdef SHOW_MODE_TEST
+		case MODE_TEST:
 			renderer.clearScreenBuffer(matrix);
 			if (testColumn == 10) testColumn = 0;
 			matrix[testColumn] = 0b1111111111110000;
 			testColumn++;
 			break;
-		case EXT_MODE_RED:
+		case MODE_RED:
+		case MODE_GREEN:
+		case MODE_BLUE:
+		case MODE_WHITE:
 			renderer.setAllScreenBuffer(matrix);
 			break;
-		case EXT_MODE_GREEN:
-			renderer.setAllScreenBuffer(matrix);
-			break;
-		case EXT_MODE_BLUE:
-			renderer.setAllScreenBuffer(matrix);
-			break;
-		case EXT_MODE_WHITE:
-			renderer.setAllScreenBuffer(matrix);
-			break;
+#endif
 		case MODE_BLANK:
 			renderer.clearScreenBuffer(matrix);
 			break;
@@ -1020,18 +1021,20 @@ void loop()
 			if (settings.getTransition() == TRANSITION_NORMAL) writeScreenBuffer(matrix, settings.getColor(), brightness);
 			if (settings.getTransition() == TRANSITION_FADE) writeScreenBufferFade(matrixOld, matrix, settings.getColor(), brightness);
 			break;
-		case EXT_MODE_RED:
+#ifdef SHOW_MODE_TEST
+		case MODE_RED:
 			writeScreenBuffer(matrix, RED, BRIGHTNESS_SELFTEST);
 			break;
-		case EXT_MODE_GREEN:
+		case MODE_GREEN:
 			writeScreenBuffer(matrix, GREEN, BRIGHTNESS_SELFTEST);
 			break;
-		case EXT_MODE_BLUE:
+		case MODE_BLUE:
 			writeScreenBuffer(matrix, BLUE, BRIGHTNESS_SELFTEST);
 			break;
-		case EXT_MODE_WHITE:
+		case MODE_WHITE:
 			writeScreenBuffer(matrix, WHITE, BRIGHTNESS_SELFTEST);
 			break;
+#endif
 		case MODE_FEED:
 			writeScreenBuffer(matrix, feedColor, brightness);
 			break;
@@ -1047,8 +1050,8 @@ void loop()
 				writeScreenBuffer(matrix, settings.getColor(), brightness);
 			}
 			break;
-		}
 	}
+}
 
 	// Wait for mode timeout then switch back to time.
 	if ((millis() > (modeTimeout + settings.getTimeout() * 1000)) && modeTimeout) setMode(MODE_TIME);
@@ -1175,7 +1178,7 @@ void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[
 		delay(1500 / brightness);
 		ledDriver.show();
 	}
-}
+	}
 
 /******************************************************************************
   "On/off" pressed.
@@ -1186,6 +1189,7 @@ void buttonOnOffPressed()
 #ifdef DEBUG
 	Serial.println("On/off pressed.");
 #endif
+
 	mode == MODE_BLANK ? setLedsOn() : setLedsOff();
 }
 
@@ -1257,11 +1261,21 @@ void setMode(Mode newMode)
 	// Set timeout.
 	switch (mode)
 	{
+#ifdef SHOW_MODE_AMPM
 	case MODE_AMPM:
+#endif
+#ifdef SHOW_MODE_SECONDS
 	case MODE_SECONDS:
+#endif
+#ifdef SHOW_MODE_WEEKDAY
 	case MODE_WEEKDAY:
+#endif
+#ifdef SHOW_MODE_DATE
 	case MODE_DATE:
+#endif
+#ifdef SHOW_MODE_MOONPHASE
 	case MODE_MOONPHASE:
+#endif
 #if defined(RTC_BACKUP) && !defined(SENSOR_DHT22)
 	case MODE_TEMP:
 #endif
@@ -1346,12 +1360,12 @@ void getUpdateInfo()
 #endif
 			return;
 		}
-	}
+		}
 #ifdef DEBUG
 	else Serial.printf("Status: %u\r\n", statusCode);
 	Serial.println("Error (" + String(UPDATE_INFOSERVER) + ")");
 #endif
-}
+	}
 #endif
 
 /******************************************************************************
@@ -1439,7 +1453,7 @@ void getRoomConditions()
 		Serial.println("Temperature (DHT): " + String(roomTemperature) + "C");
 		Serial.println("Humidity (DHT): " + String(roomHumidity) + "%");
 #endif
-	}
+}
 	else
 	{
 		if (errorCounterDht < 255) errorCounterDht++;
@@ -1521,6 +1535,7 @@ void setLedsOn()
 	setMode(lastMode);
 }
 
+#ifdef SHOW_MODE_MOONPHASE
 // Calculate moonphase.
 int getMoonphase(int y, int m, int d)
 {
@@ -1544,6 +1559,7 @@ int getMoonphase(int y, int m, int d)
 	b = b & 7;		            // 0 and 8 are the same so turn 8 into 0
 	return b;
 }
+#endif
 
 #ifdef DEBUG_MATRIX
 // Write screenbuffer to console.
@@ -1602,19 +1618,10 @@ void setupWebServer()
 {
 	esp8266WebServer.onNotFound(handleNotFound);
 	esp8266WebServer.on("/", handleRoot);
-	esp8266WebServer.on("/handleButtonOnOff", []() {
-		buttonOnOffPressed();
-		callRoot();
-	});
-	esp8266WebServer.on("/handleButtonMode", []() {
-		buttonModePressed();
-		callBack();
-	});
-	esp8266WebServer.on("/handleButtonTime", []() {
-		buttonTimePressed();
-		callBack();
-	});
+	esp8266WebServer.on("/handleButtonOnOff", []() { buttonOnOffPressed(); callRoot(); });
 	esp8266WebServer.on("/handleButtonSettings", handleButtonSettings);
+	esp8266WebServer.on("/handleButtonMode", []() { buttonModePressed(); callBack(); });
+	esp8266WebServer.on("/handleButtonTime", []() {	buttonTimePressed(); callBack(); });
 	esp8266WebServer.on("/commitSettings", handleCommitSettings);
 	esp8266WebServer.on("/reset", handleReset);
 	esp8266WebServer.begin();
@@ -1745,7 +1752,7 @@ void handleRoot()
 		message += "\" style=\"font-size:20px;\"></span> " + sWeatherCondition[outdoorCode];
 	}
 	message += "<span style=\"font-size:12px;\">";
-	message += "<br><br><a href=\"http://tmw-it.ch/qlockwork/\">Qlockwork2</a> was <i class=\"fa fa-code\"></i> with <i class=\"fa fa-heart\"></i> by ch570512.";
+	message += "<br><br><a href=\"http://tmw-it.ch/qlockwork/\">Qlockwork2</a> was <i class=\"fa fa-code\"></i> with <i class=\"fa fa-heart\"></i> by tmw-it.ch.";
 	message += "<br>Firmware: " + String(FIRMWARE_VERSION);
 #if defined(UPDATE_INFO_STABLE) || defined(UPDATE_INFO_UNSTABLE)
 	if (updateInfo > String(FIRMWARE_VERSION)) message += "<br><span style=\"color:red;\">Firmwareupdate available! (" + updateInfo + ")</span>";
