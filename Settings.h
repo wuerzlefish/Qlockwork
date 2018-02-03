@@ -21,9 +21,6 @@ class Settings
 public:
 	Settings();
 
-	//uint8_t getLanguage();
-	//void setLanguage(uint8_t language);
-
 	boolean getUseAbc();
 	void setUseAbc(boolean onOff);
 	void toggleUseAbc();
@@ -43,9 +40,9 @@ public:
 	uint8_t getTimeout();
 	void setTimeout(uint8_t timeout);
 
-	boolean getShowTemp();
-	void setShowTemp(boolean onOff);
-	void toggleShowTemp();
+	boolean getModeChange();
+	void setModeChange(boolean onOff);
+	void toggleModeChange();
 
 	boolean getItIs();
 	void setItIs(boolean onOff);
@@ -86,7 +83,7 @@ private:
 		uint8_t colorChange;
 		uint8_t transition;
 		uint8_t timeout;
-		boolean showTemp;
+		boolean modeChange;
 		boolean itIs;
 		boolean alarm1;
 		time_t alarm1Time;

@@ -184,4 +184,3 @@ const char numbersBig[][7] =
 };
 
 #endif
-

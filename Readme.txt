@@ -40,7 +40,7 @@ Warning: Do not power up the clock from USB only.
 
 Disclaimer: Qlockwork2 uses lots of third party libraries.
             I can not guarantee the integrity of these libraries.
-			You use Qlockwork2 at your own risk.
+            You use Qlockwork2 at your own risk.
 
 You can download the latest version of the firmware here:
 http://tmw-it.ch/qlockwork/
@@ -58,7 +58,7 @@ Optional support for WiFi, RTC, LDR, Buzzer, temperature and humidity sensor and
 Supports more than 30 types of LED stripes.
 FastLED (RGB), LPD8806 (RGBW), NeoPixel (RGB and RGBW).
 Horizontal and vertical LED layout.
-Webpage to control the clock.
+Webpage to control the clock via WiFi or AP.
 Adaptive brightness control.
 2 Transitions for timechange.
 Room and outdoor temperature.
@@ -92,7 +92,7 @@ Room humidity (DHT22).
 Outdoor temperature (Yahoo).
 Outdoor humidity (Yahoo).
 Weathercondition (Yahoo).
-Timer.
+Timer (Buzzer).
 LED-test.
 Red.
 Green.
@@ -109,8 +109,9 @@ ArduinoHttpClient by Arduino
 ESP8266mDNS by Tony DiCola and Ivan Grokhotkov
 ESP8266WebServer by Ivan Grokhotkov
 ESP8266WiFi by Ivan Grokhotkov
+Time by Michael Margolis
 
-via Web:
+via Web: (copy to \Arduino\libraries folder)
 https://github.com/adafruit/Adafruit_NeoPixel
 https://github.com/adafruit/Adafruit_Sensor
 https://github.com/bblanchon/ArduinoJson
@@ -119,9 +120,11 @@ https://github.com/JChristensen/DS3232RTC
 https://github.com/FastLED/FastLED
 https://github.com/markszabo/IRremoteESP8266
 https://github.com/arcao/Syslog
-https://github.com/PaulStoffregen/Time
 https://github.com/JChristensen/Timezone
 https://github.com/tzapu/WiFiManager
+
+You have to use esp8266 by ESP8266 Community Version 2.3.0 Package (not 2.4.0)
+to compile this firmware.
 
 There is a warning from FastLED about SPI when compiling. Just ignore it.
 
@@ -190,10 +193,10 @@ Configuration.h - Software settings.
 ******************************************************************************
 
 #define HOSTNAME                   The name of the clock.
-#define WIFI_AP_TIMEOUT            Time in seconds for the WiFiManager to setup/search for a WLAN.
+#define WIFI_SETUP_TIMEOUT         Time in seconds set up the WiFiManager or search for a WLAN.
                                    If no WLAN is connected the clock enters AP mode.
                                    You can control the clock if you connect your phone or tablet to this accesspoint.
-								   On Android you have to tell the phone that it's ok to have no internet.
+                                   On Android you have to tell the phone that it's ok to have no internet.
 #define WIFI_AP_PASS               The password for the AP. At least 8 characters. Default is "12345678".
 #define OTA_PASS                   Password for "Over the Air" updates. Default is "1234".
 #define NTP_SERVER                 NTP server to be queried.
@@ -216,7 +219,7 @@ Configuration.h - Software settings.
 #define LOCATION                   Location for the weather conditions as shown on the Yahoo site if you enter your city.
                                    "https://www.yahoo.com/news/weather" Click on "Change location". (Not Search.)
                                    (Only letters, ' ', and ',' are allowed).
-#define FRONTCOVER_*               Frontcover of the clock. Also sets the language of the menu and the web-site.
+#define FRONTCOVER_*               Frontcover of the clock. Also sets the language of the menu and the website.
 #define SHOW_MODE_AMPM
 #define SHOW_MODE_SECONDS
 #define SHOW_MODE_WEEKDAY
@@ -231,6 +234,10 @@ Configuration.h - Hardware settings.
 ******************************************************************************
 
 #define ESP_LED                    Displays the function using the LED on the ESP. It flashes once a second.
+
+#define MODE_BUTTON                Use a hardware mode-button.
+#define ONOFF_BUTTON               Use a hardware on/off-button.
+#define TIME_BUTTON                Use a hardware time-button. Debug to serial will not work anymore if defined.
 
 #define SENSOR_DHT22               Use a DHT22 sensor module (not the plain sensor) for room temperature and humidity.
 #define DHT_TEMPERATURE_OFFSET     Sets how many degrees the measured room temperature (+ or -) should be corrected.
@@ -258,8 +265,8 @@ Configuration.h - Hardware settings.
 #define IR_CODE_*                  Any remote control can be used. 6 keys are supported.
                                    Press a button on the remote control in front of the clock.
                                    Then write the code displayed in the serial console to the file "Configuration.h".
-								   If you see more than one try the code which is changing from button to button.
-								   DEBUG has to be defined to show you the code.
+                                   If you see more than one try the code which is changing from button to button.
+                                   DEBUG has to be defined to show you the code.
 
 #define LED_LIBRARY_LPD8806RGBW    LED library for LPD8806 RGBW LEDs. There is no driver to define.
 
@@ -274,7 +281,7 @@ Configuration.h - Hardware settings.
                                    LPD1886_8BIT, LPD8806, NEOPIXEL, P9813, PL9823, SK6812, SK6822, SK9822,
                                    SM16716, TM1803, TM1804, TM1809, TM1812, TM1829, UCS1903, UCS1903B,
                                    UCS1904, UCS2903, WS2801, WS2803, WS2811, WS2811_400, WS2812, WS2812B,
-                                   WS2813, WS2852.
+                                   WS2813, WS2852
 
 #define LED_LAYOUT_HORIZONTAL      Horizontal and corner LEDs at the end of the strip. (As seen from the front.)
 
@@ -311,106 +318,145 @@ Configuration.h - Default values for the EEPROM.
 Only used when a new version of the settings is released.
 ******************************************************************************
 
-#define DEFAULT_BRIGHTNESS         0 to 100 in percent.
+#define DEFAULT_BRIGHTNESS         0 to 100 percent
 #define DEFAULT_COLOR              WHITE, RED, RED_25, RED_50, ORANGE, YELLOW, YELLOW_25, YELLOW_50, GREENYELLOW,
                                    GREEN, GREEN_25, GREEN_50, MINTGREEN, CYAN, CYAN_25, CYAN_50, LIGHTBLUE, BLUE,
-                                   BLUE_25, BLUE_50, VIOLET, MAGENTA, MAGENTA_25, MAGENTA_50, PINK.
-#define DEFAULT_COLORCHANGE        COLORCHANGE_DAY, COLORCHANGE_HOUR, COLORCHANGE_FIVE, COLORCHANGE_NO.
-#define DEFAULT_SHOWTEMP           true (on) or false (off).
-#define DEFAULT_SHOWITIS           true (on) or false (off).
-#define DEFAULT_TRANSITION         TRANSITION_FADE, TRANSITION_NORMAL.
-#define DEFAULT_TIMEOUT            Seconds for fallback.
-#define DEFAULT_USELDR             true (on) or false (off).
-#define DEFAULT_ALARM1             true (on) or false (off).
-#define DEFAULT_ALARMTIME1         Seconds since 0:00h (12:00h am). E.g. 54000 for 3:00h pm.
+                                   BLUE_25, BLUE_50, VIOLET, MAGENTA, MAGENTA_25, MAGENTA_50, PINK
+#define DEFAULT_COLORCHANGE        COLORCHANGE_DAY, COLORCHANGE_HOUR, COLORCHANGE_FIVE, COLORCHANGE_NO
+#define DEFAULT_MODECHANGE         true (on) or false (off)
+#define DEFAULT_SHOWITIS           true (on) or false (off)
+#define DEFAULT_TRANSITION         TRANSITION_FADE, TRANSITION_NORMAL
+#define DEFAULT_TIMEOUT            Seconds for fallback
+#define DEFAULT_USELDR             true (on) or false (off)
+#define DEFAULT_ALARM1             true (on) or false (off)
+#define DEFAULT_ALARMTIME1         Seconds since 0:00h (12:00h am). E.g. 54000 for 3:00h pm
 #define DEFAULT_ALARM1WEEKDAYS     0b11111110 // Sa. Fr. Th. We. Tu. Mo. Su. 0
-#define DEFAULT_ALARM2             true (on) or false (off).
-#define DEFAULT_ALARMTIME2         Seconds since 0:00h (12:00h am). E.g. 72000 for 8:00h pm.
+#define DEFAULT_ALARM2             true (on) or false (off)
+#define DEFAULT_ALARMTIME2         Seconds since 0:00h (12:00h am). E.g. 72000 for 8:00h pm
 #define DEFAULT_ALARM2WEEKDAYS     0b11111110 // Sa. Fr. Th. We. Tu. Mo. Su. 0
-#define DEFAULT_NIGHTOFF           Seconds since 0:00h (12:00h am). E.g. 3600 for 1:00h am.
-#define DEFAULT_DAYON              Seconds since 0:00h (12:00h am). E.g. 18000 for 5:00h am.
+#define DEFAULT_NIGHTOFF           Seconds since 0:00h (12:00h am). E.g. 3600 for 1:00h am
+#define DEFAULT_DAYON              Seconds since 0:00h (12:00h am). E.g. 18000 for 5:00h am
 
 ******************************************************************************
 Configuration.h - Misc.
 ******************************************************************************
 
-#define DEBUG                      Show debug infos in the serial console.
-#define DEBUG_WEB                  Show debug infos on the web page.
-#define DEBUG_MATRIX               Renders the output of the matrix for the German front in the serial console.
-#define DEBUG_FPS                  Show number of loops per second in the serial console.
+#define DEBUG                      Show debug infos in the serial console
+#define DEBUG_WEB                  Show debug infos on the web page
+#define DEBUG_MATRIX               Renders the output of the matrix for the German front in the serial console
+#define DEBUG_FPS                  Show number of loops per second in the serial console
 
-#define SYSLOGSERVER               Turn logging to a syslogserver on/off.
-#define SYSLOGSERVER_SERVER        Address of the syslogserver.
-#define SYSLOGSERVER_PORT          Port of the syslogserver.
+#define SYSLOGSERVER               Turn logging to a syslogserver on/off
+#define SYSLOGSERVER_SERVER        Address of the syslogserver
+#define SYSLOGSERVER_PORT          Port of the syslogserver
 
 #define UPDATE_INFO_*              The update info periodically anonymously checks if there is a firmwareupdate
-                                   available. No user data is send to the host. Comment if you do not want this info.
-#define UPDATE_INFOSERVER          Address of the updateinfo server.
-#define UPDATE_INFOFILE            Path and name of the updateinfo file.
+                                   available. No user data is send to the host. Comment if you do not want this info
+#define UPDATE_INFOSERVER          Address of the updateinfo server
+#define UPDATE_INFOFILE            Path and name of the updateinfo file
 
-#define SERIAL_SPEED               Serial port speed for the console.
+#define SERIAL_SPEED               Serial port speed for the console
 
-#define PIN_IR_RECEIVER D3         Pin for the IR receiver.
-#define PIN_LED         D4         Pin for the LED (build into the ESP).
-#define PIN_BUZZER      D5         Pin for the buzzer.
-#define PIN_DHT22       D6         Pin for the DHT22 module.
-#define PIN_LEDS_CLOCK  D7         Pin for the LED stripe "clock" if needed.
-#define PIN_LEDS_DATA   D8         Pin for the LED stripe "data".
-#define PIN_LDR         A0         Pin for the LDR.
-
-### Events.h ###
+******************************************************************************
+Events.h
+******************************************************************************
 
 const event_t events[]             Display a textfeed on a particular day of the year.
                                    The format of an entry in the array is:
                                    { month, day, "Text to display.", year, color },
                                    The last entry has no comma at the end.
                                    Year will be used to calculate an age. "present year" - year = age.
-								   '0' will not show an age. Only one event a day.
+                                   '0' will not show an age.
+                                   There can only be one event a day.
                                    The possible colors are:
                                    WHITE, RED, RED_25, RED_50, ORANGE, YELLOW, YELLOW_25, YELLOW_50, GREENYELLOW,
                                    GREEN, GREEN_25, GREEN_50, MINTGREEN, CYAN, CYAN_25, CYAN_50, LIGHTBLUE, BLUE,
                                    BLUE_25, BLUE_50, VIOLET, MAGENTA, MAGENTA_25, MAGENTA_50, PINK.
 
 ******************************************************************************
+Web-API:
+******************************************************************************
+
+http://your_clocks_ip/commitSettings?
+
+a1=0                               Alarm 1 on [1] or off [0]
+a1t=hh:mm                          Alarm 1 hour [hh] and minute [mm]
+a1w1=2                             Set Sunday
+a1w2=4                             Set Monday
+a1w3=8                             Set Tuesday
+a1w4=16                            Set Wednesday
+a1w5=32                            Set Thursday
+a1w6=64                            Set Friday
+a1w7=128                           Set Saturday
+a2=0                               Alarm 2 on [1] or off [0]
+a2t=hh:mm                          Alarm 2 hour [hh] and minute [mm]
+a2w1=2                             Set Sunday
+a2w2=4                             Set Monday
+a2w3=8                             Set Tuesday
+a2w4=16                            Set Wednesday
+a2w5=32                            Set Thursday
+a2w6=64                            Set Friday
+a2w7=128                           Set Saturday
+ti=0                               Timer in minutes
+mc=0                               Modechange on [1] or off [0]
+ab=1                               ABC on [1] or off [0]
+br=50                              Brightness in percent
+co=14                              Number of the LEDs color. See Colors.h
+cc=0                               Number of colorchange. See Colors.h
+tr=1                               Number of transition. See Modes.h
+to=15                              Timeout in seconds
+no=hh:mm                           Night off hour [hh] and minute [mm]
+do=hh:mm                           Day on hour [hh] and minute [mm]
+ii=1                               "It is" on [1] or off [0]
+st=YYYY-MM-DDThh:mm                Set time and date
+
+******************************************************************************
 Changelog:
 ******************************************************************************
 
+20180118:
+Hardware mode-, on/off- and timebutton
+Moved PIN_IR_RECEIVER from D3 to D0
+Tooltips for webbuttons
+Added description of the Web-API in Readme.txt
+Cleanup and bugfixes
+
 20171127:
-Bugfixes.
+Bugfixes
 
 20171125:
-Set weekdays for alarms on web-page.
-Set alarm to "on" if alarmtime is changed.
-Set time, timeout, "Night off", "Day on" on web-page.
-Removed settings from clock-menu which are present on web-page.
-AP mode if no WLAN is connected.
-"#define DEBUG" and "#define DEBUG_WEB" are back.
-Switched from RestClient.h to ArduinoHttpClient.h.
-Moved setting of frontcover to configuration.h "#define FRONTCOVER_*".
-Removed "#define LANGUAGE_*". Now set from "#define FRONTCOVER_*".
-Removed experimantal DUAL-support.
-Settings set to defaults.
+Set weekdays for alarms on web-page
+Set alarm to "on" if alarmtime is changed
+Set time, timeout, "Night off", "Day on" on web-page
+Removed settings from clock-menu which are present on web-page
+AP mode if no WLAN is connected
+"#define DEBUG" and "#define DEBUG_WEB" are back
+Switched from RestClient.h to ArduinoHttpClient.h
+Moved setting of frontcover to configuration.h "#define FRONTCOVER_*"
+Removed "#define LANGUAGE_*". Now set from "#define FRONTCOVER_*"
+Removed experimantal DUAL-support
+Settings set to defaults
 
 20171111 (stable):
-Cleanup and bugfixes.
-New syslog format.
+Cleanup and bugfixes
+New syslog format
 
 20171019:
-Changing automode.
-Bugfix for Firefox.
+Changing automode
+Bugfix for Firefox
 
 20171013:
-Settings of alarms, colorchange, automode and show "It is" on Web-Page.
-RTC is now on UTC.
+Settings of alarms, colorchange, automode and show "It is" on Web-Page
+RTC is now on UTC
 
 20171006:
-Moonphase.
-Color humidity indicator.
-Faster Web-GUI.
-Better offline behavior.
-Reset via URL.
+Moonphase
+Color humidity indicator
+Faster Web-GUI
+Better offline behavior
+Reset via URL
 
 20170929:
-Adaptive Brightness Control (ABC).
-New syslog logging.
-Code cleanup and bugfixes.
+Adaptive Brightness Control (ABC)
+New syslog logging
+Code cleanup and bugfixes

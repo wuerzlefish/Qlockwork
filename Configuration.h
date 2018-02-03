@@ -11,7 +11,7 @@ Software settings.
 ******************************************************************************/
 
 #define HOSTNAME "QLOCKWORK"
-#define WIFI_AP_TIMEOUT 120
+#define WIFI_SETUP_TIMEOUT 120
 #define WIFI_AP_PASS "12345678"
 #define OTA_PASS "1234"
 #define NTP_SERVER "pool.ntp.org"
@@ -61,7 +61,7 @@ Software settings.
 Timezone.
 ******************************************************************************/
 
-//#define TIMEZONE_IDLW  // IDLW  Internation Date Line West UTC-12
+//#define TIMEZONE_IDLW  // IDLW  International Date Line West UTC-12
 //#define TIMEZONE_SST   // SST   Samoa Standard Time UTC-11
 //#define TIMEZONE_HST   // HST   Hawaiian Standard Time UTC-10
 //#define TIMEZONE_AKST  // AKST  Alaska Standard Time UTC-9
@@ -99,6 +99,10 @@ Hardware settings.
 
 #define ESP_LED
 
+//#define MODE_BUTTON
+//#define ONOFF_BUTTON
+//#define TIME_BUTTON
+
 //#define SENSOR_DHT22
 //--------------------
 #define DHT_TEMPERATURE_OFFSET 0.3
@@ -106,7 +110,7 @@ Hardware settings.
 
 //#define RTC_BACKUP
 //------------------
-#define RTC_TEMPERATURE_OFFSET 0.25
+#define RTC_TEMPERATURE_OFFSET -0.25
 
 //#define LDR
 //-----------
@@ -190,7 +194,7 @@ Default values for EEPROM.
 #define DEFAULT_BRIGHTNESS 50
 #define DEFAULT_COLOR WHITE
 #define DEFAULT_COLORCHANGE COLORCHANGE_NO
-#define DEFAULT_SHOWTEMP false
+#define DEFAULT_MODECHANGE false
 #define DEFAULT_SHOWITIS true
 #define DEFAULT_TRANSITION TRANSITION_FADE
 #define DEFAULT_TIMEOUT 10
@@ -211,9 +215,10 @@ Misc.
 #define SERIAL_SPEED 115200
 
 //#define DEBUG
-//#define DEBUG_WEB
-//#define DEBUG_MATRIX
 //#define DEBUG_FPS
+//#define DEBUG_IR
+//#define DEBUG_MATRIX
+//#define DEBUG_WEB
 
 //#define SYSLOGSERVER
 //------------------
@@ -227,19 +232,19 @@ Misc.
 #define UPDATE_INFOFILE "/qlockwork/updateinfo.json"
 
 // ESP8266
-//#define none          D0 // GPIO 16   NodeMCU_LED
-//#define PIN_WIRE_SCL  D1 // GPIO 05
-//#define PIN_WIRE_SDA  D2 // GPIO 04
-#define PIN_IR_RECEIVER D3 // GPIO 00 *
-#define PIN_LED         D4 // GPIO 02 * ESP8266_LED
-#define PIN_BUZZER      D5 // GPIO 14
-#define PIN_DHT22       D6 // GPIO 12
-#define PIN_LEDS_CLOCK  D7 // GPIO 13
-#define PIN_LEDS_DATA   D8 // GPIO 15 *
-//#define none          D9 // GPIO 03   RXD0
-//#define none         D10 // GPIO 01   TXD0
-#define PIN_LDR         A0 // ADC
-// GPIO 06 - GPIO 11 flash memory databus
-// * used to enter flash mode.
+#define PIN_IR_RECEIVER  16 // D0 (no interrupt)
+//#define PIN_WIRE_SCL     05 // D1 SCL
+//#define PIN_WIRE_SDA     04 // D2 SDA
+#define PIN_MODE_BUTTON  00 // D3 LOW_Flash
+#define PIN_LED          02 // D4 ESP8266_LED
+#define PIN_BUZZER       14 // D5
+#define PIN_DHT22        12 // D6
+#define PIN_LEDS_CLOCK   13 // D7
+#define PIN_LEDS_DATA    15 // D8
+#define PIN_LDR          A0 // ADC
+#define PIN_TIME_BUTTON  01 // TXD0
+#define PIN_ONOFF_BUTTON 03 // RXD0
+// GPIO 06 to GPIO 11 are
+// used for flash memory databus
 
 #endif

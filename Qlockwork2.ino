@@ -6,14 +6,14 @@ An advanced firmware for a DIY "word-clock".
 @created 11.11.2017
 ******************************************************************************/
 
-#define FIRMWARE_VERSION 20171127
+#define FIRMWARE_VERSION 20180120
 
 #include <Arduino.h>
 #include <ArduinoHttpClient.h>
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
-#include <DS3232RTC.h>
 #include <DHT.h>
+#include <DS3232RTC.h>
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
@@ -86,7 +86,7 @@ uint8_t lastHour = 0;
 uint8_t lastSecond = 0;
 uint32_t last500Millis = 0;
 uint32_t last50Millis = 0;
-time_t powerOnTime = 0;
+time_t upTime = 0;
 uint8_t randomHour = 0;
 uint8_t randomMinute = 0;
 uint8_t randomSecond = 0;
@@ -136,6 +136,7 @@ uint32_t showEventTimer = EVENT_TIME;
 uint8_t testColumn = 0;
 String updateInfo = "";
 IPAddress myIP = { 0,0,0,0 };
+uint32_t lastButtonPress = 0;
 
 /******************************************************************************
   Setup().
@@ -176,11 +177,28 @@ void setup()
 	delay(2500);
 #endif
 
-	// Init LED, Buzzer and LDR.
 #ifdef ESP_LED
 	Serial.println("Setting up ESP-LED.");
 	pinMode(PIN_LED, OUTPUT);
 	digitalWrite(PIN_LED, HIGH);
+#endif
+
+#ifdef MODE_BUTTON
+	Serial.println("Setting up Mode-Button.");
+	pinMode(PIN_MODE_BUTTON, INPUT_PULLUP);
+	attachInterrupt(PIN_MODE_BUTTON, buttonModeInterrupt, FALLING);
+#endif
+
+#ifdef ONOFF_BUTTON
+	Serial.println("Setting up Back-Button.");
+	pinMode(PIN_ONOFF_BUTTON, INPUT_PULLUP);
+	attachInterrupt(PIN_ONOFF_BUTTON, buttonOnOffInterrupt, FALLING);
+#endif
+
+#ifdef TIME_BUTTON
+	Serial.println("Setting up Time-Button.");
+	pinMode(PIN_TIME_BUTTON, INPUT_PULLUP);
+	attachInterrupt(PIN_TIME_BUTTON, buttonTimeInterrupt, FALLING);
 #endif
 
 #ifdef BUZZER
@@ -211,9 +229,8 @@ void setup()
 	writeScreenBuffer(matrix, WHITE, brightness);
 	WiFiManager wifiManager;
 	//wifiManager.resetSettings();
-	wifiManager.setTimeout(WIFI_AP_TIMEOUT);
+	wifiManager.setTimeout(WIFI_SETUP_TIMEOUT);
 	wifiManager.autoConnect(HOSTNAME, WIFI_AP_PASS);
-	//WiFi.mode(WIFI_OFF);
 	if (WiFi.status() != WL_CONNECTED)
 	{
 		WiFi.mode(WIFI_AP);
@@ -224,7 +241,7 @@ void setup()
 		delay(1500);
 		digitalWrite(PIN_BUZZER, LOW);
 #endif
-		delay(2000);
+		delay(1000);
 		myIP = WiFi.softAPIP();
 	}
 	else
@@ -241,7 +258,7 @@ void setup()
 			delay(100);
 		}
 #endif
-		delay(500);
+		delay(1000);
 		myIP = WiFi.localIP();
 
 		// mDNS is needed to see HOSTNAME in Arduino IDE.
@@ -320,7 +337,6 @@ void setup()
 	}
 
 	// Get some infos.
-	powerOnTime = now();
 #if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
 	// Update room conditions.
 	getRoomConditions();
@@ -338,7 +354,7 @@ void setup()
 	settings.getAlarm2() ? Serial.print("on ") : Serial.print("off ");
 	Serial.println(settings.getAlarm2Weekdays(), BIN);
 #else
-	Serial.printf("Debug is off.");
+	Serial.println("Debug is off.");
 #endif
 }
 
@@ -364,11 +380,11 @@ void loop()
 		randomHour = random(0, 24);
 		randomMinute = random(5, 56);
 		randomSecond = random(5, 56);
-		Serial.printf("Free RAM: %u bytes\r\n", system_get_free_heap_size());
 
 #ifdef DEBUG
-		Serial.printf("Uptime: %u days, %02u:%02u\r\n", int((tempEspTime - powerOnTime) / 86400), hour(tempEspTime - powerOnTime), minute(tempEspTime - powerOnTime));
-		Serial.printf("Moonphase is: %u\r\n", moonphase);
+		Serial.printf("Free RAM: %u bytes\r\n", system_get_free_heap_size());
+		Serial.printf("Uptime: %u days, %02u:%02u\r\n", int(upTime / 86400), hour(upTime), minute(upTime));
+		Serial.printf("Moonphase: %u\r\n", moonphase);
 		Serial.printf("Random hour: %02u\r\n", randomHour);
 		Serial.printf("Random minute: %02u\r\n", randomMinute);
 		Serial.printf("Random second: %02u\r\n", randomSecond);
@@ -501,7 +517,7 @@ void loop()
 			if (WiFi.status() == WL_CONNECTED)
 			{
 				time_t tempEspTime = now();
-				syslog.log(LOG_INFO, ";D;" + String(tempEspTime) + ";" + String(roomTemperature) + ";" + String(roomHumidity) + ";" + String(outdoorTemperature) + ";" + String(outdoorHumidity) + ";" + String(outdoorCode) + ";" + String(ldrValue) + ";" + String(errorCounterNtp) + ";" + String(errorCounterDht) + ";" + String(errorCounterYahoo) + ";" + String(system_get_free_heap_size()) + ";" + String(tempEspTime - powerOnTime));
+				syslog.log(LOG_INFO, ";D;" + String(tempEspTime) + ";" + String(roomTemperature) + ";" + String(roomHumidity) + ";" + String(outdoorTemperature) + ";" + String(outdoorHumidity) + ";" + String(outdoorCode) + ";" + String(ldrValue) + ";" + String(errorCounterNtp) + ";" + String(errorCounterDht) + ";" + String(errorCounterYahoo) + ";" + String(system_get_free_heap_size()) + ";" + String(upTime));
 			}
 #endif
 			// Change color.
@@ -555,6 +571,7 @@ void loop()
 	if (second() != lastSecond)
 	{
 		lastSecond = second();
+		upTime++;
 
 		// Running displayupdate in MODE_TIME or MODE_BLANK every second will lock the ESP due to TRANSITION_FADE.
 		if ((mode != MODE_TIME) && (mode != MODE_BLANK)) screenBufferNeedsUpdate = true;
@@ -597,7 +614,7 @@ void loop()
 #endif
 
 		// Auto switch modes.
-		if (settings.getShowTemp() && (mode == MODE_TIME))
+		if (settings.getModeChange() && (mode == MODE_TIME))
 		{
 			autoModeChangeTimer--;
 			if (!autoModeChangeTimer)
@@ -720,7 +737,7 @@ void loop()
 	// Look for IR commands.
 	if (irrecv.decode(&irDecodeResult))
 	{
-#ifdef DEBUG
+#ifdef DEBUG_IR
 		Serial.print("IR signal: 0x");
 		serialPrintUint64(irDecodeResult.value, HEX);
 		Serial.println();
@@ -951,7 +968,15 @@ void loop()
 			break;
 		case MODE_EXT_HUMIDITY:
 			renderer.clearScreenBuffer(matrix);
-			renderer.setSmallText(String(outdoorHumidity), TEXT_POS_TOP, matrix);
+			if (outdoorHumidity != 100) renderer.setSmallText(String(outdoorHumidity), TEXT_POS_TOP, matrix);
+			else
+			{
+				matrix[0] = 0b0010111011100000;
+				matrix[1] = 0b0110101010100000;
+				matrix[2] = 0b0010101010100000;
+				matrix[3] = 0b0010101010100000;
+				matrix[4] = 0b0010111011100000;
+			}
 			matrix[6] = 0b0100100000000000;
 			matrix[7] = 0b0001000000000000;
 			matrix[8] = 0b0010000000000000;
@@ -1050,8 +1075,8 @@ void loop()
 				writeScreenBuffer(matrix, settings.getColor(), brightness);
 			}
 			break;
+		}
 	}
-}
 
 	// Wait for mode timeout then switch back to time.
 	if ((millis() > (modeTimeout + settings.getTimeout() * 1000)) && modeTimeout) setMode(MODE_TIME);
@@ -1178,7 +1203,7 @@ void writeScreenBufferFade(uint16_t screenBufferOld[], uint16_t screenBufferNew[
 		delay(1500 / brightness);
 		ledDriver.show();
 	}
-	}
+}
 
 /******************************************************************************
   "On/off" pressed.
@@ -1341,6 +1366,7 @@ void getUpdateInfo()
 	if (statusCode == 200)
 	{
 		String response = client.responseBody();
+		response = response.substring(response.indexOf('{'), response.lastIndexOf('}') + 1);
 #ifdef DEBUG
 		Serial.printf("Status: %u\r\n", statusCode);
 		Serial.printf("Response is %u bytes.\r\n", response.length());
@@ -1360,12 +1386,12 @@ void getUpdateInfo()
 #endif
 			return;
 		}
-		}
+	}
 #ifdef DEBUG
 	else Serial.printf("Status: %u\r\n", statusCode);
 	Serial.println("Error (" + String(UPDATE_INFOSERVER) + ")");
 #endif
-	}
+}
 #endif
 
 /******************************************************************************
@@ -1453,7 +1479,7 @@ void getRoomConditions()
 		Serial.println("Temperature (DHT): " + String(roomTemperature) + "C");
 		Serial.println("Humidity (DHT): " + String(roomHumidity) + "%");
 #endif
-}
+	}
 	else
 	{
 		if (errorCounterDht < 255) errorCounterDht++;
@@ -1516,6 +1542,39 @@ time_t getNtpTime(const char server[])
 /******************************************************************************
   Misc.
 ******************************************************************************/
+
+#ifdef MODE_BUTTON
+void buttonModeInterrupt()
+{
+	if (millis() > lastButtonPress + 250)
+	{
+		lastButtonPress = millis();
+		buttonModePressed();
+	}
+}
+#endif
+
+#ifdef ONOFF_BUTTON
+void buttonOnOffInterrupt()
+{
+	if (millis() > lastButtonPress + 250)
+	{
+		lastButtonPress = millis();
+		buttonOnOffPressed();
+	}
+}
+#endif
+
+#ifdef TIME_BUTTON
+void buttonTimeInterrupt()
+{
+	if (millis() > lastButtonPress + 250)
+	{
+		lastButtonPress = millis();
+		buttonTimePressed();
+	}
+}
+#endif
 
 // Switch LEDs off.
 void setLedsOff()
@@ -1664,12 +1723,12 @@ void handleRoot()
 	message += DEDICATION;
 	message += "<br><br>";
 #endif
-	if (mode == MODE_BLANK) message += "<button onclick=\"window.location.href='/handleButtonOnOff'\"><i class=\"fa fa-toggle-off\"></i></button>";
-	else message += "<button onclick=\"window.location.href='/handleButtonOnOff'\"><i class=\"fa fa-toggle-on\"></i></button>";
-	message += "<button onclick=\"window.location.href='/handleButtonSettings'\"><i class=\"fa fa-gear\"></i></button>";
+	if (mode == MODE_BLANK) message += "<button title=\"Switch LEDs on.\" onclick=\"window.location.href='/handleButtonOnOff'\"><i class=\"fa fa-toggle-off\"></i></button>";
+	else message += "<button title=\"Switch LEDs off.\" onclick=\"window.location.href='/handleButtonOnOff'\"><i class=\"fa fa-toggle-on\"></i></button>";
+	message += "<button title=\"Settings.\" onclick=\"window.location.href='/handleButtonSettings'\"><i class=\"fa fa-gear\"></i></button>";
 	message += "<br><br>";
-	message += "<button onclick=\"window.location.href='/handleButtonMode'\"><i class=\"fa fa-bars\"></i></button>";
-	message += "<button onclick=\"window.location.href='/handleButtonTime'\"><i class=\"fa fa-clock-o\"></i></button>";
+	message += "<button title=\"Switch modes.\" onclick=\"window.location.href='/handleButtonMode'\"><i class=\"fa fa-bars\"></i></button>";
+	message += "<button title=\"Return to time.\" onclick=\"window.location.href='/handleButtonTime'\"><i class=\"fa fa-clock-o\"></i></button>";
 #if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
 	message += "<br><br><i class = \"fa fa-home\" style=\"font-size:20px;\"></i>";
 	message += "<br><i class=\"fa fa-thermometer\" style=\"font-size:20px;\"></i> " + String(roomTemperature) + "&deg;C / " + String(roomTemperature * 9.0 / 5.0 + 32.0) + "&deg;F";
@@ -1752,7 +1811,7 @@ void handleRoot()
 		message += "\" style=\"font-size:20px;\"></span> " + sWeatherCondition[outdoorCode];
 	}
 	message += "<span style=\"font-size:12px;\">";
-	message += "<br><br><a href=\"http://tmw-it.ch/qlockwork/\">Qlockwork2</a> was <i class=\"fa fa-code\"></i> with <i class=\"fa fa-heart\"></i> by tmw-it.ch.";
+	message += "<br><br><a href=\"http://tmw-it.ch/qlockwork/\">Qlockwork2</a> was <i class=\"fa fa-code\"></i> with <i class=\"fa fa-heart\"></i> by ch570512";
 	message += "<br>Firmware: " + String(FIRMWARE_VERSION);
 #if defined(UPDATE_INFO_STABLE) || defined(UPDATE_INFO_UNSTABLE)
 	if (updateInfo > String(FIRMWARE_VERSION)) message += "<br><span style=\"color:red;\">Firmwareupdate available! (" + updateInfo + ")</span>";
@@ -1763,9 +1822,9 @@ void handleRoot()
 	if (minute(tempEspTime) < 10) message += "0";
 	message += String(minute(tempEspTime));
 	if (timeZone.locIsDST(now())) message += " (DST)";
-	message += " up " + String(int((tempEspTime - powerOnTime) / 86400)) + " days, " + String(hour(tempEspTime - powerOnTime)) + ":";
-	if (minute(tempEspTime - powerOnTime) < 10) message += "0";
-	message += String(minute(tempEspTime - powerOnTime));
+	message += " up " + String(int(upTime / 86400)) + " days, " + String(hour(upTime)) + ":";
+	if (minute(upTime) < 10) message += "0";
+	message += String(minute(upTime));
 	message += "<br>" + String(dayStr(weekday(tempEspTime))) + ", " + String(monthStr(month(tempEspTime))) + " " + String(day(tempEspTime)) + ". " + String(year(tempEspTime));
 	message += "<br>Moonphase: " + String(moonphase);
 	message += "<br>Free RAM: " + String(system_get_free_heap_size()) + " bytes";
@@ -1801,11 +1860,14 @@ void handleButtonSettings()
 	message += "<head>";
 	message += "<title>" + String(HOSTNAME) + " Settings</title>";
 	message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+	message += "<meta charset=\"UTF-8\">";
+	message += "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css\">";
 	message += "<style>";
 	message += "body{background-color:#FFFFFF;text-align:center;color:#333333;font-family:Sans-serif;font-size:16px;}";
 	message += "input[type=submit]{background-color:#1FA3EC;text-align:center;color:#FFFFFF;width:200px;padding:12px;border:5px solid #FFFFFF;font-size:20px;border-radius:10px;}";
 	message += "table{border-collapse:collapse;margin:0px auto;} td{padding:12px;border-bottom:1px solid #ddd;} tr:first-child{border-top:1px solid #ddd;} td:first-child{text-align:right;} td:last-child{text-align:left;}";
 	message += "select{font-size:16px;}";
+	message += "button{background-color:#1FA3EC;text-align:center;color:#FFFFFF;width:200px;padding:10px;border:5px solid #FFFFFF;font-size:24px;border-radius:10px;}";
 	message += "</style>";
 	message += "</head>";
 	message += "<body>";
@@ -1914,11 +1976,11 @@ void handleButtonSettings()
 	message += "<tr><td>";
 	message += "Modechange:";
 	message += "</td><td>";
-	message += "<input type=\"radio\" name=\"am\" value=\"1\"";
-	if (settings.getShowTemp()) message += " checked";
+	message += "<input type=\"radio\" name=\"mc\" value=\"1\"";
+	if (settings.getModeChange()) message += " checked";
 	message += "> on ";
-	message += "<input type=\"radio\" name=\"am\" value=\"0\"";
-	if (!settings.getShowTemp()) message += " checked";
+	message += "<input type=\"radio\" name=\"mc\" value=\"0\"";
+	if (!settings.getModeChange()) message += " checked";
 	message += "> off";
 	message += "</td></tr>";
 #endif
@@ -2140,8 +2202,10 @@ void handleButtonSettings()
 	message += "</td></tr>";
 	// ------------------------------------------------------------------------
 	message += "</table>";
-	message += "<br><input type=\"submit\" value=\"Set\">";
+	//message += "<br><input type=\"submit\" value=\"Set\">";
+	message += "<br><button title=\"Save Settings.\"><i class=\"fa fa-check\"></i></button>";
 	message += "</form>";
+	//message += "<button title=\"Advanced Settings.\" onclick=\"window.location.href='/handleButtonAdvancedSettings'\"><i class=\"fa fa-gear\"></i></button>";
 	message += "</body>";
 	message += "</html>";
 	esp8266WebServer.send(200, "text/html", message);
@@ -2191,7 +2255,7 @@ void handleCommitSettings()
 #endif
 	// ------------------------------------------------------------------------
 #if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
-	esp8266WebServer.arg("am") == "0" ? settings.setShowTemp(false) : settings.setShowTemp(true);
+	esp8266WebServer.arg("mc") == "0" ? settings.setModeChange(false) : settings.setModeChange(true);
 #endif
 	// ------------------------------------------------------------------------
 #if defined(LDR)
@@ -2206,10 +2270,6 @@ void handleCommitSettings()
 	settings.setBrightness(esp8266WebServer.arg("br").toInt());
 	abcBrightness = map(settings.getBrightness(), 10, 100, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
 	ratedBrightness = abcBrightness;
-	// ------------------------------------------------------------------------
-#if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
-	esp8266WebServer.arg("am") == "0" ? settings.setShowTemp(false) : settings.setShowTemp(true);
-#endif
 	// ------------------------------------------------------------------------
 	settings.setColor(esp8266WebServer.arg("co").toInt());
 	// ------------------------------------------------------------------------
@@ -2237,9 +2297,10 @@ void handleCommitSettings()
 	// ------------------------------------------------------------------------
 	if (esp8266WebServer.arg("st").length())
 	{
+		Serial.println(esp8266WebServer.arg("st"));
 		setTime(esp8266WebServer.arg("st").substring(11, 13).toInt(), esp8266WebServer.arg("st").substring(14, 16).toInt(), 0, esp8266WebServer.arg("st").substring(8, 10).toInt(), esp8266WebServer.arg("st").substring(5, 7).toInt(), esp8266WebServer.arg("st").substring(0, 4).toInt());
 #ifdef RTC_BACKUP
-		RTC.set(now());
+		RTC.set(timeZone.toUTC(now()));
 #endif
 	}
 	// ------------------------------------------------------------------------

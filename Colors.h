@@ -7,10 +7,10 @@ Colors.h
 
 enum eColorChange : uint8_t
 {
-	COLORCHANGE_NO,
-	COLORCHANGE_FIVE,
-	COLORCHANGE_HOUR,
-	COLORCHANGE_DAY,
+	COLORCHANGE_NO,                      // 0
+	COLORCHANGE_FIVE,                    // 1
+	COLORCHANGE_HOUR,                    // 2
+	COLORCHANGE_DAY,                     // 3
 	COLORCHANGE_COUNT = COLORCHANGE_DAY
 };
 
@@ -93,4 +93,3 @@ const color_s defaultColors[] =
 };
 
 #endif
-
