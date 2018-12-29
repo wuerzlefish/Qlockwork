@@ -58,7 +58,8 @@ inline Mode& operator++(Mode& eDOW, int)
 enum eTransition : uint8_t
 {
 	TRANSITION_NORMAL, // 0
-	TRANSITION_FADE    // 1
+	TRANSITION_MOVEUP, // 1
+	TRANSITION_FADE    // 2
 };
 
 #endif

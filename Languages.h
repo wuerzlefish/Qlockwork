@@ -46,7 +46,7 @@ Languages.h
 //	{ 'N', 'L', ' ', ' ' }  // 15
 //};
 
-#if defined(FRONTCOVER_EN)
+#if defined(FRONTCOVER_EN) || defined(FRONTCOVER_BINARY)
 const char sWeekday[][2] =
 {
 	{ ' ', ' ' }, // 00

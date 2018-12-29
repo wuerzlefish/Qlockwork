@@ -14,14 +14,13 @@ struct event_t
 	eColor color;
 };
 
-String textBirthday = "s birthday!";
-
-const event_t events[] =
+event_t events[] =
 {
+	{ 0, 0, "", 0, WHITE }, // Do not change
 	{ 1,  1, "Happy New Year!", 0, YELLOW_25 },
-	{ 3, 14, "Albert Einstein" + textBirthday, 1879, MAGENTA },
+	{ 3, 14, "Albert Einsteins birthday!", 1879, MAGENTA },
 	{ 12, 24, "It's Christmas!", 0, RED },
-	{ 11, 11, "Qlockwork2" + textBirthday, 2017, MAGENTA }
+	{ 3, 12, "Qlockworks birthday!", 2017, MAGENTA }
 };
 
 #endif

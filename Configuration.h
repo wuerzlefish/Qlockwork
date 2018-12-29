@@ -1,13 +1,13 @@
 /******************************************************************************
 Configuration.h
-See README.txt for help.
+See README.txt for help
 ******************************************************************************/
 
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
 /******************************************************************************
-Software settings.
+Software settings
 ******************************************************************************/
 
 #define HOSTNAME "QLOCKWORK"
@@ -15,7 +15,7 @@ Software settings.
 #define WIFI_AP_PASS "12345678"
 #define OTA_PASS "1234"
 #define NTP_SERVER "pool.ntp.org"
-#define NTP_TIMEOUT 2000
+#define NTP_TIMEOUT 3000
 #define SHOW_IP
 //#define NONE_TECHNICAL_ZERO
 #define AUTO_MODECHANGE_TIME 60
@@ -33,8 +33,8 @@ Software settings.
 //#define LOCATION "Zurich, ZH, CH"
 //#define LOCATION "Singapur, SG"
 
-#define FRONTCOVER_EN
-//#define FRONTCOVER_DE_DE
+//#define FRONTCOVER_EN
+#define FRONTCOVER_DE_DE
 //#define FRONTCOVER_DE_SW
 //#define FRONTCOVER_DE_BA
 //#define FRONTCOVER_DE_SA
@@ -49,6 +49,7 @@ Software settings.
 //#define FRONTCOVER_FR
 //#define FRONTCOVER_IT
 //#define FRONTCOVER_NL
+//#define FRONTCOVER_BINARY
 
 #define SHOW_MODE_AMPM
 #define SHOW_MODE_SECONDS
@@ -58,7 +59,7 @@ Software settings.
 #define SHOW_MODE_TEST
 
 /******************************************************************************
-Timezone.
+Timezone
 ******************************************************************************/
 
 //#define TIMEZONE_IDLW  // IDLW  International Date Line West UTC-12
@@ -94,7 +95,7 @@ Timezone.
 //#define TIMEZONE_NZST  // NZST  New Zealand Standard Time UTC+12
 
 /******************************************************************************
-Hardware settings.
+Hardware settings
 ******************************************************************************/
 
 #define ESP_LED
@@ -105,8 +106,8 @@ Hardware settings.
 
 //#define SENSOR_DHT22
 //--------------------
-#define DHT_TEMPERATURE_OFFSET 0.3
-#define DHT_HUMIDITY_OFFSET 0.4
+#define DHT_TEMPERATURE_OFFSET 0.5
+#define DHT_HUMIDITY_OFFSET 0.0
 
 //#define RTC_BACKUP
 //------------------
@@ -138,11 +139,6 @@ Hardware settings.
 #define LED_LAYOUT_HORIZONTAL
 //#define LED_LAYOUT_VERTICAL
 
-//#define LED_LIBRARY_LPD8806RGBW
-//-------------------------------
-
-#define LED_LIBRARY_NEOPIXEL
-//----------------------------
 #define LED_DRIVER_NEO_800KHZ_GRB
 //#define LED_DRIVER_NEO_800KHZ_RGB
 //#define LED_DRIVER_NEO_800KHZ_GRBW
@@ -150,45 +146,8 @@ Hardware settings.
 //#define LED_DRIVER_NEO_400KHZ_GRB
 //#define LED_DRIVER_NEO_400KHZ_RGB
 
-//#define LED_LIBRARY_FASTLED
-//---------------------------
-//#define LED_DRIVER_FAST_APA102
-//#define LED_DRIVER_FAST_APA104
-//#define LED_DRIVER_FAST_APA106
-//#define LED_DRIVER_FAST_DOTSTAR
-//#define LED_DRIVER_FAST_DMXSIMPLE
-//#define LED_DRIVER_FAST_GW6205
-//#define LED_DRIVER_FAST_GW6205_400
-//#define LED_DRIVER_FAST_LPD1886
-//#define LED_DRIVER_FAST_LPD1886_8BIT
-//#define LED_DRIVER_FAST_LPD8806
-#define LED_DRIVER_FAST_NEOPIXEL
-//#define LED_DRIVER_FAST_P9813
-//#define LED_DRIVER_FAST_PL9823
-//#define LED_DRIVER_FAST_SK6812
-//#define LED_DRIVER_FAST_SK6822
-//#define LED_DRIVER_FAST_SK9822
-//#define LED_DRIVER_FAST_SM16716
-//#define LED_DRIVER_FAST_TM1803
-//#define LED_DRIVER_FAST_TM1804
-//#define LED_DRIVER_FAST_TM1809
-//#define LED_DRIVER_FAST_TM1812
-//#define LED_DRIVER_FAST_TM1829
-//#define LED_DRIVER_FAST_UCS1903
-//#define LED_DRIVER_FAST_UCS1903B
-//#define LED_DRIVER_FAST_UCS1904
-//#define LED_DRIVER_FAST_UCS2903
-//#define LED_DRIVER_FAST_WS2801
-//#define LED_DRIVER_FAST_WS2803
-//#define LED_DRIVER_FAST_WS2811
-//#define LED_DRIVER_FAST_WS2811_400
-//#define LED_DRIVER_FAST_WS2812
-//#define LED_DRIVER_FAST_WS2812B
-//#define LED_DRIVER_FAST_WS2813
-//#define LED_DRIVER_FAST_WS2852
-
 /******************************************************************************
-Default values for EEPROM.
+Default values for EEPROM
 ******************************************************************************/
 
 #define DEFAULT_BRIGHTNESS 50
@@ -207,9 +166,10 @@ Default values for EEPROM.
 #define DEFAULT_ALARM2WEEKDAYS 0b11111110
 #define DEFAULT_NIGHTOFF 3600
 #define DEFAULT_DAYON 18000
+#define DEFAULT_HOURBEEP false
 
 /******************************************************************************
-Misc.
+Misc
 ******************************************************************************/
 
 #define SERIAL_SPEED 115200

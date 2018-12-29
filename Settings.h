@@ -14,7 +14,7 @@ Settings.h
 #include "Modes.h"
 
 #define SETTINGS_MAGIC_NUMBER 0x2A
-#define SETTINGS_VERSION 24
+#define SETTINGS_VERSION 25
 
 class Settings
 {
@@ -23,7 +23,7 @@ public:
 
 	boolean getUseAbc();
 	void setUseAbc(boolean onOff);
-	void toggleUseAbc();
+	//void toggleUseAbc();
 
 	int16_t getBrightness();
 	void setBrightness(int16_t brightness);
@@ -42,15 +42,15 @@ public:
 
 	boolean getModeChange();
 	void setModeChange(boolean onOff);
-	void toggleModeChange();
+	//void toggleModeChange();
 
 	boolean getItIs();
 	void setItIs(boolean onOff);
-	void toggleItIs();
+	//void toggleItIs();
 
 	boolean getAlarm1();
 	void setAlarm1(boolean onOff);
-	void toggleAlarm1();
+	//void toggleAlarm1();
 	time_t getAlarm1Time();
 	void setAlarm1Time(time_t alarmTime);
 	uint8_t getAlarm1Weekdays();
@@ -58,7 +58,7 @@ public:
 
 	boolean getAlarm2();
 	void setAlarm2(boolean onOff);
-	void toggleAlarm2();
+	//void toggleAlarm2();
 	time_t getAlarm2Time();
 	void setAlarm2Time(time_t alarmTime);
 	uint8_t getAlarm2Weekdays();
@@ -69,6 +69,9 @@ public:
 
 	time_t getDayOnTime();
 	void setDayOnTime(time_t dayOnTime);
+
+	boolean getHourBeep();
+	void setHourBeep(boolean onOff);
 
 	void saveToEEPROM();
 
@@ -93,6 +96,7 @@ private:
 		uint8_t alarm2Weekdays;
 		time_t nightOffTime;
 		time_t dayOnTime;
+		boolean hourBeep;
 	} mySettings;
 
 	void resetToDefault();

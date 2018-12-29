@@ -1,15 +1,15 @@
 ******************************************************************************
-QLOCKWORK2
+QLOCKWORK
 An advanced firmware for a DIY "word-clock".
 ******************************************************************************
 
-Qlockwork2 is an ESP8266 (NodeMCU or WeMos D1 mini) firmware (under GPL license) for a so called "word-clock".
+Qlockwork is an ESP8266 (NodeMCU or WeMos D1 mini) firmware (under GPL license) for a so called "word-clock".
 
 The clock adjusts the time and date once per hour via NTP with a time server on the Internet.
 If an RTC is installed, the time of the ESP is also set from the RTC every minute.
 
-At first startup and if there is a new version of the settings the EEPROM of the clock is written with default values.
-From there on the settings are read from EEPROM at startup.
+On first startup and if there is a new version of the settings the EEPROM of the clock is written with default values.
+From there on your settings are read from EEPROM at startup.
 At startup the clock performs a short self test.
 The sequence of the colors should be: red, green, blue and white.
 The clock also shows the local IP address it received via DHCP.
@@ -25,7 +25,7 @@ In either ways the clocks IP is shown as a textfeed.
 
 Events can be shown every five minutes on a particular day of the year as a textfeed.
 You can set them in "Events.h". Expand the array with events as shown in the default values.
-Set variables for recurrent texts to save RAM. You can set a color for every event.
+You can set a color for every event. Do not change the first entry.
 There is no comma behind the last entry.
 
 Updates of the firmware could be uploaded via USB, OTA or the clocks webserver.
@@ -38,9 +38,9 @@ Warning: Do not power up the clock from USB only.
          This would blow up the ESP or even the USB port because of high power demand of the LED stripe.
          Always use an external 5V powersupply with at least 4A.
 
-Disclaimer: Qlockwork2 uses lots of third party libraries.
+Disclaimer: Qlockwork uses lots of third party libraries.
             I can not guarantee the integrity of these libraries.
-            You use Qlockwork2 at your own risk.
+			You use the Qlockwork firmware at your own risk.
 
 You can download the latest version of the firmware here:
 http://tmw-it.ch/qlockwork/
@@ -49,24 +49,23 @@ Visit this forum for comments, suggestions and bug reports:
 http://diskussion.christians-bastel-laden.de/viewtopic.php?f=23&t=2843
 
 ******************************************************************************
-Top features.
+Top features:
 ******************************************************************************
 
 Almost no electronics needed.
 Only ESP8266 (NodeMCU or WeMos D1 mini) and an LED-stripe.
-Optional support for WiFi, RTC, LDR, Buzzer, temperature and humidity sensor and IR-remote.
-Supports more than 30 types of LED stripes.
-FastLED (RGB), LPD8806 (RGBW), NeoPixel (RGB and RGBW).
+Optional support for WiFi, RTC, LDR, Buzzer, temperature and humidity sensor, IR-remote and buttons.
+Support for NeoPixel (RGB and RGBW) LED-stripes.
 Horizontal and vertical LED layout.
 Webpage to control the clock via WiFi or AP.
 Adaptive brightness control.
-2 Transitions for timechange.
+3 transitions for timechange.
 Room and outdoor temperature.
 Room and outdoor humidity.
 Weatherconditions.
 Moonphase.
 Textfeed for events and infos.
-Supports 16 frontcovers and 6 languages.
+Supports 16 frontcovers in 6 languages.
 25 Colors.
 Timer.
 2 Alarmtimes.
@@ -76,9 +75,10 @@ Timezones.
 Automatic adjustment of daylight saving time.
 USB, Over-the-air or webserver firmware updates.
 WiFi manager for initial setup via accesspoint.
+Log data to a syslog-server.
 
 ******************************************************************************
-Modes.
+Modes:
 ******************************************************************************
 
 Time.
@@ -100,43 +100,51 @@ Blue.
 White.
 
 ******************************************************************************
-Needed libraries.
+Needed libraries: (recommended versions in brackets)
 ******************************************************************************
 
-via Arduino:
-ArduinoOTA by Ivan Grokhotkov
-ArduinoHttpClient by Arduino
-ESP8266mDNS by Tony DiCola and Ivan Grokhotkov
-ESP8266WebServer by Ivan Grokhotkov
-ESP8266WiFi by Ivan Grokhotkov
-Time by Michael Margolis
+esp8266 by ESP8266 Community (2.4.2)
+Adafruit NeoPixel by Adafruit (1.1.6)
+Adafruit Unified Sensor by Adafruit (1.0.2)
+ArduinoHttpClient by Arduino (0.3.1)
+ArduinoOTA by Ivan Grokhotkov (1.0.0)
+DHT sensor library by Adafruit (1.3.0)
+IRremoteESP8266 by Sebastien Warin (2.5.1)
+Time by Michael Margolis (1.5.0)
 
-via Web: (copy to \Arduino\libraries folder)
-https://github.com/adafruit/Adafruit_NeoPixel
-https://github.com/adafruit/Adafruit_Sensor
-https://github.com/bblanchon/ArduinoJson
-https://github.com/adafruit/DHT-sensor-library
-https://github.com/JChristensen/DS3232RTC
-https://github.com/FastLED/FastLED
-https://github.com/markszabo/IRremoteESP8266
-https://github.com/arcao/Syslog
-https://github.com/JChristensen/Timezone
-https://github.com/tzapu/WiFiManager
+This project also uses libraries (included) from:
+ArduinoJson by Benoit Blanchon
+DS3232RTC and Timezone by Jack Christensen
+Syslog by arcao
+WiFiManager by tzapu
 
-You have to use esp8266 by ESP8266 Community Version 2.3.0 Package (not 2.4.0)
-to compile this firmware.
+******************************************************************************
+Compiler-Options: (recommanded)
+******************************************************************************
 
-There is a warning from FastLED about SPI when compiling. Just ignore it.
+Board: "LOLIN(WEMOS) D1 R2 & mini"
+Flash Size: "4M (3M SPIFFS)"
+Debug port: "Disabled"
+Debug Level: "None"
+IwIP Variant: "v2 Lower Memory"
+VTables: "Flash"
+CPU Frequency: "80 MHz"
+Upload Speed: "512000"
+Erase Flash: "Only Sketch"
+
+******************************************************************************
+Misc:
+******************************************************************************
 
 For OTA and web-server updates check out:
 http://esp8266.github.io/Arduino/versions/2.3.0/doc/ota_updates/readme.html
-Don't forget to install Python 2.7 and to select "Add python.exe to path".
+Don't forget to install Python 2.7 and to select "Add python.exe to path" while installing.
 
 Call "http://your_clocks_ip/update" to upload a new firmware via webbrowser.
 Call "http://your_clocks_ip/reset" to restart the ESP.
 
 ******************************************************************************
-Operation manual.
+Operation manual:
 ******************************************************************************
 
 Press "on/off" to switch the LEDs on and off.
@@ -172,8 +180,9 @@ Alarm 1:                           Enable (on) or disable (off) alarm 1.
 Alarm 2:                           Enable (on) or disable (off) alarm 2.
                                    Time for alarm 2.
                                    Weekdays on which alarm 2 is active.
+Hourly beep:                       Short beep every full hour.
 Timer:                             Sets the minute timer. (0: disabled)
-Madechange:                        Enable (on) or disable (off) automatic modechange in time view.
+Show temperature:                  Enable (on) or disable (off) showing the temperature in time view.
 ABC:                               Enable (on) or disable (off) adaptive brightness control.
                                    Brightness will adjust itself in the range of MIN_BRIGHTNESS and brightness.
 Brightness:                        Brightness of the LEDs in percent. The range is MIN_BRIGHTNESS to MAX_BRIGHTNESS.
@@ -181,7 +190,7 @@ Brightness:                        Brightness of the LEDs in percent. The range 
 Color:                             Choose one of 25 colors for the LEDs.
 Colorchange:                       Change the color in intervals.
                                    Do not change (off), every 5 minutes (five), every hour (hour), every day (day).
-Transition:                        Choose between normal or faded LED timechanges.
+Transition:                        Choose between fast, move or fade mode transition.
 Timeout:                           Time in seconds to change mode back to time. (0: disabled)
 Night off:                         Set the time the clocks turns itself off at night.
 Day on:                            Set the time the clocks turns itself on at day.
@@ -189,7 +198,7 @@ Show "It is":                      Enable (on) or disable (off) "It is". It will
 Set date/time:                     Date and time of the clock. The seconds are set to zero if you press save.
 
 ******************************************************************************
-Configuration.h - Software settings.
+Configuration.h - Software settings:
 ******************************************************************************
 
 #define HOSTNAME                   The name of the clock.
@@ -230,14 +239,14 @@ Configuration.h - Software settings.
                                    summer/winter time change.
 
 ******************************************************************************
-Configuration.h - Hardware settings.
+Configuration.h - Hardware settings:
 ******************************************************************************
 
 #define ESP_LED                    Displays the function using the LED on the ESP. It flashes once a second.
 
 #define MODE_BUTTON                Use a hardware mode-button.
 #define ONOFF_BUTTON               Use a hardware on/off-button.
-#define TIME_BUTTON                Use a hardware time-button. Debug to serial will not work anymore if defined.
+#define TIME_BUTTON                Use a hardware time-button. Debug to serial will not work if defined.
 
 #define SENSOR_DHT22               Use a DHT22 sensor module (not the plain sensor) for room temperature and humidity.
 #define DHT_TEMPERATURE_OFFSET     Sets how many degrees the measured room temperature (+ or -) should be corrected.
@@ -268,20 +277,7 @@ Configuration.h - Hardware settings.
                                    If you see more than one try the code which is changing from button to button.
                                    DEBUG has to be defined to show you the code.
 
-#define LED_LIBRARY_LPD8806RGBW    LED library for LPD8806 RGBW LEDs. There is no driver to define.
-
-#define LED_LIBRARY_NEOPIXEL       LED library for NeoPixel LEDs.
-#define LED_DRIVER_NEO_*           Specifies the NeoPixel driver in conjunction with LED_LIBRARAY_NEOPIXEL.
-                                   400kHz, 800kHz, GRB, RGB, GRBW and RGBW.
-
-#define LED_LIBRARY_FASTLED        FastLED library for LEDs.
-#define LED_DRIVER_FAST_*          Specifies the driver in conjunction with LED_LIBRARAY_FASTLED.
-                                   All LED drivers supported by FAST-LED (RGB only) can be used:
-                                   APA102, APA104, APA106, DOTSTAR, DMXSIMPLE, GW6205, GW6205_400, LPD1886,
-                                   LPD1886_8BIT, LPD8806, NEOPIXEL, P9813, PL9823, SK6812, SK6822, SK9822,
-                                   SM16716, TM1803, TM1804, TM1809, TM1812, TM1829, UCS1903, UCS1903B,
-                                   UCS1904, UCS2903, WS2801, WS2803, WS2811, WS2811_400, WS2812, WS2812B,
-                                   WS2813, WS2852
+#define LED_DRIVER_NEO_*           Specifies the NeoPixel driver. 400kHz, 800kHz, GRB, RGB, GRBW and RGBW.
 
 #define LED_LAYOUT_HORIZONTAL      Horizontal and corner LEDs at the end of the strip. (As seen from the front.)
 
@@ -314,7 +310,7 @@ Configuration.h - Hardware settings.
 011                                           113
 
 ******************************************************************************
-Configuration.h - Default values for the EEPROM.
+Configuration.h - Default values for the EEPROM:
 Only used when a new version of the settings is released.
 ******************************************************************************
 
@@ -336,9 +332,10 @@ Only used when a new version of the settings is released.
 #define DEFAULT_ALARM2WEEKDAYS     0b11111110 // Sa. Fr. Th. We. Tu. Mo. Su. 0
 #define DEFAULT_NIGHTOFF           Seconds since 0:00h (12:00h am). E.g. 3600 for 1:00h am
 #define DEFAULT_DAYON              Seconds since 0:00h (12:00h am). E.g. 18000 for 5:00h am
+#define DEFAULT_HOURBEEP false     true (on) or false (off)
 
 ******************************************************************************
-Configuration.h - Misc.
+Configuration.h - Misc:
 ******************************************************************************
 
 #define DEBUG                      Show debug infos in the serial console
@@ -361,10 +358,10 @@ Configuration.h - Misc.
 Events.h
 ******************************************************************************
 
-const event_t events[]             Display a textfeed on a particular day of the year.
+event_t events[]                   Display a textfeed on a particular day of the year.
                                    The format of an entry in the array is:
                                    { month, day, "Text to display.", year, color },
-                                   The last entry has no comma at the end.
+								   The last entry has no comma at the end.
                                    Year will be used to calculate an age. "present year" - year = age.
                                    '0' will not show an age.
                                    There can only be one event a day.
@@ -372,13 +369,13 @@ const event_t events[]             Display a textfeed on a particular day of the
                                    WHITE, RED, RED_25, RED_50, ORANGE, YELLOW, YELLOW_25, YELLOW_50, GREENYELLOW,
                                    GREEN, GREEN_25, GREEN_50, MINTGREEN, CYAN, CYAN_25, CYAN_50, LIGHTBLUE, BLUE,
                                    BLUE_25, BLUE_50, VIOLET, MAGENTA, MAGENTA_25, MAGENTA_50, PINK.
+								   Do not change the first entry.
 
 ******************************************************************************
 Web-API:
 ******************************************************************************
 
 http://your_clocks_ip/commitSettings?
-
 a1=0                               Alarm 1 on [1] or off [0]
 a1t=hh:mm                          Alarm 1 hour [hh] and minute [mm]
 a1w1=2                             Set Sunday
@@ -397,6 +394,7 @@ a2w4=16                            Set Wednesday
 a2w5=32                            Set Thursday
 a2w6=64                            Set Friday
 a2w7=128                           Set Saturday
+hb=0                               Hourly beep on [1] or off [0]
 ti=0                               Timer in minutes
 mc=0                               Modechange on [1] or off [0]
 ab=1                               ABC on [1] or off [0]
@@ -410,11 +408,55 @@ do=hh:mm                           Day on hour [hh] and minute [mm]
 ii=1                               "It is" on [1] or off [0]
 st=YYYY-MM-DDThh:mm                Set time and date
 
+http://your_clocks_ip/setEvent?
+day=dd                             Set day of event
+month=mm                           Set month of event
+color=0                            Color of the eventtext, 0 to 24 (optional)
+text=text                          Set text of event, max. 40 characters
+                                   e.g.: http://your_clocks_ip/setEvent?day=27&month=10&color=5&text=This%20is%20an%20event.
+
+http://your_clocks_ip/showText?
+buzzer=1                           Number of times the buzzer will beep before showing the text (optional)
+color=0                            Color of the textfeed, 0 to 24 (optional)
+text=text                          Set text of feed, max. 80 characters
+                                   e.g.: http://your_clocks_ip/showText?buzzer=2&color=1&text=Instant%20text%20on%20Qlockwork!
+
 ******************************************************************************
 Changelog:
 ******************************************************************************
 
-20180118:
+20181101:
+Settings set to defaults!
+Hourly beep
+Set color of textfeed from URL
+Set color of events[0].text from URL
+Code cleanup and some minor bugfixes
+
+20181027:
+Show textfeed from URL
+
+20181021:
+Set events[0] from URL
+Name is back to Qlockwork (from Qlockwork2)
+
+20180930:
+Use esp8266 by ESP8266 Community Version 2.4.2
+Updated included libraries
+Removed legacy support for LPD8806RGBW
+Hardwareflags in debuginfo on webpage
+If NTP-request fails, try again every minute - don't wait for an hour
+More housekeeping
+
+20180929:
+Cleaned up libraries
+
+20180130:
+Transition "Move up"
+Rewrote some code
+Removed FastLED
+FRONTCOVER_BINARY
+
+20180120:
 Hardware mode-, on/off- and timebutton
 Moved PIN_IR_RECEIVER from D3 to D0
 Tooltips for webbuttons

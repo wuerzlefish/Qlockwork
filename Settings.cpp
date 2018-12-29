@@ -19,10 +19,10 @@ void Settings::setUseAbc(boolean onOff)
 	mySettings.useAbc = onOff;
 }
 
-void Settings::toggleUseAbc()
-{
-	mySettings.useAbc = !mySettings.useAbc;
-}
+//void Settings::toggleUseAbc()
+//{
+//	mySettings.useAbc = !mySettings.useAbc;
+//}
 
 int16_t Settings::getBrightness()
 {
@@ -74,10 +74,10 @@ void Settings::setModeChange(boolean onOff)
 	mySettings.modeChange = onOff;
 }
 
-void Settings::toggleModeChange()
-{
-	mySettings.modeChange = !mySettings.modeChange;
-}
+//void Settings::toggleModeChange()
+//{
+//	mySettings.modeChange = !mySettings.modeChange;
+//}
 
 uint8_t Settings::getTimeout()
 {
@@ -99,10 +99,10 @@ void Settings::setItIs(boolean onOff)
 	mySettings.itIs = onOff;
 }
 
-void Settings::toggleItIs()
-{
-	mySettings.itIs = !mySettings.itIs;
-}
+//void Settings::toggleItIs()
+//{
+//	mySettings.itIs = !mySettings.itIs;
+//}
 
 boolean Settings::getAlarm1()
 {
@@ -114,10 +114,10 @@ void Settings::setAlarm1(boolean onOff)
 	mySettings.alarm1 = onOff;
 }
 
-void Settings::toggleAlarm1()
-{
-	mySettings.alarm1 = !mySettings.alarm1;
-}
+//void Settings::toggleAlarm1()
+//{
+//	mySettings.alarm1 = !mySettings.alarm1;
+//}
 
 time_t Settings::getAlarm1Time()
 {
@@ -149,10 +149,10 @@ void Settings::setAlarm2(boolean onOff)
 	mySettings.alarm2 = onOff;
 }
 
-void Settings::toggleAlarm2()
-{
-	mySettings.alarm2 = !mySettings.alarm2;
-}
+//void Settings::toggleAlarm2()
+//{
+//	mySettings.alarm2 = !mySettings.alarm2;
+//}
 
 time_t Settings::getAlarm2Time()
 {
@@ -194,10 +194,19 @@ void Settings::setDayOnTime(time_t dayOnTime)
 	mySettings.dayOnTime = dayOnTime;
 }
 
+boolean Settings::getHourBeep()
+{
+	return mySettings.hourBeep;
+}
+
+void Settings::setHourBeep(boolean onOff)
+{
+	mySettings.hourBeep = onOff;
+}
+
 // Set all defaults.
 void Settings::resetToDefault()
 {
-	Serial.println("*** Settings set to defaults in EEPROM. ***");
 	mySettings.magicNumber = SETTINGS_MAGIC_NUMBER;
 	mySettings.version = SETTINGS_VERSION;
 	mySettings.useAbc = DEFAULT_USEABC;
@@ -216,13 +225,13 @@ void Settings::resetToDefault()
 	mySettings.alarm2Weekdays = DEFAULT_ALARM2WEEKDAYS;
 	mySettings.nightOffTime = DEFAULT_NIGHTOFF;
 	mySettings.dayOnTime = DEFAULT_DAYON;
+	mySettings.hourBeep = DEFAULT_HOURBEEP;
 	saveToEEPROM();
 }
 
 // Load settings from EEPROM.
 void Settings::loadFromEEPROM()
 {
-	Serial.println("Settings loaded from EEPROM.");
 	EEPROM.begin(512);
 	EEPROM.get(0, mySettings);
 	if ((mySettings.magicNumber != SETTINGS_MAGIC_NUMBER) || (mySettings.version != SETTINGS_VERSION))
