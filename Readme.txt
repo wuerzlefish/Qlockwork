@@ -40,7 +40,7 @@ Warning: Do not power up the clock from USB only.
 
 Disclaimer: Qlockwork uses lots of third party libraries.
             I can not guarantee the integrity of these libraries.
-            You use the Qlockwork firmware at your own risk.
+			You use the Qlockwork firmware at your own risk.
 
 You can download the latest version of the firmware here:
 http://tmw-it.ch/qlockwork/
@@ -361,7 +361,7 @@ Events.h
 event_t events[]                   Display a textfeed on a particular day of the year.
                                    The format of an entry in the array is:
                                    { month, day, "Text to display.", year, color },
-                                   The last entry has no comma at the end.
+								   The last entry has no comma at the end.
                                    Year will be used to calculate an age. "present year" - year = age.
                                    '0' will not show an age.
                                    There can only be one event a day.
@@ -369,7 +369,7 @@ event_t events[]                   Display a textfeed on a particular day of the
                                    WHITE, RED, RED_25, RED_50, ORANGE, YELLOW, YELLOW_25, YELLOW_50, GREENYELLOW,
                                    GREEN, GREEN_25, GREEN_50, MINTGREEN, CYAN, CYAN_25, CYAN_50, LIGHTBLUE, BLUE,
                                    BLUE_25, BLUE_50, VIOLET, MAGENTA, MAGENTA_25, MAGENTA_50, PINK.
-                                   Do not change the first entry.
+								   Do not change the first entry.
 
 ******************************************************************************
 Web-API:
@@ -424,6 +424,10 @@ text=text                          Set text of feed, max. 80 characters
 ******************************************************************************
 Changelog:
 ******************************************************************************
+
+20181118:
+No hourly beep if clock is off
+Some small improvements
 
 20181101:
 Settings set to defaults!

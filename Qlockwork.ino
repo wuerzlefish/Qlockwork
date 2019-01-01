@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ******************************************************************************/
 
-#define FIRMWARE_VERSION 20181101
+#define FIRMWARE_VERSION 20181213
 
 #include <Arduino.h>
 #include <ArduinoHttpClient.h>
@@ -247,6 +247,7 @@ void setup()
 	//wifiManager.resetSettings();
 	wifiManager.setTimeout(WIFI_SETUP_TIMEOUT);
 	wifiManager.autoConnect(HOSTNAME, WIFI_AP_PASS);
+	WiFi.setAutoReconnect(true);
 	if (!WiFi.isConnected())
 	{
 		WiFi.mode(WIFI_AP);
@@ -524,8 +525,9 @@ void loop()
 #endif
 		}
 
+		// Hourly beep
 #ifdef BUZZER
-		if (settings.getHourBeep() == true)
+		if ((settings.getHourBeep() == true) && (mode == MODE_TIME))
 		{
 			digitalWrite(PIN_BUZZER, HIGH);
 			delay(25);
@@ -539,7 +541,7 @@ void loop()
 		if (hour() == randomHour)
 		{
 #if defined(UPDATE_INFO_STABLE) || defined(UPDATE_INFO_UNSTABLE)
-			// Get updateinfo once a day at a random hour
+			// Get updateinfo once a day at the random hour
 			if (WiFi.isConnected()) getUpdateInfo();
 #endif
 		}
@@ -1790,12 +1792,12 @@ void handleRoot()
 	message += DEDICATION;
 	message += "<br><br>";
 #endif
-	if (mode == MODE_BLANK) message += "<button title=\"Switch LEDs on.\" onclick=\"window.location.href='/handleButtonOnOff'\"><i class=\"fa fa-toggle-off\"></i></button>";
-	else message += "<button title=\"Switch LEDs off.\" onclick=\"window.location.href='/handleButtonOnOff'\"><i class=\"fa fa-toggle-on\"></i></button>";
-	message += "<button title=\"Settings.\" onclick=\"window.location.href='/handleButtonSettings'\"><i class=\"fa fa-gear\"></i></button>"
+	if (mode == MODE_BLANK) message += "<button title=\"Switch LEDs on\" onclick=\"window.location.href='/handleButtonOnOff'\"><i class=\"fa fa-toggle-off\"></i></button>";
+	else message += "<button title=\"Switch LEDs off\" onclick=\"window.location.href='/handleButtonOnOff'\"><i class=\"fa fa-toggle-on\"></i></button>";
+	message += "<button title=\"Settings\" onclick=\"window.location.href='/handleButtonSettings'\"><i class=\"fa fa-gear\"></i></button>"
 		"<br><br>"
-		"<button title=\"Switch modes.\" onclick=\"window.location.href='/handleButtonMode'\"><i class=\"fa fa-bars\"></i></button>"
-		"<button title=\"Return to time.\" onclick=\"window.location.href='/handleButtonTime'\"><i class=\"fa fa-clock-o\"></i></button>";
+		"<button title=\"Switch modes\" onclick=\"window.location.href='/handleButtonMode'\"><i class=\"fa fa-bars\"></i></button>"
+		"<button title=\"Return to time\" onclick=\"window.location.href='/handleButtonTime'\"><i class=\"fa fa-clock-o\"></i></button>";
 #if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
 	message += "<br><br><i class = \"fa fa-home\" style=\"font-size:20px;\"></i>"
 		"<br><i class=\"fa fa-thermometer\" style=\"font-size:20px;\"></i> " + String(roomTemperature) + "&deg;C / " + String(roomTemperature * 9.0 / 5.0 + 32.0) + "&deg;F";
@@ -2048,17 +2050,6 @@ void handleButtonSettings()
 		"</td></tr>";
 	// ------------------------------------------------------------------------
 	message += "<tr><td>"
-		"Hourly beep:"
-		"</td><td>"
-		"<input type=\"radio\" name=\"hb\" value=\"1\"";
-	if (settings.getHourBeep()) message += " checked";
-	message += "> on "
-		"<input type=\"radio\" name=\"hb\" value=\"0\"";
-	if (!settings.getHourBeep()) message += " checked";
-	message += "> off"
-		"</td></tr>";
-	// ------------------------------------------------------------------------
-	message += "<tr><td>"
 		"Timer:"
 		"</td><td>"
 		"<select name=\"ti\">";
@@ -2074,9 +2065,20 @@ void handleButtonSettings()
 		"<option value=\"30\">30</option>"
 		"<option value=\"45\">45</option>"
 		"<option value=\"60\">60</option>"
-		"</select> minutes."
+		"</select> minutes"
 		"</td></tr>";
 #endif
+	// ------------------------------------------------------------------------
+	message += "<tr><td>"
+		"Hourly beep:"
+		"</td><td>"
+		"<input type=\"radio\" name=\"hb\" value=\"1\"";
+	if (settings.getHourBeep()) message += " checked";
+	message += "> on "
+		"<input type=\"radio\" name=\"hb\" value=\"0\"";
+	if (!settings.getHourBeep()) message += " checked";
+	message += "> off"
+		"</td></tr>";
 	// ------------------------------------------------------------------------
 #if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
 	message += "<tr><td>"
@@ -2254,7 +2256,7 @@ void handleButtonSettings()
 	message += "> move "
 		"<input type=\"radio\" name=\"tr\" value=\"0\"";
 	if (settings.getTransition() == 0) message += " checked";
-	message += "> fast"
+	message += "> none"
 		"</td></tr>";
 #endif
 	// ------------------------------------------------------------------------
