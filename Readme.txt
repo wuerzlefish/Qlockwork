@@ -425,7 +425,7 @@ text=text                          Set text of feed, max. 80 characters
 Changelog:
 ******************************************************************************
 
-20181118:
+20181213:
 No hourly beep if clock is off
 Some small improvements
 
