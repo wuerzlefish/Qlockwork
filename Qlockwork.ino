@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ******************************************************************************/
 
-#define FIRMWARE_VERSION 20181213
+#define FIRMWARE_VERSION 20190105
 
 #include <Arduino.h>
 #include <ArduinoHttpClient.h>
@@ -108,7 +108,7 @@ uint8_t feedPosition = 0;
 String outdoorTitle = "No Wifi.";
 int8_t outdoorTemperature = 0;
 uint8_t outdoorHumidity = 0;
-uint8_t outdoorCode = 0;
+uint8_t outdoorCode = 48;
 uint8_t errorCounterYahoo = 0;
 
 // DHT22
@@ -1049,7 +1049,7 @@ void loop()
 			{
 				matrix[2] = 0b1110000000000000;
 			}
-			renderer.setSmallText(String(outdoorTemperature), TEXT_POS_BOTTOM, matrix);
+			renderer.setSmallText(String(abs(outdoorTemperature)), TEXT_POS_BOTTOM, matrix);
 			break;
 		case MODE_EXT_HUMIDITY:
 			renderer.clearScreenBuffer(matrix);
@@ -1873,6 +1873,9 @@ void handleRoot()
 		case 36: // hot
 			message += "fa fa-sun-o";
 			break;
+    case 48: // not available
+      message += "fa fa-pause-circle";
+      break;  
 		default:
 			message += "fa fa-cloud";
 			break;

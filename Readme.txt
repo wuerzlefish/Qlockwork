@@ -425,6 +425,10 @@ text=text                          Set text of feed, max. 80 characters
 Changelog:
 ******************************************************************************
 
+20190105:
+Bugfix negative outdoorTemperature
+Bugfix outdoorCode not available
+
 20181213:
 No hourly beep if clock is off
 Some small improvements

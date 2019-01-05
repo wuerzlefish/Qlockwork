@@ -108,7 +108,8 @@ const String sWeatherCondition[] =
 	{ "partly cloudy" }, // 44
 	{ "thundershowers" }, // 45
 	{ "snow showers" }, // 46
-	{ "isolated thundershowers" }  // 47
+	{ "isolated thundershowers" }, // 47
+  { "not available" } // 48
 };
 #endif
 
@@ -180,7 +181,8 @@ const String sWeatherCondition[] =
 	{ "teilweise wolkig" }, // 44
 	{ "Gewitterschauer" }, // 45
 	{ "Schneeschauer" }, // 46
-	{ "vereinzelte Gewitterschauer" }  // 47
+	{ "vereinzelte Gewitterschauer" }, // 47
+  { "nicht verfügbar" } // 48
 };
 #endif
 
@@ -246,7 +248,8 @@ const String sWeatherCondition[] =
 	{ "partly cloudy" }, // 44
 	{ "thundershowers" }, // 45
 	{ "snow showers" }, // 46
-	{ "isolated thundershowers" }  // 47
+	{ "isolated thundershowers" }, // 47
+  { "not available" } // 48
 };
 #endif
 
@@ -312,7 +315,8 @@ const String sWeatherCondition[] =
 	{ "partly cloudy" }, // 44
 	{ "thundershowers" }, // 45
 	{ "snow showers" }, // 46
-	{ "isolated thundershowers" }  // 47
+	{ "isolated thundershowers" }, // 47
+  { "not available" } // 48
 };
 #endif
 
@@ -378,7 +382,8 @@ const String sWeatherCondition[] =
 	{ "partly cloudy" }, // 44
 	{ "thundershowers" }, // 45
 	{ "snow showers" }, // 46
-	{ "isolated thundershowers" }  // 47
+	{ "isolated thundershowers" }, // 47
+  { "not available" } // 48
 };
 #endif
 
@@ -444,7 +449,8 @@ const String sWeatherCondition[] =
 	{ "partly cloudy" }, // 44
 	{ "thundershowers" }, // 45
 	{ "snow showers" }, // 46
-	{ "isolated thundershowers" }  // 47
+	{ "isolated thundershowers" }, // 47
+  { "not available" } // 48
 };
 #endif
 
