@@ -425,6 +425,9 @@ text=text                          Set text of feed, max. 80 characters
 Changelog:
 ******************************************************************************
 
+20190106:
+Removed Yahoo weather
+
 20190105:
 Bugfix negative outdoorTemperature
 Bugfix outdoorCode not available

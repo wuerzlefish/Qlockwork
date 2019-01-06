@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ******************************************************************************/
 
-#define FIRMWARE_VERSION 20190105
+#define FIRMWARE_VERSION 20190106
 
 #include <Arduino.h>
 #include <ArduinoHttpClient.h>
@@ -105,11 +105,11 @@ uint8_t feedColor = WHITE;
 uint8_t feedPosition = 0;
 
 // Yahoo
-String outdoorTitle = "No Wifi.";
-int8_t outdoorTemperature = 0;
-uint8_t outdoorHumidity = 0;
-uint8_t outdoorCode = 48;
-uint8_t errorCounterYahoo = 0;
+//String outdoorTitle = "No Wifi.";
+//int8_t outdoorTemperature = 0;
+//uint8_t outdoorHumidity = 0;
+//uint8_t outdoorCode = 48;
+//uint8_t errorCounterYahoo = 0;
 
 // DHT22
 float roomTemperature = 0;
@@ -311,13 +311,14 @@ void setup()
 
 #ifdef SYSLOGSERVER
 		Serial.println("Starting syslog.");
-		syslog.log(LOG_INFO, ";#;dateTime;roomTemperature;roomHumidity;outdoorTemperature;outdoorHumidity;outdoorCode;ldrValue;errorCounterNtp;errorCounterDht;errorCounterYahoo;freeHeapSize;upTime");
+		//syslog.log(LOG_INFO, ";#;dateTime;roomTemperature;roomHumidity;outdoorTemperature;outdoorHumidity;outdoorCode;ldrValue;errorCounterNtp;errorCounterDht;errorCounterYahoo;freeHeapSize;upTime");
+		syslog.log(LOG_INFO, ";#;dateTime;roomTemperature;roomHumidity;ldrValue;errorCounterNtp;errorCounterDht;freeHeapSize;upTime");
 #ifdef DEBUG
 		Serial.println("Header written to syslog.");
 #endif
 #endif
 
-		getOutdoorConditions(LOCATION);
+		//getOutdoorConditions(LOCATION);
 	}
 
 #ifdef SHOW_IP
@@ -629,7 +630,7 @@ void loop()
 			if (WiFi.isConnected())
 			{
 				// Get weather from Yahoo
-				getOutdoorConditions(LOCATION);
+				//getOutdoorConditions(LOCATION);
 			}
 		}
 
@@ -645,7 +646,8 @@ void loop()
 			if (WiFi.isConnected())
 			{
 				time_t tempEspTime = now();
-				syslog.log(LOG_INFO, ";D;" + String(tempEspTime) + ";" + String(roomTemperature) + ";" + String(roomHumidity) + ";" + String(outdoorTemperature) + ";" + String(outdoorHumidity) + ";" + String(outdoorCode) + ";" + String(ldrValue) + ";" + String(errorCounterNtp) + ";" + String(errorCounterDht) + ";" + String(errorCounterYahoo) + ";" + String(system_get_free_heap_size()) + ";" + String(upTime));
+				//syslog.log(LOG_INFO, ";D;" + String(tempEspTime) + ";" + String(roomTemperature) + ";" + String(roomHumidity) + ";" + String(outdoorTemperature) + ";" + String(outdoorHumidity) + ";" + String(outdoorCode) + ";" + String(ldrValue) + ";" + String(errorCounterNtp) + ";" + String(errorCounterDht) + ";" + String(errorCounterYahoo) + ";" + String(system_get_free_heap_size()) + ";" + String(upTime));
+				syslog.log(LOG_INFO, ";D;" + String(tempEspTime) + ";" + String(roomTemperature) + ";" + String(roomHumidity) + ";" + String(ldrValue) + ";" + String(errorCounterNtp) + ";" + String(errorCounterDht) + ";" + String(system_get_free_heap_size()) + ";" + String(upTime));
 #ifdef DEBUG
 				Serial.println("Data written to syslog.");
 #endif
@@ -705,67 +707,83 @@ void loop()
 		}
 #endif
 
-		//		// Auto switch modes
-		//		if (settings.getModeChange() && (mode == MODE_TIME))
-		//		{
-		//			autoModeChangeTimer--;
-		//			if (!autoModeChangeTimer)
-		//			{
-		//#ifdef DEBUG
-		//				Serial.println("Auto modechange. (" + String(autoMode) + ")");
-		//#endif
-		//				autoModeChangeTimer = AUTO_MODECHANGE_TIME;
-		//				switch (autoMode)
-		//				{
-		//				case 0:
-		//					if (WiFi.isConnected()) setMode(MODE_EXT_TEMP);
-		//					autoMode = 1;
-		//					break;
-		//				case 1:
-		//#if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
-		//					setMode(MODE_TEMP);
-		//#else
-		//					if (WiFi.isConnected()) setMode(MODE_EXT_TEMP);
-		//#endif
-		//					autoMode = 2;
-		//					break;
-		//				case 2:
-		//#ifdef SENSOR_DHT22
-		//					setMode(MODE_HUMIDITY);
-		//#else
-		//					if (WiFi.isConnected()) setMode(MODE_EXT_TEMP);
-		//#endif
-		//					autoMode = 0;
-		//					break;
-		//				}
-		//			}
-		//		}
+		// Auto switch modes
+//		if (settings.getModeChange() && (mode == MODE_TIME))
+//		{
+//			autoModeChangeTimer--;
+//			if (!autoModeChangeTimer)
+//			{
+//#ifdef DEBUG
+//				Serial.println("Auto modechange. (" + String(autoMode) + ")");
+//#endif
+//				autoModeChangeTimer = AUTO_MODECHANGE_TIME;
+//				switch (autoMode)
+//				{
+//				case 0:
+//					if (WiFi.isConnected()) setMode(MODE_EXT_TEMP);
+//					autoMode = 1;
+//					break;
+//				case 1:
+//#if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
+//					setMode(MODE_TEMP);
+//#else
+//					if (WiFi.isConnected()) setMode(MODE_EXT_TEMP);
+//#endif
+//					autoMode = 2;
+//					break;
+//				case 2:
+//#ifdef SENSOR_DHT22
+//					setMode(MODE_HUMIDITY);
+//#else
+//					if (WiFi.isConnected()) setMode(MODE_EXT_TEMP);
+//#endif
+//					autoMode = 0;
+//					break;
+//				}
+//			}
+//		}
 
-				// Auto switch modes
+		// Auto switch modes
+//		if (settings.getModeChange() && (mode == MODE_TIME))
+//		{
+//			autoModeChangeTimer--;
+//			if (!autoModeChangeTimer)
+//			{
+//#ifdef DEBUG
+//				Serial.println("Auto modechange. (" + String(autoMode) + ")");
+//#endif
+//				autoModeChangeTimer = AUTO_MODECHANGE_TIME;
+//				switch (autoMode)
+//				{
+//				case 0:
+//					if (WiFi.isConnected()) setMode(MODE_EXT_TEMP);
+//					autoMode = 1;
+//					break;
+//				case 1:
+//#if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
+//					setMode(MODE_TEMP);
+//#else
+//					if (WiFi.isConnected()) setMode(MODE_EXT_TEMP);
+//#endif
+//					autoMode = 0;
+//					break;
+//				}
+//			}
+//		}
+
+		// Auto switch modes
 		if (settings.getModeChange() && (mode == MODE_TIME))
 		{
 			autoModeChangeTimer--;
 			if (!autoModeChangeTimer)
 			{
 #ifdef DEBUG
-				Serial.println("Auto modechange. (" + String(autoMode) + ")");
+				Serial.println("Auto modechange.");
 #endif
 				autoModeChangeTimer = AUTO_MODECHANGE_TIME;
-				switch (autoMode)
-				{
-				case 0:
-					if (WiFi.isConnected()) setMode(MODE_EXT_TEMP);
-					autoMode = 1;
-					break;
-				case 1:
 #if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
-					setMode(MODE_TEMP);
-#else
-					if (WiFi.isConnected()) setMode(MODE_EXT_TEMP);
+				setMode(MODE_TEMP);
 #endif
-					autoMode = 0;
-					break;
-				}
 			}
 		}
 
@@ -1037,36 +1055,36 @@ void loop()
 			matrix[9] = 0b0100100011100000;
 			break;
 #endif
-		case MODE_EXT_TEMP:
-			renderer.clearScreenBuffer(matrix);
-			if (outdoorTemperature > 0)
-			{
-				matrix[1] = 0b0100000000000000;
-				matrix[2] = 0b1110000000000000;
-				matrix[3] = 0b0100000000000000;
-			}
-			if (outdoorTemperature < 0)
-			{
-				matrix[2] = 0b1110000000000000;
-			}
-			renderer.setSmallText(String(abs(outdoorTemperature)), TEXT_POS_BOTTOM, matrix);
-			break;
-		case MODE_EXT_HUMIDITY:
-			renderer.clearScreenBuffer(matrix);
-			if (outdoorHumidity != 100) renderer.setSmallText(String(outdoorHumidity), TEXT_POS_TOP, matrix);
-			else
-			{
-				matrix[0] = 0b0010111011100000;
-				matrix[1] = 0b0110101010100000;
-				matrix[2] = 0b0010101010100000;
-				matrix[3] = 0b0010101010100000;
-				matrix[4] = 0b0010111011100000;
-			}
-			matrix[6] = 0b0100100000000000;
-			matrix[7] = 0b0001000000000000;
-			matrix[8] = 0b0010000000000000;
-			matrix[9] = 0b0100100000000000;
-			break;
+			//case MODE_EXT_TEMP:
+				//renderer.clearScreenBuffer(matrix);
+				//if (outdoorTemperature > 0)
+				//{
+				//	matrix[1] = 0b0100000000000000;
+				//	matrix[2] = 0b1110000000000000;
+				//	matrix[3] = 0b0100000000000000;
+				//}
+				//if (outdoorTemperature < 0)
+				//{
+				//	matrix[2] = 0b1110000000000000;
+				//}
+				//renderer.setSmallText(String(abs(outdoorTemperature)), TEXT_POS_BOTTOM, matrix);
+				//break;
+			//case MODE_EXT_HUMIDITY:
+				//renderer.clearScreenBuffer(matrix);
+				//if (outdoorHumidity != 100) renderer.setSmallText(String(outdoorHumidity), TEXT_POS_TOP, matrix);
+				//else
+				//{
+				//	matrix[0] = 0b0010111011100000;
+				//	matrix[1] = 0b0110101010100000;
+				//	matrix[2] = 0b0010101010100000;
+				//	matrix[3] = 0b0010101010100000;
+				//	matrix[4] = 0b0010111011100000;
+				//}
+				//matrix[6] = 0b0100100000000000;
+				//matrix[7] = 0b0001000000000000;
+				//matrix[8] = 0b0010000000000000;
+				//matrix[9] = 0b0100100000000000;
+				//break;
 #ifdef BUZZER
 		case MODE_TIMER:
 			renderer.clearScreenBuffer(matrix);
@@ -1378,8 +1396,8 @@ void setMode(Mode newMode)
 	case MODE_TEMP:
 	case MODE_HUMIDITY:
 #endif
-	case MODE_EXT_TEMP:
-	case MODE_EXT_HUMIDITY:
+		//case MODE_EXT_TEMP:
+		//case MODE_EXT_HUMIDITY:
 		modeTimeout = millis();
 		break;
 	default:
@@ -1470,60 +1488,60 @@ void getUpdateInfo()
   Get outdoor conditions from Yahoo
 ******************************************************************************/
 
-void getOutdoorConditions(String location)
-{
-#ifdef DEBUG
-	Serial.println("Sending HTTP-request for weather.");
-#endif
-	location.replace(" ", "%20");
-	location.replace(",", "%2C");
-	char server[] = "query.yahooapis.com";
-	WiFiClient wifiClient;
-	HttpClient client = HttpClient(wifiClient, server, 80);
-	String sqlQuery = "select%20atmosphere.humidity%2C%20item.title%2C%20item.condition.temp%2C%20item.condition.code%20";
-	sqlQuery += "from%20weather.forecast%20where%20woeid%20in%20";
-	sqlQuery += "(select%20woeid%20from%20geo.places(1)%20where%20text=%22" + location + "%22)%20";
-	sqlQuery += "and%20u=%27c%27";
-	client.get("query.yahooapis.com/v1/public/yql?q=" + sqlQuery + "&format=json");
-	uint16_t statusCode = client.responseStatusCode();
-	if (statusCode == 200)
-	{
-		String response = client.responseBody();
-		response = response.substring(response.indexOf('{'), response.lastIndexOf('}') + 1);
-#ifdef DEBUG
-		Serial.printf("Status: %u\r\n", statusCode);
-		Serial.printf("Response is %u bytes.\r\n", response.length());
-		Serial.println(response);
-		Serial.println("Parsing JSON.");
-#endif
-		StaticJsonBuffer<512> jsonBuffer;
-		JsonObject &responseJson = jsonBuffer.parseObject(response);
-		if (responseJson.success() && responseJson["query"]["count"].as<int8_t>())
-		{
-			outdoorTitle = responseJson["query"]["results"]["channel"]["item"]["title"].as<String>();
-			outdoorTitle = outdoorTitle.substring(0, outdoorTitle.indexOf(" at "));
-			outdoorTemperature = responseJson["query"]["results"]["channel"]["item"]["condition"]["temp"].as<int8_t>();
-			outdoorHumidity = responseJson["query"]["results"]["channel"]["atmosphere"]["humidity"].as<uint8_t>();
-			outdoorCode = responseJson["query"]["results"]["channel"]["item"]["condition"]["code"].as<uint8_t>();
-#ifdef DEBUG
-			Serial.println(outdoorTitle);
-			Serial.printf("Temperature (Yahoo): %dC\r\n", outdoorTemperature);
-			Serial.printf("Humidity (Yahoo): %u%%\r\n", outdoorHumidity);
-			Serial.println("Condition (Yahoo): " + sWeatherCondition[outdoorCode] + " (" + String(outdoorCode) + ")");
-#endif
-			errorCounterYahoo = 0;
-			return;
-		}
-	}
-#ifdef DEBUG
-	else Serial.printf("Status: %u\r\n", statusCode);
-	outdoorTitle = "Request failed.";
-#endif
-	if (errorCounterYahoo < 255) errorCounterYahoo++;
-#ifdef DEBUG
-	Serial.printf("Error (Yahoo): %u\r\n", errorCounterYahoo);
-#endif
-}
+//void getOutdoorConditions(String location)
+//{
+//#ifdef DEBUG
+//	Serial.println("Sending HTTP-request for weather.");
+//#endif
+//	location.replace(" ", "%20");
+//	location.replace(",", "%2C");
+//	char server[] = "query.yahooapis.com";
+//	WiFiClient wifiClient;
+//	HttpClient client = HttpClient(wifiClient, server, 80);
+//	String sqlQuery = "select%20atmosphere.humidity%2C%20item.title%2C%20item.condition.temp%2C%20item.condition.code%20";
+//	sqlQuery += "from%20weather.forecast%20where%20woeid%20in%20";
+//	sqlQuery += "(select%20woeid%20from%20geo.places(1)%20where%20text=%22" + location + "%22)%20";
+//	sqlQuery += "and%20u=%27c%27";
+//	client.get("query.yahooapis.com/v1/public/yql?q=" + sqlQuery + "&format=json");
+//	uint16_t statusCode = client.responseStatusCode();
+//	if (statusCode == 200)
+//	{
+//		String response = client.responseBody();
+//		response = response.substring(response.indexOf('{'), response.lastIndexOf('}') + 1);
+//#ifdef DEBUG
+//		Serial.printf("Status: %u\r\n", statusCode);
+//		Serial.printf("Response is %u bytes.\r\n", response.length());
+//		Serial.println(response);
+//		Serial.println("Parsing JSON.");
+//#endif
+//		StaticJsonBuffer<512> jsonBuffer;
+//		JsonObject &responseJson = jsonBuffer.parseObject(response);
+//		if (responseJson.success() && responseJson["query"]["count"].as<int8_t>())
+//		{
+//			outdoorTitle = responseJson["query"]["results"]["channel"]["item"]["title"].as<String>();
+//			outdoorTitle = outdoorTitle.substring(0, outdoorTitle.indexOf(" at "));
+//			outdoorTemperature = responseJson["query"]["results"]["channel"]["item"]["condition"]["temp"].as<int8_t>();
+//			outdoorHumidity = responseJson["query"]["results"]["channel"]["atmosphere"]["humidity"].as<uint8_t>();
+//			outdoorCode = responseJson["query"]["results"]["channel"]["item"]["condition"]["code"].as<uint8_t>();
+//#ifdef DEBUG
+//			Serial.println(outdoorTitle);
+//			Serial.printf("Temperature (Yahoo): %dC\r\n", outdoorTemperature);
+//			Serial.printf("Humidity (Yahoo): %u%%\r\n", outdoorHumidity);
+//			Serial.println("Condition (Yahoo): " + sWeatherCondition[outdoorCode] + " (" + String(outdoorCode) + ")");
+//#endif
+//			errorCounterYahoo = 0;
+//			return;
+//		}
+//	}
+//#ifdef DEBUG
+//	else Serial.printf("Status: %u\r\n", statusCode);
+//	outdoorTitle = "Request failed";
+//#endif
+//	if (errorCounterYahoo < 255) errorCounterYahoo++;
+//#ifdef DEBUG
+//	Serial.printf("Error (Yahoo): %u\r\n", errorCounterYahoo);
+//#endif
+//}
 
 #if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
 /******************************************************************************
@@ -1799,8 +1817,8 @@ void handleRoot()
 		"<button title=\"Switch modes\" onclick=\"window.location.href='/handleButtonMode'\"><i class=\"fa fa-bars\"></i></button>"
 		"<button title=\"Return to time\" onclick=\"window.location.href='/handleButtonTime'\"><i class=\"fa fa-clock-o\"></i></button>";
 #if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
-	message += "<br><br><i class = \"fa fa-home\" style=\"font-size:20px;\"></i>"
-		"<br><i class=\"fa fa-thermometer\" style=\"font-size:20px;\"></i> " + String(roomTemperature) + "&deg;C / " + String(roomTemperature * 9.0 / 5.0 + 32.0) + "&deg;F";
+	//message += "<br><br><i class = \"fa fa-home\" style=\"font-size:20px;\"></i>";
+	message += "<br><br><i class=\"fa fa-thermometer\" style=\"font-size:20px;\"></i> " + String(roomTemperature) + "&deg;C / " + String(roomTemperature * 9.0 / 5.0 + 32.0) + "&deg;F";
 #endif
 #ifdef SENSOR_DHT22
 	message += "<br><i class=\"fa fa-tint\" style=\"font-size:20px;\"></i> " + String(roomHumidity) + "%RH"
@@ -1817,73 +1835,73 @@ void handleRoot()
 	else message += "&nbsp;<i style=\"color:Blue;\" class=\"fa fa-square-o\"></i>";
 	message += "</span>";
 #endif
-	if (WiFi.isConnected())
-	{
-		message += "<br><br><i class = \"fa fa-tree\" style=\"font-size:20px;\"></i>"
-			"<br><i class = \"fa fa-thermometer\" style=\"font-size:20px;\"></i> " + String(outdoorTemperature) + "&deg;C / " + String(outdoorTemperature * 9.0 / 5.0 + 32.0) + "&deg;F"
-			"<br><i class = \"fa fa-tint\" style=\"font-size:20px;\"></i> " + String(outdoorHumidity) + "%RH"
-			"<br><span class = \"";
-		switch (outdoorCode)
-		{
-		case 0:  // tornado
-		case 1:  // tropical storm
-		case 2:  // hurricane
-			message += "fa fa-frown-o";
-			break;
-		case 3:  // severe thunderstorms
-		case 4:  // thunderstorms
-		case 37: // isolated thunderstorms
-		case 38: // scattered thunderstorms
-		case 39: // scattered thunderstorms
-		case 45: // thundershowers
-		case 47: // isolated thundershowers
-			message += "fa fa-flash";
-			break;
-		case 5:  // mixed rain and snow
-		case 6:  // mixed rain and sleet
-		case 7:  // mixed snow and sleet
-		case 8:  // freezing drizzle
-		case 9:  // drizzle
-		case 10: // freezing rain
-		case 11: // showers
-		case 12: // showers
-			message += "fa fa-umbrella";
-			break;
-		case 13: // snow flurries
-		case 14: // light snow showers
-		case 15: // blowing snow
-		case 16: // snow
-		case 17: // hail
-		case 41: // heavy snow
-		case 42: // scattered snow showers
-		case 43: // heavy snow
-		case 46: // snow showers
-			message += "fa fa-snowflake-o";
-			break;
-		case 23: // blustery
-		case 24: // windy
-			message += "fa fa-flag";
-			break;
-		case 31: // clear (night)
-		case 33: // fair (night)
-			message += "fa fa-moon-o";
-			break;
-		case 32: // sunny
-		case 34: // fair (day)
-		case 36: // hot
-			message += "fa fa-sun-o";
-			break;
-    case 48: // not available
-      message += "fa fa-pause-circle";
-      break;  
-		default:
-			message += "fa fa-cloud";
-			break;
-		}
-		message += "\" style=\"font-size:20px;\"></span> " + sWeatherCondition[outdoorCode];
-	}
+	//if (WiFi.isConnected())
+	//{
+	//	message += "<br><br><i class = \"fa fa-tree\" style=\"font-size:20px;\"></i>"
+	//		"<br><i class = \"fa fa-thermometer\" style=\"font-size:20px;\"></i> " + String(outdoorTemperature) + "&deg;C / " + String(outdoorTemperature * 9.0 / 5.0 + 32.0) + "&deg;F"
+	//		"<br><i class = \"fa fa-tint\" style=\"font-size:20px;\"></i> " + String(outdoorHumidity) + "%RH"
+	//		"<br><span class = \"";
+	//	switch (outdoorCode)
+	//	{
+	//	case 0:  // tornado
+	//	case 1:  // tropical storm
+	//	case 2:  // hurricane
+	//		message += "fa fa-frown-o";
+	//		break;
+	//	case 3:  // severe thunderstorms
+	//	case 4:  // thunderstorms
+	//	case 37: // isolated thunderstorms
+	//	case 38: // scattered thunderstorms
+	//	case 39: // scattered thunderstorms
+	//	case 45: // thundershowers
+	//	case 47: // isolated thundershowers
+	//		message += "fa fa-flash";
+	//		break;
+	//	case 5:  // mixed rain and snow
+	//	case 6:  // mixed rain and sleet
+	//	case 7:  // mixed snow and sleet
+	//	case 8:  // freezing drizzle
+	//	case 9:  // drizzle
+	//	case 10: // freezing rain
+	//	case 11: // showers
+	//	case 12: // showers
+	//		message += "fa fa-umbrella";
+	//		break;
+	//	case 13: // snow flurries
+	//	case 14: // light snow showers
+	//	case 15: // blowing snow
+	//	case 16: // snow
+	//	case 17: // hail
+	//	case 41: // heavy snow
+	//	case 42: // scattered snow showers
+	//	case 43: // heavy snow
+	//	case 46: // snow showers
+	//		message += "fa fa-snowflake-o";
+	//		break;
+	//	case 23: // blustery
+	//	case 24: // windy
+	//		message += "fa fa-flag";
+	//		break;
+	//	case 31: // clear (night)
+	//	case 33: // fair (night)
+	//		message += "fa fa-moon-o";
+	//		break;
+	//	case 32: // sunny
+	//	case 34: // fair (day)
+	//	case 36: // hot
+	//		message += "fa fa-sun-o";
+	//		break;
+	//	case 48: // not available
+	//		message += "fa fa-pause-circle";
+	//		break;
+	//	default:
+	//		message += "fa fa-cloud";
+	//		break;
+	//	}
+	//	message += "\" style=\"font-size:20px;\"></span> " + sWeatherCondition[outdoorCode];
+	//}
 	message += "<span style=\"font-size:12px;\">"
-		"<br><br><a href=\"http://tmw-it.ch/qlockwork/\">Qlockwork</a> was <i class=\"fa fa-code\"></i> with <i class=\"fa fa-heart\"></i> by tmw-it.ch"
+		"<br><br><a href=\"http://tmw-it.ch/qlockwork/\">Qlockwork</a> was <i class=\"fa fa-code\"></i> with <i class=\"fa fa-heart\"></i> by ch570512"
 		"<br>Firmware: " + String(FIRMWARE_VERSION);
 #if defined(UPDATE_INFO_STABLE) || defined(UPDATE_INFO_UNSTABLE)
 	if (updateInfo > String(FIRMWARE_VERSION)) message += "<br><span style=\"color:red;\">Firmwareupdate available! (" + updateInfo + ")</span>";
@@ -1910,9 +1928,9 @@ void handleRoot()
 #ifdef SENSOR_DHT22
 	message += "<br>Error (DHT): " + String(errorCounterDht);
 #endif
-	message += "<br>Error (Yahoo): " + String(errorCounterYahoo) +
-		"<br>Weather: " + String(outdoorTitle) +
-		"<br>Reset reason: " + ESP.getResetReason() +
+	//message += "<br>Error (Yahoo): " + String(errorCounterYahoo) +
+	//	"<br>Weather: " + String(outdoorTitle);
+	message += "<br>Reset reason: " + ESP.getResetReason() +
 		"<br>Flags: ";
 #ifdef RTC_BACKUP
 	message += "RTC ";
@@ -2306,7 +2324,7 @@ void handleButtonSettings()
 		"<input type=\"radio\" name=\"ii\" value=\"1\"";
 	if (settings.getItIs()) message += " checked";
 	message += "> on "
-	"<input type=\"radio\" name=\"ii\" value=\"0\"";
+		"<input type=\"radio\" name=\"ii\" value=\"0\"";
 	if (!settings.getItIs()) message += " checked";
 	message += "> off"
 		"</td></tr>";
