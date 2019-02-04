@@ -89,9 +89,6 @@ Date.
 Moonphase.
 Room temperature (RTC or DHT22).
 Room humidity (DHT22).
-Outdoor temperature (Yahoo).
-Outdoor humidity (Yahoo).
-Weathercondition (Yahoo).
 Timer (Buzzer).
 LED-test.
 Red.
@@ -104,12 +101,12 @@ Needed libraries: (recommended versions in brackets)
 ******************************************************************************
 
 esp8266 by ESP8266 Community (2.4.2)
-Adafruit NeoPixel by Adafruit (1.1.6)
+Adafruit NeoPixel by Adafruit (1.1.8)
 Adafruit Unified Sensor by Adafruit (1.0.2)
-ArduinoHttpClient by Arduino (0.3.1)
+ArduinoHttpClient by Arduino (0.3.2)
 ArduinoOTA by Ivan Grokhotkov (1.0.0)
-DHT sensor library by Adafruit (1.3.0)
-IRremoteESP8266 by Sebastien Warin (2.5.1)
+DHT sensor library by Adafruit (1.3.2)
+IRremoteESP8266 by Sebastien Warin (2.5.4)
 Time by Michael Margolis (1.5.0)
 
 This project also uses libraries (included) from:
@@ -162,9 +159,6 @@ Date:                              Shows day and month.
 Moonphase:                         Shows the moonphase.
 Room temperature:                  Display of the measured temperature in the room (only with RTC or DHT22).
 Room humidity:                     Display of the measured humidity in the room (only with DHT22).
-Outdoor temperature:               Displays the temperature for a location from Yahoo Weather.
-Outdoor humidity:                  Humidity display for the selected location from Yahoo Weather.
-Outdoor condition:                 The weathercondition in a feed in local language from Yahoo Weather.
 Timer:                             Display of the remaining time if a timer is set.
 LED-Test:                          Moves a horizontal bar across the display.
 Red:                               Set all LEDs to red.
@@ -225,9 +219,6 @@ Configuration.h - Software settings:
 #define DEDICATION                 Show a text on the clocks webpage.
 #define SELFTEST                   Test LEDs at startup. Colors are: white, red, green, blue. In this order.
 #define BRIGHTNESS_SELFTEST        Brightness of the LEDs while in testmode to not overload the powersupply.
-#define LOCATION                   Location for the weather conditions as shown on the Yahoo site if you enter your city.
-                                   "https://www.yahoo.com/news/weather" Click on "Change location". (Not Search.)
-                                   (Only letters, ' ', and ',' are allowed).
 #define FRONTCOVER_*               Frontcover of the clock. Also sets the language of the menu and the website.
 #define SHOW_MODE_AMPM
 #define SHOW_MODE_SECONDS
@@ -424,6 +415,9 @@ text=text                          Set text of feed, max. 80 characters
 ******************************************************************************
 Changelog:
 ******************************************************************************
+
+20190204:
+Update "Readme.txt"
 
 20190106:
 Removed Yahoo weather
